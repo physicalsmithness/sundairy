@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Personal Palate Map</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 980px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.96fr 1.12fr 0.84fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+      scrollbar-gutter: stable;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .headerBlock { margin-bottom: 12px; }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .question, .section, .vizCard, .metric, .noteCard, .logicCard, .factCard {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+    }
+
+    .question, .section, .vizCard {
+      padding: 12px;
+      margin-bottom: 12px;
+      overflow: visible;
+    }
+
+    .questionTitle {
+      color: #2f8f5a;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .sliderGroup {
+      display: grid;
+      gap: 10px;
+    }
+
+    .prefRow {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      padding: 9px 10px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .prefTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .prefTop strong {
+      font-size: 0.92rem;
+      line-height: 1.1;
+      padding-right: 8px;
+    }
+
+    .prefTop span {
+      color: #2f8f5a;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+
+    .prefNote {
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    .continuumLabels {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.79rem;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: start;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-top: 8px;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .styleFamilyList {
+      display: grid;
+      gap: 10px;
+    }
+
+    .familyRow {
+      display: grid;
+      gap: 6px;
+    }
+
+    .familyTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      font-size: 0.88rem;
+    }
+
+    .track {
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37, 90, 62, 0.06);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 240ms ease;
+      background: linear-gradient(90deg, #9fe48e, #55bb78);
+    }
+
+    .value {
+      color: #2f8f5a;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metricGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .metric {
+      padding: 9px 10px;
+    }
+
+    .metric strong {
+      display: block;
+      color: #2f8f5a;
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.2;
+    }
+
+    .noteList, .logicList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .factCard {
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 1240px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout, .vizGrid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin personal palate map</h1>
+      <p class="sub">Build a palate sketch with shades rather than forced single picks, then see your flavour map, likely gin style family, botanical affinities, and serve directions.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="headerBlock">
+          <div class="eyebrow">Build your palate sketch</div>
+          <h2 id="profileName">Classic bright palate</h2>
+          <p id="profileSummary">You are leaning towards structure, citrus lift, and cleaner, more classic serves.</p>
+        </div>
+
+        <div class="question">
+          <div class="questionTitle">Which aromas do you enjoy most?</div>
+          <div class="sliderGroup" id="aromaControls"></div>
+        </div>
+
+        <div class="question">
+          <div class="questionTitle">Which serve styles do you enjoy most?</div>
+          <div class="sliderGroup" id="serveControls"></div>
+        </div>
+
+        <div class="question">
+          <div class="questionTitle">What do you naturally lean towards?</div>
+          <div class="sliderGroup" id="leanControls"></div>
+        </div>
+
+        <div class="question">
+          <div class="questionTitle">Classic or contemporary?</div>
+          <div class="continuumLabels"><span>strongly classic</span><span id="styleContinuumLabel">slightly classic</span><span>strongly contemporary</span></div>
+          <input id="styleContinuum" type="range" min="0" max="100" value="34" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Your palate result</div>
+            <h2 id="resultTitle">London Dry / bright citrus lane</h2>
+            <p id="resultSummary">Your weighted choices point towards juniper structure with citrus lift, plus a preference for cleaner, more classical service.</p>
+          </div>
+          <div class="badge" id="resultBadge">Classic with lift</div>
+        </div>
+
+        <div class="vizGrid">
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Personal flavour map</h3><span>your palate signal</span></div>
+            <svg viewBox="0 0 620 520" id="radarSvg">
+              <g id="radarGrid"></g>
+              <g id="radarLabels"></g>
+              <polygon id="currentPoly" fill="rgba(85,187,120,0.24)" stroke="rgba(85,187,120,0.96)" stroke-width="4"></polygon>
+              <g id="radarPoints"></g>
+            </svg>
+            <div class="legend">
+              <div class="legendItem"><span class="swatch" style="background: rgba(85,187,120,0.92)"></span> Your palate map</div>
+            </div>
+          </div>
+
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Style family match</h3><span>nearest gin lanes</span></div>
+            <div class="styleFamilyList" id="familyList"></div>
+            <div class="metricGrid">
+              <div class="metric"><strong>classicness</strong><span id="metricClassic">High</span><small>structure + style preference</small></div>
+              <div class="metric"><strong>lift</strong><span id="metricLift">High</span><small>citrus / floral pull</small></div>
+              <div class="metric"><strong>warmth</strong><span id="metricWarmth">Low</span><small>spice / savoury depth</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Botanicals you may enjoy</h3></div>
+          <div class="noteList" id="botanicalNotes"></div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="section">
+          <div class="eyebrow">Reading your palate</div>
+          <h3 id="readTitle">Why you land in a classic bright lane</h3>
+          <p id="readText">Your choices show a preference for juniper structure, citrus lift, and a cleaner tonic-and-garnish style rather than softer, sweeter, or more perfumed serves.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Rules fired</h3></div>
+          <div class="logicList" id="logicList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Serve & cocktail directions</h3></div>
+          <div class="factList" id="serveNotes"></div>
+          <p class="tiny">This is the part guests can take away and actually use at home.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const axes = ['juniper pull', 'citrus lift', 'floral pull', 'spice warmth', 'savoury edge', 'classic pull'];
+
+    const aromaControls = [
+      { key: 'juniper', label: 'juniper / pine', note: 'classic backbone and gin identity', delta: { 'juniper pull': 0.34, 'classic pull': 0.18, 'savoury edge': 0.04 } },
+      { key: 'citrus', label: 'citrus peel', note: 'lift, brightness, and freshness', delta: { 'citrus lift': 0.36, 'classic pull': 0.04 } },
+      { key: 'floral', label: 'floral blossom', note: 'soft aromatic lift and perfume', delta: { 'floral pull': 0.40, 'citrus lift': 0.05, 'classic pull': -0.10 } },
+      { key: 'spice', label: 'warm spice', note: 'mid-palate warmth and grip', delta: { 'spice warmth': 0.36, 'classic pull': 0.05 } },
+      { key: 'savoury', label: 'green / savoury herb', note: 'dry green lift and herbal bite', delta: { 'savoury edge': 0.38, 'juniper pull': 0.08, 'classic pull': 0.04 } }
+    ];
+
+    const serveControls = [
+      { key: 'classic_gt', label: 'classic G&T', note: 'clean tonic line and traditional balance', delta: { 'classic pull': 0.30, 'juniper pull': 0.16, 'citrus lift': 0.08 } },
+      { key: 'citrus_serve', label: 'bright citrus serve', note: 'peel-driven and lifted', delta: { 'citrus lift': 0.28, 'classic pull': 0.06 } },
+      { key: 'floral_serve', label: 'soft floral serve', note: 'aromatic and softer-edged', delta: { 'floral pull': 0.30, 'classic pull': -0.16 } },
+      { key: 'martini', label: 'dry martini-style serve', note: 'firm, spirit-forward, and structural', delta: { 'classic pull': 0.36, 'juniper pull': 0.18, 'spice warmth': 0.04 } },
+      { key: 'herb_long', label: 'fresh herbal long serve', note: 'green and savoury', delta: { 'savoury edge': 0.26, 'citrus lift': 0.10, 'classic pull': 0.03 } }
+    ];
+
+    const leanControls = [
+      { key: 'juniper', label: 'juniper', note: 'pine, structure, classic gin centre', delta: { 'juniper pull': 0.34, 'classic pull': 0.12 } },
+      { key: 'citrus', label: 'citrus', note: 'brightness and top-note lift', delta: { 'citrus lift': 0.34 } },
+      { key: 'floral', label: 'floral', note: 'perfume and softness', delta: { 'floral pull': 0.34, 'classic pull': -0.10 } },
+      { key: 'spice', label: 'spice', note: 'warmth and grip', delta: { 'spice warmth': 0.34 } },
+      { key: 'savoury', label: 'savoury', note: 'herbal dryness and green edge', delta: { 'savoury edge': 0.34, 'juniper pull': 0.06 } }
+    ];
+
+    const ginFamilies = {
+      london_dry: { label: 'London Dry', target: { 'juniper pull': 82, 'citrus lift': 48, 'floral pull': 12, 'spice warmth': 28, 'savoury edge': 24, 'classic pull': 86 } },
+      citrus_contemporary: { label: 'Citrus Contemporary', target: { 'juniper pull': 52, 'citrus lift': 84, 'floral pull': 18, 'spice warmth': 20, 'savoury edge': 18, 'classic pull': 44 } },
+      floral_contemporary: { label: 'Floral Contemporary', target: { 'juniper pull': 34, 'citrus lift': 34, 'floral pull': 88, 'spice warmth': 14, 'savoury edge': 14, 'classic pull': 18 } },
+      spice_led: { label: 'Spice-led', target: { 'juniper pull': 52, 'citrus lift': 20, 'floral pull': 10, 'spice warmth': 82, 'savoury edge': 28, 'classic pull': 56 } },
+      herbal_savoury: { label: 'Herbal Savoury', target: { 'juniper pull': 48, 'citrus lift': 24, 'floral pull': 16, 'spice warmth': 24, 'savoury edge': 82, 'classic pull': 52 } },
+      navy_strength: { label: 'Navy Strength', target: { 'juniper pull': 86, 'citrus lift': 28, 'floral pull': 8, 'spice warmth': 42, 'savoury edge': 26, 'classic pull': 78 } }
+    };
+
+    const botanicalBank = [
+      { name: 'Juniper', tags: ['juniper pull', 'classic pull'], note: 'piney backbone and category anchor' },
+      { name: 'Lemon Peel', tags: ['citrus lift'], note: 'sharp bright top note' },
+      { name: 'Orange Peel', tags: ['citrus lift', 'spice warmth'], note: 'rounder citrus oil' },
+      { name: 'Coriander Seed', tags: ['citrus lift', 'spice warmth'], note: 'citrus-spice bridge' },
+      { name: 'Angelica Root', tags: ['savoury edge', 'classic pull'], note: 'dry structural binder' },
+      { name: 'Cardamom', tags: ['spice warmth', 'citrus lift'], note: 'bright aromatic spice' },
+      { name: 'Lavender', tags: ['floral pull'], note: 'airy floral perfume' },
+      { name: 'Rose Petal', tags: ['floral pull'], note: 'rich floral softness' },
+      { name: 'Rosemary', tags: ['savoury edge', 'juniper pull'], note: 'piney green herb' },
+      { name: 'Thyme', tags: ['savoury edge', 'spice warmth'], note: 'dry savoury edge' }
+    ];
+
+    const state = {
+      aromas: { juniper: 68, citrus: 82, floral: 18, spice: 24, savoury: 20 },
+      serves: { classic_gt: 76, citrus_serve: 72, floral_serve: 12, martini: 58, herb_long: 24 },
+      leans: { juniper: 54, citrus: 78, floral: 18, spice: 22, savoury: 20 },
+      styleContinuum: 34
+    };
+
+    function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+    function continuumLabel(v) {
+      if (v <= 15) return 'strongly classic';
+      if (v <= 35) return 'slightly classic';
+      if (v <= 65) return 'balanced';
+      if (v <= 85) return 'slightly contemporary';
+      return 'strongly contemporary';
+    }
+
+    function drawRadar(profile) {
+      const grid = document.getElementById('radarGrid');
+      const labels = document.getElementById('radarLabels');
+      const currentPoly = document.getElementById('currentPoly');
+      const ptsGroup = document.getElementById('radarPoints');
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      ptsGroup.innerHTML = '';
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = axes.map((_, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+          const r = (level / 100) * maxR;
+          return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+        }).join(' ');
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        shape.setAttribute('points', pts);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', 'rgba(54,81,66,0.11)');
+        shape.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(shape);
+      });
+      axes.forEach((label, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        const lx = cx + Math.cos(angle) * (maxR + 24);
+        const ly = cy + Math.sin(angle) * (maxR + 24);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lx);
+        text.setAttribute('y', ly);
+        text.setAttribute('fill', 'rgba(22,54,36,0.95)');
+        text.setAttribute('font-size', '14');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+      const currentPts = axes.map((key, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const r = (profile[key] / 100) * maxR;
+        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+      });
+      currentPoly.setAttribute('points', currentPts.map(p => `${p.x},${p.y}`).join(' '));
+      currentPts.forEach(p => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p.x);
+        dot.setAttribute('cy', p.y);
+        dot.setAttribute('r', '5.5');
+        dot.setAttribute('fill', 'rgba(85,187,120,0.96)');
+        dot.setAttribute('stroke', 'rgba(255,255,255,0.85)');
+        dot.setAttribute('stroke-width', '1.4');
+        ptsGroup.appendChild(dot);
+      });
+    }
+
+    function buildControlsOnce(containerId, controls, storeKey) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      controls.forEach(control => {
+        const row = document.createElement('div');
+        row.className = 'prefRow';
+        row.innerHTML = `
+          <div class="prefTop"><strong>${control.label}</strong><span id="${storeKey}-${control.key}-label"></span></div>
+          <input id="${storeKey}-${control.key}" type="range" min="0" max="100" />
+          <div class="prefNote">${control.note}</div>
+        `;
+        wrap.appendChild(row);
+        row.querySelector('input').addEventListener('input', e => {
+          state[storeKey][control.key] = Number(e.target.value);
+          document.getElementById(`${storeKey}-${control.key}-label`).textContent = levelWord(state[storeKey][control.key]);
+          render();
+        });
+      });
+    }
+
+    function syncControls(controls, storeKey) {
+      controls.forEach(control => {
+        const value = state[storeKey][control.key];
+        const input = document.getElementById(`${storeKey}-${control.key}`);
+        const label = document.getElementById(`${storeKey}-${control.key}-label`);
+        if (input && document.activeElement !== input) input.value = value;
+        if (label) label.textContent = levelWord(value);
+      });
+    }
+
+    function computeProfile() {
+      const profile = Object.fromEntries(axes.map(axis => [axis, 14]));
+      aromaControls.forEach(control => {
+        const weight = state.aromas[control.key] / 100;
+        Object.entries(control.delta).forEach(([axis, delta]) => { profile[axis] += delta * 100 * weight; });
+      });
+      serveControls.forEach(control => {
+        const weight = state.serves[control.key] / 100;
+        Object.entries(control.delta).forEach(([axis, delta]) => { profile[axis] += delta * 100 * weight; });
+      });
+      leanControls.forEach(control => {
+        const weight = state.leans[control.key] / 100;
+        Object.entries(control.delta).forEach(([axis, delta]) => { profile[axis] += delta * 100 * weight; });
+      });
+      const style = state.styleContinuum;
+      const classicWeight = (100 - style) / 100;
+      const contemporaryWeight = style / 100;
+      profile['classic pull'] += classicWeight * 34 - contemporaryWeight * 22;
+      profile['juniper pull'] += classicWeight * 10;
+      profile['floral pull'] += contemporaryWeight * 12 - classicWeight * 6;
+      profile['citrus lift'] += contemporaryWeight * 6 + classicWeight * 2;
+      axes.forEach(axis => { profile[axis] = clamp(profile[axis]); });
+      return profile;
+    }
+
+    function familyMatches(profile) {
+      return Object.entries(ginFamilies).map(([key, family]) => {
+        const distance = axes.reduce((sum, axis) => sum + Math.abs(profile[axis] - family.target[axis]), 0);
+        const score = clamp(100 - distance / 4.2);
+        return { key, label: family.label, score };
+      }).sort((a, b) => b.score - a.score);
+    }
+
+    function buildBotanicalMatches(profile) {
+      return botanicalBank.map(bot => {
+        const score = bot.tags.reduce((sum, tag) => sum + profile[tag], 0) / bot.tags.length;
+        return { ...bot, score: clamp(score) };
+      }).sort((a, b) => b.score - a.score).slice(0, 4);
+    }
+
+    function buildSummary(profile, topFamily) {
+      let title = `${topFamily.label} lane`;
+      let summary = 'Your weighted choices point to a fairly balanced palate with no single lane overwhelming everything else.';
+      let badge = 'Balanced palate';
+      if (topFamily.key === 'london_dry') { title = 'London Dry / classic lane'; summary = 'Your weighted choices point towards juniper structure, dryness, and a more classical way of reading gin.'; badge = 'Classic-led'; }
+      if (topFamily.key === 'citrus_contemporary') { title = 'Bright citrus contemporary lane'; summary = 'You are pulling hard towards lifted peel notes and fresher, brighter gin styles.'; badge = 'Citrus-led'; }
+      if (topFamily.key === 'floral_contemporary') { title = 'Floral contemporary lane'; summary = 'You seem to enjoy aromatic lift, softer blossom notes, and less rigidly classic gin structures.'; badge = 'Floral-led'; }
+      if (topFamily.key === 'spice_led') { title = 'Spice-led lane'; summary = 'Your profile suggests an interest in warmth, mid-palate definition, and more savoury gin depth.'; badge = 'Warm-spice leaning'; }
+      if (topFamily.key === 'herbal_savoury') { title = 'Herbal savoury lane'; summary = 'You are leaning green, savoury, and drier, with less need for overt sweetness or perfume.'; badge = 'Herbal-savory'; }
+      if (topFamily.key === 'navy_strength') { title = 'Classic high-intensity lane'; summary = 'You seem to like strong structure, assertive juniper, and a more forceful style of gin.'; badge = 'High-intensity classic'; }
+      return { title, summary, badge };
+    }
+
+    function dominantKey(obj) { return Object.entries(obj).sort((a, b) => b[1] - a[1])[0][0]; }
+    function labelForKey(key, controls) { return controls.find(c => c.key === key)?.label || key; }
+
+    function buildRules(profile, matches) {
+      const rules = [];
+      const topAroma = dominantKey(state.aromas);
+      const topServe = dominantKey(state.serves);
+      const topLean = dominantKey(state.leans);
+      rules.push(['Aroma signal', `${labelForKey(topAroma, aromaControls)} is your strongest aroma pull at ${levelWord(state.aromas[topAroma])}.`]);
+      rules.push(['Serve preference', `${labelForKey(topServe, serveControls)} is your strongest serve pull at ${levelWord(state.serves[topServe])}.`]);
+      rules.push(['Declared lean', `${labelForKey(topLean, leanControls)} is your strongest flavour lean at ${levelWord(state.leans[topLean])}.`]);
+      rules.push(['Style preference', `Your style slider is ${continuumLabel(state.styleContinuum)}.`]);
+      rules.push(['Overall fit', `${matches[0].label} is the closest family match, with ${matches[1].label} next.`]);
+      return rules;
+    }
+
+    function buildServeNotes(profile, topFamily) {
+      const items = [];
+      if (topFamily.key === 'london_dry' || topFamily.key === 'navy_strength') items.push(['Serve idea', 'Classic tonic, lemon twist, Martini, or a firmer highball serve.']);
+      if (topFamily.key === 'citrus_contemporary') items.push(['Serve idea', 'Indian or Mediterranean tonic, grapefruit or lemon peel, Collins-style drinks.']);
+      if (topFamily.key === 'floral_contemporary') items.push(['Serve idea', 'Lighter tonic, restrained garnish, floral spritz or French 75 direction.']);
+      if (topFamily.key === 'spice_led') items.push(['Serve idea', 'Orange twist, neutral tonic, Martini or Negroni direction.']);
+      if (topFamily.key === 'herbal_savoury') items.push(['Serve idea', 'Rosemary garnish, dry tonic, long herbal highball.']);
+      if (profile['citrus lift'] >= 58) items.push(['Cocktail lane', 'You may like Gimlets, Tom Collinses, and brighter citrus-led long drinks.']);
+      if (profile['classic pull'] >= 62) items.push(['Cocktail lane', 'You are likely to enjoy Martini structures more than softer, sweeter serves.']);
+      if (profile['floral pull'] >= 54) items.push(['Cocktail lane', 'You may enjoy floral spritzes or lighter sparkling serves more than bitter heavy drinks.']);
+      if (profile['savoury edge'] >= 52) items.push(['Cocktail lane', 'Green herb highballs and savoury garnish lines should suit you well.']);
+      return items.slice(0, 4);
+    }
+
+    function renderFamilyList(matches) {
+      const wrap = document.getElementById('familyList');
+      wrap.innerHTML = '';
+      matches.slice(0, 5).forEach(match => {
+        const row = document.createElement('div');
+        row.className = 'familyRow';
+        row.innerHTML = `
+          <div class="familyTop"><span>${match.label}</span><span class="value">${levelWord(match.score)}</span></div>
+          <div class="track"><div class="fill" style="width:${match.score}%"></div></div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(item => {
+        const pair = Array.isArray(item) ? item : [item.name, item.note];
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = `<strong>${pair[0]}</strong><span>${pair[1]}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    function render() {
+      const profile = computeProfile();
+      const matches = familyMatches(profile);
+      const topFamily = matches[0];
+      const botanicals = buildBotanicalMatches(profile);
+      const summary = buildSummary(profile, topFamily);
+      document.getElementById('profileName').textContent = summary.badge;
+      document.getElementById('profileSummary').textContent = summary.summary;
+      document.getElementById('resultTitle').textContent = summary.title;
+      document.getElementById('resultSummary').textContent = summary.summary;
+      document.getElementById('resultBadge').textContent = summary.badge;
+      document.getElementById('readTitle').textContent = `Why you land in a ${summary.badge.toLowerCase()} lane`;
+      document.getElementById('readText').textContent = summary.summary;
+      document.getElementById('styleContinuumLabel').textContent = continuumLabel(state.styleContinuum);
+      syncControls(aromaControls, 'aromas');
+      syncControls(serveControls, 'serves');
+      syncControls(leanControls, 'leans');
+      const styleInput = document.getElementById('styleContinuum');
+      if (document.activeElement !== styleInput) styleInput.value = state.styleContinuum;
+      drawRadar(profile);
+      renderFamilyList(matches);
+      renderCards('botanicalNotes', botanicals.map(b => [b.name, `${b.note}. This looks like a good fit for your current palate map.`]), 'noteCard');
+      renderCards('logicList', buildRules(profile, matches), 'logicCard');
+      renderCards('serveNotes', buildServeNotes(profile, topFamily), 'factCard');
+      document.getElementById('metricClassic').textContent = levelWord(profile['classic pull']);
+      document.getElementById('metricLift').textContent = levelWord(Math.max(profile['citrus lift'], profile['floral pull']));
+      document.getElementById('metricWarmth').textContent = levelWord(Math.max(profile['spice warmth'], profile['savoury edge']));
+    }
+
+    buildControlsOnce('aromaControls', aromaControls, 'aromas');
+    buildControlsOnce('serveControls', serveControls, 'serves');
+    buildControlsOnce('leanControls', leanControls, 'leans');
+
+    document.getElementById('styleContinuum').addEventListener('input', e => {
+      state.styleContinuum = Number(e.target.value);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

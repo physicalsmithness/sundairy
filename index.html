@@ -5,21 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Directory Listing</title>
     <style>
+        /* A softer, modern palette */
         :root {
-            --bg-color: #f6f8fa;
-            --text-main: #24292e;
-            --text-muted: #586069;
-            --border-color: #d1d5da;
-            --link-color: #0366d6;
-            --link-hover: #f1f8ff;
+            --bg-color: #f0f4f8;       /* Soft blue-grey background */
+            --text-main: #334155;      /* Slate text */
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --accent-color: #6366f1;   /* Indigo accent */
+            --accent-hover: #4f46e5;
             --block-bg: #ffffff;
+            --hover-bg: #f8fafc;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            line-height: 1.5;
+            line-height: 1.4;
             padding: 2rem 1rem;
             margin: 0;
         }
@@ -27,32 +29,31 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-            background: var(--bg-color);
         }
 
         .header {
             background-color: var(--block-bg);
             padding: 1.5rem;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 1px 3px rgba(27,31,35,0.04);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
         h1 {
             font-size: 1.5rem;
             margin: 0;
             font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.025em;
         }
 
-        /* The Grid Layout for the Blocks */
         ul {
             list-style: none;
             padding: 0;
             margin: 0;
             display: grid;
-            /* Creates columns that automatically fit the space, minimum 180px wide */
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 1.5rem; 
         }
 
@@ -60,73 +61,81 @@
             display: block;
         }
 
-        /* The Block Buttons */
         a {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem;
+            padding: 2rem 1.5rem;
             text-decoration: none;
             color: var(--text-main);
             background-color: var(--block-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             text-align: center;
             height: 100%;
             box-sizing: border-box;
-            box-shadow: 0 1px 3px rgba(27,31,35,0.04);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             font-weight: 500;
+            
+            /* Keeps long text from breaking the layout */
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            hyphens: auto;
+            width: 100%;
         }
 
-        /* Hover Effect: slightly lifts the block and highlights the border */
         a:hover {
-            background-color: var(--link-hover);
-            border-color: var(--link-color);
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(3, 102, 214, 0.15);
-            color: var(--link-color);
+            background-color: var(--hover-bg);
+            border-color: var(--accent-color);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            color: var(--accent-hover);
         }
 
         .icon {
-            font-size: 3rem; /* Much larger icons for the blocks */
-            margin-bottom: 12px;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
             opacity: 0.9;
         }
         
-        /* Special styling for the 'Up a directory' button */
         .back-btn {
-            background-color: #eef1f5;
-            border-style: dashed;
-            border-width: 2px;
+            background-color: #f1f5f9;
+            border: 2px dashed #94a3b8;
+            color: #475569;
         }
 
         .back-btn:hover {
-            background-color: #e1e4e8;
+            background-color: #e2e8f0;
             border-color: var(--text-muted);
             color: var(--text-main);
             box-shadow: none;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+        }
+        
+        .back-btn .icon {
+            color: #64748b;
         }
 
         .status-message {
-            padding: 2rem;
+            padding: 3rem;
             text-align: center;
             color: var(--text-muted);
-            grid-column: 1 / -1; /* Spans the full width of the grid */
+            grid-column: 1 / -1;
             background: var(--block-bg);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
         }
 
         .error {
-            color: #cb2431;
-            background: #ffeef0;
+            color: #b91c1c;
+            background: #fef2f2;
             padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #fdaeb7;
+            border-radius: 12px;
+            border: 1px solid #fecaca;
             grid-column: 1 / -1;
         }
     </style>
@@ -143,20 +152,33 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🛠️ CONFIGURATION 🛠️
-        // ==========================================
         const CONFIG = {
             owner: 'physicalsmithness', 
             repo: 'sundairy'        
         };
-        // ==========================================
 
         const contentDiv = document.getElementById('content');
         const titleEl = document.getElementById('title');
 
+        // Function to clean up file and folder names
+        function formatDisplayName(filename, isFile) {
+            let name = filename;
+            
+            // If it's an HTML file, remove the extension
+            if (isFile && name.endsWith('.html')) {
+                name = name.replace('.html', '');
+            }
+            
+            // Replace underscores and hyphens with spaces
+            name = name.replace(/[_-]/g, ' ');
+            
+            // Capitalize the first letter of each word
+            return name.replace(/\b\w/g, function(char) {
+                return char.toUpperCase();
+            });
+        }
+
         async function fetchDirectory(currentPath = '') {
-            // Update title
             titleEl.textContent = currentPath === '' ? `/${CONFIG.repo}` : `/${CONFIG.repo}/${currentPath}`;
             contentDiv.innerHTML = '<div class="status-message">Fetching files...</div>';
 
@@ -171,15 +193,13 @@
                 const data = await response.json();
                 let html = '<ul>';
 
-                // Add Back Button block if not in root
                 if (currentPath !== '') {
                     let pathParts = currentPath.split('/');
                     pathParts.pop();
                     let parentPath = pathParts.join('/');
-                    html += `<li><a class="back-btn" onclick="fetchDirectory('${parentPath}')"><div class="icon">🔙</div>Back</a></li>`;
+                    html += `<li><a class="back-btn" onclick="fetchDirectory('${parentPath}')"><div class="icon">🔙</div>Go Back</a></li>`;
                 }
 
-                // Sort: Folders first, then files
                 data.sort((a, b) => {
                     if (a.type === b.type) return a.name.localeCompare(b.name);
                     return a.type === 'dir' ? -1 : 1;
@@ -189,11 +209,13 @@
 
                 data.forEach(item => {
                     if (item.type === 'dir') {
-                        html += `<li><a onclick="fetchDirectory('${item.path}')"><div class="icon">📁</div>${item.name}</a></li>`;
+                        const displayName = formatDisplayName(item.name, false);
+                        html += `<li><a onclick="fetchDirectory('${item.path}')"><div class="icon">📁</div>${displayName}</a></li>`;
                         itemCount++;
                     } 
                     else if (item.name.endsWith('.html') && item.name !== 'index.html') {
-                        html += `<li><a href="${item.path}"><div class="icon">📄</div>${item.name}</a></li>`;
+                        const displayName = formatDisplayName(item.name, true);
+                        html += `<li><a href="${item.path}"><div class="icon">📄</div>${displayName}</a></li>`;
                         itemCount++;
                     }
                 });
@@ -211,7 +233,6 @@
             }
         }
 
-        // Start
         fetchDirectory();
     </script>
 </body>
