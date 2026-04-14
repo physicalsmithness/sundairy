@@ -9,9 +9,10 @@
             --bg-color: #f6f8fa;
             --text-main: #24292e;
             --text-muted: #586069;
-            --border-color: #e1e4e8;
+            --border-color: #d1d5da;
             --link-color: #0366d6;
             --link-hover: #f1f8ff;
+            --block-bg: #ffffff;
         }
 
         body {
@@ -24,82 +25,109 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(27,31,35,0.04);
-            overflow: hidden;
+            background: var(--bg-color);
         }
 
         .header {
-            background-color: var(--bg-color);
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
+            background-color: var(--block-bg);
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(27,31,35,0.04);
         }
 
         h1 {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             margin: 0;
             font-weight: 600;
         }
 
+        /* The Grid Layout for the Blocks */
         ul {
             list-style: none;
             padding: 0;
             margin: 0;
+            display: grid;
+            /* Creates columns that automatically fit the space, minimum 180px wide */
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1.5rem; 
         }
 
         li {
-            border-bottom: 1px solid var(--border-color);
+            display: block;
         }
 
-        li:last-child {
-            border-bottom: none;
-        }
-
+        /* The Block Buttons */
         a {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 0.75rem 1rem;
+            justify-content: center;
+            padding: 2rem 1rem;
             text-decoration: none;
             color: var(--text-main);
-            transition: background-color 0.2s ease;
+            background-color: var(--block-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.2s ease;
             cursor: pointer;
+            text-align: center;
+            height: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 1px 3px rgba(27,31,35,0.04);
+            font-weight: 500;
         }
 
+        /* Hover Effect: slightly lifts the block and highlights the border */
         a:hover {
             background-color: var(--link-hover);
+            border-color: var(--link-color);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(3, 102, 214, 0.15);
             color: var(--link-color);
         }
 
         .icon {
-            margin-right: 12px;
-            font-size: 1.2rem;
-            opacity: 0.8;
+            font-size: 3rem; /* Much larger icons for the blocks */
+            margin-bottom: 12px;
+            opacity: 0.9;
         }
         
+        /* Special styling for the 'Up a directory' button */
         .back-btn {
-            background-color: #f1f8ff;
-            font-weight: 600;
+            background-color: #eef1f5;
+            border-style: dashed;
+            border-width: 2px;
+        }
+
+        .back-btn:hover {
+            background-color: #e1e4e8;
+            border-color: var(--text-muted);
+            color: var(--text-main);
+            box-shadow: none;
+            transform: translateY(-1px);
         }
 
         .status-message {
             padding: 2rem;
             text-align: center;
             color: var(--text-muted);
+            grid-column: 1 / -1; /* Spans the full width of the grid */
+            background: var(--block-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .error {
             color: #cb2431;
             background: #ffeef0;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem;
+            padding: 1.5rem;
+            border-radius: 8px;
             border: 1px solid #fdaeb7;
+            grid-column: 1 / -1;
         }
     </style>
 </head>
@@ -128,8 +156,8 @@
         const titleEl = document.getElementById('title');
 
         async function fetchDirectory(currentPath = '') {
-            // Update title to show current location
-            titleEl.textContent = currentPath === '' ? `Index of /${CONFIG.repo}` : `Index of /${currentPath}`;
+            // Update title
+            titleEl.textContent = currentPath === '' ? `/${CONFIG.repo}` : `/${CONFIG.repo}/${currentPath}`;
             contentDiv.innerHTML = '<div class="status-message">Fetching files...</div>';
 
             try {
@@ -143,14 +171,12 @@
                 const data = await response.json();
                 let html = '<ul>';
 
-                // If we are inside a subfolder, add a "Back" button
+                // Add Back Button block if not in root
                 if (currentPath !== '') {
-                    // Calculate the parent path
                     let pathParts = currentPath.split('/');
-                    pathParts.pop(); // Remove the current folder
+                    pathParts.pop();
                     let parentPath = pathParts.join('/');
-                    
-                    html += `<li><a class="back-btn" onclick="fetchDirectory('${parentPath}')"><span class="icon">🔙</span>.. (Up a directory)</a></li>`;
+                    html += `<li><a class="back-btn" onclick="fetchDirectory('${parentPath}')"><div class="icon">🔙</div>Back</a></li>`;
                 }
 
                 // Sort: Folders first, then files
@@ -163,13 +189,11 @@
 
                 data.forEach(item => {
                     if (item.type === 'dir') {
-                        // 📁 DIRECTORY: Clicking it runs this function again with the new path
-                        html += `<li><a onclick="fetchDirectory('${item.path}')"><span class="icon">📁</span>${item.name}/</a></li>`;
+                        html += `<li><a onclick="fetchDirectory('${item.path}')"><div class="icon">📁</div>${item.name}</a></li>`;
                         itemCount++;
                     } 
                     else if (item.name.endsWith('.html') && item.name !== 'index.html') {
-                        // 📄 HTML FILE: Clicking it acts as a normal link to open the page
-                        html += `<li><a href="${item.path}"><span class="icon">📄</span>${item.name}</a></li>`;
+                        html += `<li><a href="${item.path}"><div class="icon">📄</div>${item.name}</a></li>`;
                         itemCount++;
                     }
                 });
@@ -177,7 +201,7 @@
                 html += '</ul>';
 
                 if (itemCount === 0) {
-                    html += '<div class="status-message">No HTML files found in this folder.</div>';
+                    html = '<ul><li class="status-message" style="grid-column: 1 / -1;">No HTML files or folders found here.</li></ul>';
                 }
 
                 contentDiv.innerHTML = html;
@@ -187,7 +211,7 @@
             }
         }
 
-        // Start the app by fetching the root folder
+        // Start
         fetchDirectory();
     </script>
 </body>
