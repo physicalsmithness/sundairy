@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Botanical Balance Builder</title>
+  <style>
+    :root {
+      --bg: #101411;
+      --shell: rgba(16, 20, 17, 0.93);
+      --panel: rgba(255,255,255,0.045);
+      --line: rgba(255,255,255,0.1);
+      --text: #eef4ed;
+      --muted: #b8c8ba;
+      --accent: #91dc84;
+      --accent2: #4faa5b;
+      --juniper: #71b66f;
+      --citrus: #f2c75d;
+      --floral: #d98dcb;
+      --spice: #cb7b48;
+      --herbal: #67ba95;
+      --rooty: #9a7853;
+      --shadow: 0 24px 70px rgba(0,0,0,0.42);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(145,220,132,0.15), transparent 24%),
+        radial-gradient(circle at 82% 12%, rgba(217,141,203,0.10), transparent 22%),
+        linear-gradient(180deg, #171c18 0%, #101411 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.045), transparent 20%, transparent 82%, rgba(255,255,255,0.035));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      z-index: 1;
+    }
+
+    .titleBlock h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.2vw, 2.35rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .titleBlock p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+      max-width: 860px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .tabBtn, .catBtn, .tinyBtn, .stepBtn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .tabBtn {
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      min-width: 164px;
+      color: #e4f0e3;
+    }
+
+    .tabBtn.active, .catBtn.active, .tinyBtn.active {
+      background: linear-gradient(135deg, rgba(145,220,132,0.24), rgba(79,170,91,0.12));
+      border-color: rgba(145,220,132,0.28);
+      box-shadow: 0 10px 24px rgba(79,170,91,0.14);
+      color: #f5fff3;
+    }
+
+    .view {
+      display: none;
+      height: 100%;
+      overflow: auto;
+      padding: 12px 16px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .view.active { display: block; }
+
+    .layout {
+      display: grid;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .broadLayout { grid-template-columns: 0.86fr 1.18fr 0.84fr; }
+    .botanicalLayout { grid-template-columns: 0.98fr 1.1fr 0.84fr; }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #d2efcd;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #a8eb9b, #4faa5b);
+      box-shadow: 0 0 14px rgba(145,220,132,0.45);
+    }
+
+    .panel h2 {
+      margin: 0 0 5px;
+      font-size: 1.48rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .headerRow {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.045);
+      color: #d9f4d4;
+      font-size: 0.86rem;
+      white-space: nowrap;
+    }
+
+    .controlsGrid {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .control {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .controlLabel { font-weight: 700; font-size: 0.94rem; }
+    .controlValue { color: #dbf6d6; font-weight: 700; }
+    .help { color: #b8c8ba; font-size: 0.8rem; line-height: 1.26; }
+
+    input[type="range"] { width: 100%; appearance: none; background: transparent; margin: 0; }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.28);
+      background: radial-gradient(circle at 35% 30%, #f4fff2, #91dc84 56%, #4faa5b 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.28);
+      background: radial-gradient(circle at 35% 30%, #f4fff2, #91dc84 56%, #4faa5b 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1.04fr 0.96fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .vizCard {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .vizHead, .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .vizHead h3, .sectionTitle h3 { margin: 0; font-size: 0.98rem; }
+
+    svg { width: 100%; height: auto; display: block; }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .legendItem { display: inline-flex; align-items: center; gap: 8px; }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+    .styleMapBox {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      position: relative;
+      height: 280px;
+      overflow: hidden;
+    }
+
+    .axisX, .axisY { position: absolute; background: rgba(255,255,255,0.12); }
+    .axisX { left: 10%; right: 10%; top: 50%; height: 1px; }
+    .axisY { top: 10%; bottom: 10%; left: 50%; width: 1px; }
+
+    .quadLabel {
+      position: absolute;
+      color: #b8c8ba;
+      font-size: 0.77rem;
+      line-height: 1.2;
+      max-width: 120px;
+    }
+
+    .styleDot {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 30%, #f4fff2, #91dc84 60%, #4faa5b 100%);
+      box-shadow: 0 0 0 5px rgba(145,220,132,0.13), 0 8px 18px rgba(0,0,0,0.35);
+      transform: translate(-50%, -50%);
+      transition: left 220ms ease, top 220ms ease;
+    }
+
+    .metricGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 9px 10px;
+    }
+
+    .metric strong {
+      display: block;
+      color: #d9f4d4;
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      display: block;
+    }
+
+    .metric small {
+      color: var(--muted);
+      font-size: 0.76rem;
+      display: block;
+      margin-top: 3px;
+      line-height: 1.2;
+    }
+
+    .noteList, .logicList, .warnList, .serveList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .warnCard, .serveCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .warnCard strong, .serveCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #d9f4d4;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .warnCard span, .serveCard span, .factCard span {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+      display: block;
+    }
+
+    .sidePanel {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .toolRow {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .tinyBtn {
+      padding: 8px 11px;
+      border-radius: 999px;
+      border-color: var(--line);
+      background: rgba(255,255,255,0.035);
+      font-size: 0.84rem;
+      font-weight: 650;
+    }
+
+    .catTabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .catBtn {
+      padding: 8px 11px;
+      border-radius: 999px;
+      border-color: var(--line);
+      background: rgba(255,255,255,0.035);
+      font-size: 0.84rem;
+      font-weight: 650;
+    }
+
+    .botanicalList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .botRow {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 10px 12px;
+    }
+
+    .botText strong {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .botText span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .botMeta {
+      color: #d9f4d4;
+      font-size: 0.76rem;
+      margin-top: 5px;
+      letter-spacing: 0.02em;
+    }
+
+    .stepper {
+      display: inline-grid;
+      grid-template-columns: 28px 34px 28px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .stepBtn {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+      font-weight: 800;
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    .stepValue {
+      text-align: center;
+      font-weight: 700;
+      color: #f3fff1;
+      font-size: 0.88rem;
+    }
+
+    .contribList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .contribRow {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 9px 10px;
+    }
+
+    .contribTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 6px;
+      font-size: 0.84rem;
+    }
+
+    .segBar {
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .seg { height: 100%; }
+
+    .miniPills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .miniPill {
+      font-size: 0.74rem;
+      color: #d9f4d4;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 4px 7px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .fill-juniper { background: linear-gradient(90deg, #96d692, var(--juniper)); }
+    .fill-citrus { background: linear-gradient(90deg, #f7db83, var(--citrus)); }
+    .fill-floral { background: linear-gradient(90deg, #eab4e3, var(--floral)); }
+    .fill-spice { background: linear-gradient(90deg, #df9761, var(--spice)); }
+    .fill-herbal { background: linear-gradient(90deg, #8dd8b5, var(--herbal)); }
+    .fill-rooty { background: linear-gradient(90deg, #b2926a, var(--rooty)); }
+
+    @media (max-width: 1200px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout, .vizGrid { grid-template-columns: 1fr; }
+      .view { height: auto; overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="titleBlock">
+        <h1>Gin botanical balance builder</h1>
+        <p>Broad family shaping on one tab, ingredient-driven recipe building on the other.</p>
+      </div>
+      <div class="tabs">
+        <button class="tabBtn active" data-tab="broad">Broad balance</button>
+        <button class="tabBtn" data-tab="botanical">Specific botanicals</button>
+      </div>
+    </div>
+
+    <main class="view active" id="broadView">
+      <div class="layout broadLayout">
+        <section class="panel stack">
+          <div>
+            <div class="eyebrow">Broad flavour controls</div>
+            <p>Adjust the six family levers.</p>
+          </div>
+          <div class="controlsGrid" id="broadControls"></div>
+        </section>
+
+        <section class="panel stack">
+          <div class="headerRow">
+            <div>
+              <div class="eyebrow">Profile result</div>
+              <h2 id="broadTitle">Classic juniper-forward structure</h2>
+              <p id="broadSummary">Juniper leads, citrus lifts, and the rooty base keeps the profile tight rather than floppy or perfumed.</p>
+            </div>
+            <div class="badge" id="broadBadge">London-dry leaning</div>
+          </div>
+
+          <div class="vizGrid">
+            <div class="vizCard">
+              <div class="vizHead"><h3>Balance radar</h3></div>
+              <svg viewBox="0 0 620 520" id="broadRadar">
+                <g id="broadRadarGrid"></g>
+                <g id="broadRadarLabels"></g>
+                <polygon id="broadRadarPoly" fill="rgba(145,220,132,0.22)" stroke="rgba(145,220,132,0.96)" stroke-width="4"></polygon>
+                <g id="broadRadarPoints"></g>
+              </svg>
+              <div class="legend">
+                <div class="legendItem"><span class="swatch" style="background: rgba(145,220,132,0.92)"></span> Current profile</div>
+              </div>
+            </div>
+
+            <div class="vizCard">
+              <div class="vizHead"><h3>Style position map</h3></div>
+              <div class="styleMapBox">
+                <div class="axisX"></div>
+                <div class="axisY"></div>
+                <div class="quadLabel" style="left:14px; top:14px;">bright / lifted</div>
+                <div class="quadLabel" style="right:14px; top:14px; text-align:right;">expressive / contemporary</div>
+                <div class="quadLabel" style="left:14px; bottom:14px;">classic backbone</div>
+                <div class="quadLabel" style="right:14px; bottom:14px; text-align:right;">warm / rich</div>
+                <div class="styleDot" id="styleDot"></div>
+              </div>
+              <div class="metricGrid">
+                <div class="metric"><strong>classicness</strong><span id="metricClassic">High</span><small>juniper + structure</small></div>
+                <div class="metric"><strong>lift</strong><span id="metricLift">Medium</span><small>citrus + floral</small></div>
+                <div class="metric"><strong>warmth</strong><span id="metricWarmth">Low</span><small>spice + root depth</small></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Likely notes</h3></div>
+            <div class="noteList" id="broadNotes"></div>
+          </div>
+        </section>
+
+        <aside class="panel sidePanel">
+          <div class="section">
+            <div class="eyebrow">Reading the shape</div>
+            <h3 id="broadReadTitle">Why this reads as a classic gin</h3>
+            <p id="broadReadText">Juniper still carries the identity, while citrus and root structure shape how bright or grounded the gin feels.</p>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Rules fired</h3></div>
+            <div class="logicList" id="broadLogic"></div>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Warnings</h3></div>
+            <div class="warnList" id="broadWarn"></div>
+            <div class="sectionTitle" style="margin-top:10px;"><h3>Serve direction</h3></div>
+            <div class="serveList" id="broadServe"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <main class="view" id="botanicalView">
+      <div class="layout botanicalLayout">
+        <section class="panel stack">
+          <div>
+            <div class="eyebrow">Botanical recipe builder</div>
+            <p>Each botanical contributes across more than one family, with potency weighted so the recipe behaves less like six on-off switches.</p>
+          </div>
+          <div class="catTabs" id="categoryTabs"></div>
+          <div class="botanicalList" id="botanicalList"></div>
+        </section>
+
+        <section class="panel stack">
+          <div class="headerRow">
+            <div>
+              <div class="eyebrow">Recipe result</div>
+              <h2 id="botanicalTitle">Botanical build</h2>
+              <p id="botanicalSummary">The recipe rolls up into the six broad families, then the same rule engine reads the resulting shape.</p>
+            </div>
+            <div class="badge" id="botanicalBadge">0 botanicals selected</div>
+          </div>
+
+          <div class="vizGrid">
+            <div class="vizCard">
+              <div class="vizHead"><h3>Recipe radar</h3></div>
+              <svg viewBox="0 0 620 520" id="botanicalRadar">
+                <g id="botanicalRadarGrid"></g>
+                <g id="botanicalRadarLabels"></g>
+                <polygon id="botanicalRadarPoly" fill="rgba(145,220,132,0.22)" stroke="rgba(145,220,132,0.96)" stroke-width="4"></polygon>
+                <g id="botanicalRadarPoints"></g>
+              </svg>
+              <div class="legend">
+                <div class="legendItem"><span class="swatch" style="background: rgba(145,220,132,0.92)"></span> Current recipe</div>
+              </div>
+            </div>
+
+            <div class="vizCard">
+              <div class="sectionTitle"><h3>Top botanical contributions</h3></div>
+              <div class="contribList" id="contribList"></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Likely notes</h3></div>
+            <div class="noteList" id="botanicalNotes"></div>
+          </div>
+        </section>
+
+        <aside class="panel sidePanel">
+          <div class="section">
+            <div class="eyebrow">Interpretation</div>
+            <h3 id="botanicalReadTitle">A blank build so far</h3>
+            <p id="botanicalReadText">Add a classic core first, then see what happens when you push citrus, florals, or spice.</p>
+            <div class="toolRow">
+              <button class="tinyBtn" id="applyToBroadBtn">Use in broad tab</button>
+              <button class="tinyBtn" id="clearRecipeBtn">Clear recipe</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Rules fired</h3></div>
+            <div class="logicList" id="botanicalLogic"></div>
+          </div>
+
+          <div class="section">
+            <div class="sectionTitle"><h3>Gin-school prompts</h3></div>
+            <div class="factList" id="botanicalFacts"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const families = [
+      { key: 'juniper', label: 'Juniper', color: 'var(--juniper)' },
+      { key: 'citrus', label: 'Citrus', color: 'var(--citrus)' },
+      { key: 'floral', label: 'Floral', color: 'var(--floral)' },
+      { key: 'spice', label: 'Spice', color: 'var(--spice)' },
+      { key: 'herbal', label: 'Herbal', color: 'var(--herbal)' },
+      { key: 'rooty', label: 'Rooty', color: 'var(--rooty)' },
+    ];
+
+    const defaultBroad = { juniper: 74, citrus: 58, floral: 18, spice: 34, herbal: 24, rooty: 42 };
+
+    const broadExplainers = {
+      juniper: 'Identity anchor. Too little and the build starts drifting away from gin’s centre of gravity.',
+      citrus: 'Top-note brightness and peel lift.',
+      floral: 'Perfume, blossom, and aromatic softness.',
+      spice: 'Warmth, pepper, and mid-palate definition.',
+      herbal: 'Green freshness and savoury lift.',
+      rooty: 'Dryness, structure, and binding power.'
+    };
+
+    const botanicals = [
+      { name: 'Juniper', category: 'Core', desc: 'Resinous backbone.', potency: 1.25, weights: { juniper: 1.00, herbal: 0.10, spice: 0.06, citrus: 0.04 } },
+      { name: 'Coriander Seed', category: 'Core', desc: 'Citrusy spice and lift.', potency: 0.82, weights: { citrus: 0.42, spice: 0.38, herbal: 0.12, juniper: 0.05 } },
+      { name: 'Angelica Root', category: 'Core', desc: 'Dry earthy binder.', potency: 0.56, weights: { rooty: 0.82, herbal: 0.18, spice: 0.08 } },
+      { name: 'Orris Root', category: 'Core', desc: 'Fixes aroma, softens florals.', potency: 0.34, weights: { rooty: 0.58, floral: 0.28, herbal: 0.06, citrus: 0.04 } },
+      { name: 'Liquorice Root', category: 'Core', desc: 'Root sweetness and length.', potency: 0.42, weights: { rooty: 0.56, spice: 0.18, herbal: 0.08 } },
+
+      { name: 'Lemon Peel', category: 'Citrus', desc: 'Sharp bright citrus.', potency: 0.62, weights: { citrus: 0.92, floral: 0.03, herbal: 0.03 } },
+      { name: 'Orange Peel', category: 'Citrus', desc: 'Rounder citrus oil.', potency: 0.58, weights: { citrus: 0.76, spice: 0.10, floral: 0.04, herbal: 0.02 } },
+      { name: 'Grapefruit Peel', category: 'Citrus', desc: 'Bitter-zesty lift.', potency: 0.54, weights: { citrus: 0.84, herbal: 0.09, spice: 0.03 } },
+      { name: 'Lime Peel', category: 'Citrus', desc: 'Sharper greener citrus.', potency: 0.50, weights: { citrus: 0.90, herbal: 0.07 } },
+
+      { name: 'Cardamom', category: 'Spice', desc: 'Cool bright spice.', potency: 0.46, weights: { spice: 0.55, citrus: 0.22, herbal: 0.10, floral: 0.06 } },
+      { name: 'Cassia', category: 'Spice', desc: 'Warm sweet spice.', potency: 0.36, weights: { spice: 0.78, rooty: 0.16, citrus: 0.03 } },
+      { name: 'Cubeb Pepper', category: 'Spice', desc: 'Peppery aromatic warmth.', potency: 0.40, weights: { spice: 0.64, herbal: 0.18, citrus: 0.08, juniper: 0.04 } },
+      { name: 'Grains of Paradise', category: 'Spice', desc: 'Dry pepper and lift.', potency: 0.34, weights: { spice: 0.72, citrus: 0.12 } },
+
+      { name: 'Lavender', category: 'Floral', desc: 'Perfumed floral lift.', potency: 0.22, weights: { floral: 0.70, herbal: 0.22, citrus: 0.02 } },
+      { name: 'Chamomile', category: 'Floral', desc: 'Soft floral roundness.', potency: 0.28, weights: { floral: 0.50, herbal: 0.18, citrus: 0.10, rooty: 0.04 } },
+      { name: 'Rose Petal', category: 'Floral', desc: 'Rich floral perfume.', potency: 0.18, weights: { floral: 0.86, herbal: 0.04, citrus: 0.03 } },
+      { name: 'Hibiscus', category: 'Floral', desc: 'Floral-fruity brightness.', potency: 0.24, weights: { floral: 0.48, citrus: 0.16, herbal: 0.04 } },
+
+      { name: 'Rosemary', category: 'Herbal', desc: 'Piney green lift.', potency: 0.30, weights: { herbal: 0.62, juniper: 0.14, spice: 0.08 } },
+      { name: 'Thyme', category: 'Herbal', desc: 'Savoury green note.', potency: 0.28, weights: { herbal: 0.64, spice: 0.12, juniper: 0.04 } },
+      { name: 'Basil', category: 'Herbal', desc: 'Fresh green aromatic.', potency: 0.26, weights: { herbal: 0.62, citrus: 0.12, floral: 0.04 } },
+      { name: 'Mint', category: 'Herbal', desc: 'Cooling green lift.', potency: 0.18, weights: { herbal: 0.68, citrus: 0.08, floral: 0.02 } },
+    ];
+
+    const categories = ['All', 'Core', 'Citrus', 'Spice', 'Floral', 'Herbal'];
+    const familySaturation = { juniper: 5.6, citrus: 4.2, floral: 2.8, spice: 3.8, herbal: 3.8, rooty: 3.6 };
+
+    let activeCategory = 'All';
+    let broadState = { ...defaultBroad };
+    let recipeState = Object.fromEntries(botanicals.map(b => [b.name, 0]));
+
+    function clamp(v) {
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function drawRadar(prefix, profile) {
+      const grid = document.getElementById(`${prefix}RadarGrid`);
+      const labels = document.getElementById(`${prefix}RadarLabels`);
+      const poly = document.getElementById(`${prefix}RadarPoly`);
+      const ptsGroup = document.getElementById(`${prefix}RadarPoints`);
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      ptsGroup.innerHTML = '';
+
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = families.map((_, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / families.length);
+          const r = (level / 100) * maxR;
+          return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+        }).join(' ');
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        shape.setAttribute('points', pts);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', 'rgba(255,255,255,0.11)');
+        shape.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(shape);
+      });
+
+      families.forEach(({ key, label }, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / families.length);
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        const lx = cx + Math.cos(angle) * (maxR + 24);
+        const ly = cy + Math.sin(angle) * (maxR + 24);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lx);
+        text.setAttribute('y', ly);
+        text.setAttribute('fill', 'rgba(238,244,237,0.95)');
+        text.setAttribute('font-size', '15');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+
+      const pts = families.map(({ key }, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / families.length);
+        const r = (profile[key] / 100) * maxR;
+        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+      });
+      poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+
+      pts.forEach(p => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p.x);
+        dot.setAttribute('cy', p.y);
+        dot.setAttribute('r', '5.5');
+        dot.setAttribute('fill', 'rgba(145,220,132,0.96)');
+        dot.setAttribute('stroke', 'rgba(255,255,255,0.7)');
+        dot.setAttribute('stroke-width', '1.4');
+        ptsGroup.appendChild(dot);
+      });
+    }
+
+    function broadDerived(profile) {
+      const classicness = clamp((profile.juniper * 0.65 + profile.rooty * 0.35) - (profile.floral * 0.15));
+      const lift = clamp(profile.citrus * 0.6 + profile.floral * 0.4);
+      const warmth = clamp(profile.spice * 0.7 + profile.rooty * 0.3);
+      const x = clamp(50 + (profile.citrus + profile.floral + profile.herbal - profile.juniper - profile.rooty) * 0.32);
+      const y = clamp(50 + (profile.citrus + profile.floral - profile.spice - profile.rooty) * 0.28);
+      return { classicness, lift, warmth, x, y };
+    }
+
+    function getBroadNotes(profile) {
+      const pool = [];
+      if (profile.juniper >= 48) pool.push({ note: 'pine / resin backbone', because: `Triggered by ${levelWord(profile.juniper)} juniper with ${levelWord(profile.rooty)} structure.` });
+      if (profile.citrus >= 46) pool.push({ note: profile.citrus >= 68 ? 'lemon peel / bright zest' : 'citrus peel lift', because: `Triggered by ${levelWord(profile.citrus)} citrus with ${levelWord(profile.juniper)} juniper support.` });
+      if (profile.floral >= 42) pool.push({ note: profile.floral >= 60 ? 'floral perfume / blossom' : 'soft aromatic lift', because: `Triggered by ${levelWord(profile.floral)} floral weight.` });
+      if (profile.spice >= 38) pool.push({ note: 'cardamom / pepper warmth', because: `Triggered by ${levelWord(profile.spice)} spice in the middle of the profile.` });
+      if (profile.herbal >= 38) pool.push({ note: 'green herb freshness', because: `Triggered by ${levelWord(profile.herbal)} herbal lift.` });
+      if (profile.rooty >= 38) pool.push({ note: 'dry structural finish', because: `Triggered by ${levelWord(profile.rooty)} root support.` });
+      if (!pool.length) pool.push({ note: 'light early-stage profile', because: 'No family is yet strong enough to dominate the note picture.' });
+      return pool.slice(0,4);
+    }
+
+    function broadInterpret(profile) {
+      let title = 'Why this reads as a classic gin';
+      let summary = 'Juniper still carries the identity, while citrus and root structure shape how bright or grounded the gin feels.';
+      let badge = 'London-dry leaning';
+      const logic = [];
+      const warns = [];
+      const serves = [];
+
+      logic.push(['identity anchor', `Juniper is ${levelWord(profile.juniper)} and root structure is ${levelWord(profile.rooty)}.`]);
+
+      if (profile.citrus >= 66 && profile.floral < 45) {
+        title = 'Why this feels bright and zesty';
+        summary = 'Citrus is pulling the style upward and forward, while the backbone is still recognisably gin-like.';
+        badge = 'Bright citrus-led';
+        logic.push(['top-note lift', `Citrus is ${levelWord(profile.citrus)}, so the style moves towards the lifted side of the map.`]);
+        serves.push(['Serve lane', 'Dry tonic, lemon or grapefruit twist, Collins-style drinks.']);
+      }
+
+      if (profile.floral >= 56) {
+        title = 'Why this feels floral and contemporary';
+        summary = 'Floral weight is now shaping the style directly rather than acting as a small accent.';
+        badge = 'Floral contemporary';
+        logic.push(['perfume lane', `Floral weight is ${levelWord(profile.floral)}.`]);
+        serves.push(['Serve lane', 'Lighter tonic, restrained garnish, French 75 or floral spritz direction.']);
+        if (profile.rooty < 36) warns.push(['Perfume risk', 'High floral lift without enough base can feel perfumed rather than complete.']);
+      }
+
+      if (profile.spice >= 58) {
+        title = 'Why this feels warm and structured';
+        summary = 'Spice is defining the middle of the gin, giving warmth and a more savoury shape.';
+        badge = 'Spice-led';
+        logic.push(['warm middle', `Spice is ${levelWord(profile.spice)} and is becoming a lead feature.`]);
+        serves.push(['Serve lane', 'Neutral tonic, orange twist, martini or Negroni direction.']);
+      }
+
+      if (profile.herbal >= 54) {
+        logic.push(['green complexity', `Herbal lift is ${levelWord(profile.herbal)} and is making the gin feel greener and more savoury.`]);
+        serves.push(['Garnish idea', 'Rosemary, thyme, or a greener tonic style.']);
+      }
+
+      if (profile.rooty < 28) warns.push(['Light structure', 'The base is light, so the profile may feel airy rather than firmly anchored.']);
+      if (profile.citrus > 72 && profile.rooty < 32) warns.push(['Top-heavy risk', 'Lots of lift with too little base can feel impressive first, then hollow.']);
+      if (profile.juniper < 46 && profile.floral > 54) warns.push(['Category risk', 'The shape is becoming botanical-first rather than juniper-first.']);
+      if (!warns.length) warns.push(['No major warning', 'No obvious structural alarm in the current shape.']);
+      if (!serves.length) serves.push(['Serve lane', 'Classic tonic and lemon peel.']);
+
+      return { title, summary, badge, logic: logic.slice(0,4), warns: warns.slice(0,3), serves: serves.slice(0,3) };
+    }
+
+    function renderBroadControls() {
+      const wrap = document.getElementById('broadControls');
+      wrap.innerHTML = '';
+      families.forEach(({ key, label }) => {
+        const card = document.createElement('div');
+        card.className = 'control';
+        card.innerHTML = `
+          <div class="controlTop">
+            <div class="controlLabel">${label}</div>
+            <div class="controlValue" id="broadVal-${key}">${levelWord(broadState[key])}</div>
+          </div>
+          <input id="broadInput-${key}" type="range" min="0" max="100" value="${broadState[key]}" />
+          <div class="help">${broadExplainers[key]}</div>
+        `;
+        wrap.appendChild(card);
+        card.querySelector('input').addEventListener('input', (e) => {
+          broadState[key] = Number(e.target.value);
+          document.getElementById(`broadVal-${key}`).textContent = levelWord(broadState[key]);
+          renderBroad();
+        });
+      });
+    }
+
+    function syncBroadInputs() {
+      families.forEach(({ key }) => {
+        const input = document.getElementById(`broadInput-${key}`);
+        const val = document.getElementById(`broadVal-${key}`);
+        if (input) input.value = broadState[key];
+        if (val) val.textContent = levelWord(broadState[key]);
+      });
+    }
+
+    function renderCardList(containerId, items, className) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        el.appendChild(div);
+      });
+    }
+
+    function renderNoteCards(containerId, notes) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      notes.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'noteCard';
+        div.innerHTML = `<strong>${n.note}</strong><span>${n.because}</span>`;
+        el.appendChild(div);
+      });
+    }
+
+    function renderBroad() {
+      const interpretation = broadInterpret(broadState);
+      const notes = getBroadNotes(broadState);
+      const derived = broadDerived(broadState);
+
+      document.getElementById('broadTitle').textContent = interpretation.badge;
+      document.getElementById('broadSummary').textContent = interpretation.summary;
+      document.getElementById('broadBadge').textContent = interpretation.badge;
+      document.getElementById('broadReadTitle').textContent = interpretation.title;
+      document.getElementById('broadReadText').textContent = interpretation.summary;
+      document.getElementById('metricClassic').textContent = levelWord(derived.classicness);
+      document.getElementById('metricLift').textContent = levelWord(derived.lift);
+      document.getElementById('metricWarmth').textContent = levelWord(derived.warmth);
+      document.getElementById('styleDot').style.left = `${18 + derived.x * 0.64}%`;
+      document.getElementById('styleDot').style.top = `${82 - derived.y * 0.64}%`;
+
+      drawRadar('broad', broadState);
+      renderNoteCards('broadNotes', notes);
+      renderCardList('broadLogic', interpretation.logic, 'logicCard');
+      renderCardList('broadWarn', interpretation.warns, 'warnCard');
+      renderCardList('broadServe', interpretation.serves, 'serveCard');
+    }
+
+    function computeRecipe() {
+      const raw = Object.fromEntries(families.map(f => [f.key, 0]));
+      const selected = botanicals.filter(b => (recipeState[b.name] || 0) > 0);
+      selected.forEach(bot => {
+        const units = recipeState[bot.name];
+        Object.entries(bot.weights).forEach(([k, v]) => {
+          raw[k] += units * bot.potency * v;
+        });
+      });
+      const scaled = Object.fromEntries(families.map(f => [f.key, clamp(100 * (1 - Math.exp(-raw[f.key] / familySaturation[f.key])))]));
+      return { raw, scaled, selected };
+    }
+
+    function renderCategoryTabs() {
+      const wrap = document.getElementById('categoryTabs');
+      wrap.innerHTML = '';
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'catBtn' + (cat === activeCategory ? ' active' : '');
+        btn.textContent = cat;
+        btn.addEventListener('click', () => {
+          activeCategory = cat;
+          renderCategoryTabs();
+          renderBotanicalList();
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function familyTags(weights) {
+      return Object.entries(weights)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0,2)
+        .map(([k]) => families.find(f => f.key === k).label);
+    }
+
+    function renderBotanicalList() {
+      const wrap = document.getElementById('botanicalList');
+      wrap.innerHTML = '';
+      botanicals.filter(b => activeCategory === 'All' || b.category === activeCategory).forEach(bot => {
+        const units = recipeState[bot.name] || 0;
+        const tags = familyTags(bot.weights).join(' • ');
+        const row = document.createElement('div');
+        row.className = 'botRow';
+        row.innerHTML = `
+          <div class="botText">
+            <strong>${bot.name}</strong>
+            <span>${bot.desc}</span>
+            <div class="botMeta">${bot.category} • ${tags}</div>
+          </div>
+          <div class="stepper">
+            <button class="stepBtn">−</button>
+            <div class="stepValue">${units}</div>
+            <button class="stepBtn">+</button>
+          </div>
+        `;
+        const [minus, plus] = row.querySelectorAll('.stepBtn');
+        minus.addEventListener('click', () => {
+          recipeState[bot.name] = Math.max(0, units - 1);
+          renderBotanicalList();
+          renderBotanical();
+        });
+        plus.addEventListener('click', () => {
+          recipeState[bot.name] = Math.min(8, units + 1);
+          renderBotanicalList();
+          renderBotanical();
+        });
+        wrap.appendChild(row);
+      });
+    }
+
+    function topContributors(recipe, familyKey, count = 3) {
+      return recipe.selected
+        .map(bot => ({
+          name: bot.name,
+          value: (recipeState[bot.name] || 0) * bot.potency * (bot.weights[familyKey] || 0)
+        }))
+        .filter(x => x.value > 0.01)
+        .sort((a,b) => b.value - a.value)
+        .slice(0, count)
+        .map(x => x.name);
+    }
+
+    function recipeInterpret(recipe) {
+      if (!recipe.selected.length) {
+        return {
+          title: 'A blank build so far',
+          text: 'Add juniper, coriander, and angelica first. Then move one family at a time so the logic is obvious.',
+          notes: [],
+          logic: [
+            ['Start with a core', 'Juniper, coriander, and angelica give the cleanest teaching baseline.'],
+            ['Change one thing', 'Add citrus, florals, or spice gradually so guests can see the shape move.']
+          ],
+          facts: [
+            ['Why this view matters', 'It shows that botanicals overlap across several flavour families rather than acting as single-axis switches.'],
+            ['Useful prompt', 'Ask which additions lifted the top notes, and which ones actually held the recipe together.']
+          ]
+        };
+      }
+
+      const scaled = recipe.scaled;
+      const broad = broadInterpret(scaled);
+      const notes = [];
+      const logic = [];
+      const facts = [];
+      const selectedNames = recipe.selected.map(s => s.name);
+      const hasCore = ['Juniper', 'Coriander Seed', 'Angelica Root'].every(name => selectedNames.includes(name));
+
+      if (hasCore) logic.push(['Classic core present', 'The recipe has juniper, coriander, and angelica in play.']);
+      else logic.push(['Core incomplete', 'The recipe is missing part of the standard structural backbone.']);
+
+      if (scaled.juniper >= 48) notes.push({ note: 'pine / resin backbone', because: `Driven mainly by ${topContributors(recipe, 'juniper', 2).join(' and ')}.` });
+      if (scaled.citrus >= 42) notes.push({ note: scaled.citrus >= 66 ? 'bright peel lift' : 'citrus freshness', because: `Driven mainly by ${topContributors(recipe, 'citrus', 3).join(', ')}.` });
+      if (scaled.floral >= 38) notes.push({ note: scaled.floral >= 58 ? 'floral perfume' : 'soft blossom', because: `Driven mainly by ${topContributors(recipe, 'floral', 2).join(' and ')}.` });
+      if (scaled.spice >= 36) notes.push({ note: 'warm spice / pepper', because: `Driven mainly by ${topContributors(recipe, 'spice', 3).join(', ')}.` });
+      if (scaled.herbal >= 34) notes.push({ note: 'green savoury lift', because: `Driven mainly by ${topContributors(recipe, 'herbal', 2).join(' and ')}.` });
+      if (scaled.rooty >= 34) notes.push({ note: 'dry structural finish', because: `Driven mainly by ${topContributors(recipe, 'rooty', 3).join(', ')}.` });
+      if (!notes.length) notes.push({ note: 'early-stage build', because: 'The recipe is still too light to generate a distinctive note picture.' });
+
+      logic.push(['Juniper level', `Juniper presence is ${levelWord(scaled.juniper)}.`]);
+      logic.push(['Citrus lift', `Top-note lift is ${levelWord(scaled.citrus)}.`]);
+      logic.push(['Structure', `Root support is ${levelWord(scaled.rooty)}.`]);
+
+      if (scaled.floral > 56 && scaled.rooty < 30) logic.push(['Perfume risk', 'Floral lift is outrunning the recipe’s structural base.']);
+      if (scaled.citrus > 68 && scaled.juniper < 44) logic.push(['Identity drift', 'A lot of lift is arriving without enough juniper support.']);
+      if (scaled.spice > 58 && scaled.citrus < 30) logic.push(['Dense warmth', 'Spice is building without much top-note relief.']);
+
+      facts.push(
+        ['Current style read', broad.badge],
+        ['Discuss on tour', 'Which botanical changed the style lane most: did it brighten, perfume, warm, or bind?'],
+        ['Useful teaching point', 'Potency matters. One unit of lavender is not the same sort of move as one unit of juniper.']
+      );
+
+      return { title: broad.title, text: broad.summary, notes: notes.slice(0,4), logic: logic.slice(0,5), facts };
+    }
+
+    function renderContribList(recipe) {
+      const wrap = document.getElementById('contribList');
+      wrap.innerHTML = '';
+      const selected = recipe.selected
+        .map(bot => {
+          const units = recipeState[bot.name];
+          const contribs = families.map(f => ({ key: f.key, label: f.label, raw: units * bot.potency * (bot.weights[f.key] || 0), color: f.color }));
+          const total = contribs.reduce((a,b) => a + b.raw, 0) || 1;
+          return { bot, units, contribs, total };
+        })
+        .sort((a,b) => (b.total - a.total) || (b.units - a.units))
+        .slice(0,6);
+
+      if (!selected.length) {
+        wrap.innerHTML = '<div class="factCard"><strong>No recipe yet</strong><span>Add botanicals to see how they spread across several flavour families.</span></div>';
+        return;
+      }
+
+      selected.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'contribRow';
+        const segs = item.contribs.filter(c => c.raw > 0.01).sort((a,b) => b.raw - a.raw);
+        row.innerHTML = `
+          <div class="contribTop"><strong>${item.bot.name}</strong><span>${item.units} unit${item.units === 1 ? '' : 's'}</span></div>
+          <div class="segBar">${segs.map(c => `<div class="seg" style="width:${(c.raw / item.total) * 100}%; background:${c.color}"></div>`).join('')}</div>
+          <div class="miniPills">${segs.slice(0,3).map(c => `<div class="miniPill">${c.label}</div>`).join('')}</div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderFactCards(containerId, items) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = 'factCard';
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        el.appendChild(div);
+      });
+    }
+
+    function renderBotanical() {
+      const recipe = computeRecipe();
+      const interpretation = recipeInterpret(recipe);
+      document.getElementById('botanicalBadge').textContent = `${recipe.selected.length} botanical${recipe.selected.length === 1 ? '' : 's'} selected`;
+      document.getElementById('botanicalReadTitle').textContent = interpretation.title;
+      document.getElementById('botanicalReadText').textContent = interpretation.text;
+      drawRadar('botanical', recipe.scaled);
+      renderContribList(recipe);
+      renderNoteCards('botanicalNotes', interpretation.notes);
+      renderCardList('botanicalLogic', interpretation.logic, 'logicCard');
+      renderFactCards('botanicalFacts', interpretation.facts);
+    }
+
+    function applyRecipeToBroad() {
+      const recipe = computeRecipe();
+      if (!recipe.selected.length) return;
+      broadState = { ...recipe.scaled };
+      syncBroadInputs();
+      renderBroad();
+      document.querySelectorAll('.tabBtn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'broad'));
+      document.getElementById('broadView').classList.add('active');
+      document.getElementById('botanicalView').classList.remove('active');
+    }
+
+    function clearRecipe() {
+      recipeState = Object.fromEntries(botanicals.map(b => [b.name, 0]));
+      renderBotanicalList();
+      renderBotanical();
+    }
+
+    function initTabs() {
+      document.querySelectorAll('.tabBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          document.querySelectorAll('.tabBtn').forEach(b => b.classList.toggle('active', b === btn));
+          document.getElementById('broadView').classList.toggle('active', tab === 'broad');
+          document.getElementById('botanicalView').classList.toggle('active', tab === 'botanical');
+        });
+      });
+    }
+
+    document.getElementById('applyToBroadBtn').addEventListener('click', applyRecipeToBroad);
+    document.getElementById('clearRecipeBtn').addEventListener('click', clearRecipe);
+
+    initTabs();
+    renderBroadControls();
+    renderBroad();
+    renderCategoryTabs();
+    renderBotanicalList();
+    renderBotanical();
+  </script>
+</body>
+</html>
