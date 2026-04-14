@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Garnish Pairing Engine</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --reinforce: #55bb78;
+      --brighten: #e0b645;
+      --soften: #7fb9e8;
+      --clash: #d96b5f;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      min-height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 980px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.14fr 0.9fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      min-height: calc(100vh - 120px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+      scrollbar-gutter: stable;
+    }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .choiceGrid {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .choiceBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .choiceBtn:hover { transform: translateY(-1px); }
+    .choiceBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .choiceBtn strong {
+      display: block;
+      font-size: 0.95rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .choiceBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .mapCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .chipRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      padding: 7px 10px;
+      font-size: 0.84rem;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch, .chipSwatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .mapWrap {
+      position: relative;
+      height: 680px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at center, rgba(85,187,120,0.08), transparent 24%),
+        radial-gradient(circle at center, rgba(46,112,73,0.04) 0 2px, transparent 2px 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.1));
+      overflow: hidden;
+    }
+
+    .mapSvg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .centerCard {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 196px;
+      min-height: 148px;
+      border-radius: 24px;
+      border: 1px solid rgba(46,112,73,0.16);
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 36px rgba(40,94,63,0.12);
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      z-index: 2;
+    }
+
+    .centerCard h3 {
+      margin: 0;
+      font-size: 1.12rem;
+      line-height: 1.02;
+    }
+
+    .domList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .domPill {
+      font-size: 0.76rem;
+      color: #2f8f5a;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(255,255,255,0.8);
+    }
+
+    .garnishNode {
+      position: absolute;
+      width: 122px;
+      min-height: 64px;
+      transform: translate(-50%, -50%);
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.86);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      line-height: 1.12;
+      text-align: center;
+      box-shadow: 0 10px 24px rgba(40,94,63,0.08);
+      z-index: 3;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .nodeInner {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      align-content: center;
+    }
+
+    .nodeIcon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.85);
+      box-shadow: inset 0 0 0 1px rgba(46,112,73,0.08);
+    }
+
+    .nodeIcon svg {
+      width: 24px;
+      height: 24px;
+      display: block;
+    }
+
+    .nodeLabel {
+      font-size: 0.82rem;
+      line-height: 1.12;
+    }
+
+    .garnishNode:hover {
+      transform: translate(-50%, -50%) scale(1.03);
+    }
+
+    .garnishNode.selected {
+      box-shadow: 0 14px 30px rgba(40,94,63,0.14);
+      border-width: 2px;
+    }
+
+    .garnishNode.reinforce { border-color: rgba(85,187,120,0.35); }
+    .garnishNode.brighten { border-color: rgba(224,182,69,0.42); }
+    .garnishNode.soften { border-color: rgba(127,185,232,0.42); }
+    .garnishNode.clash { border-color: rgba(217,107,95,0.42); }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detailCard, .listCard {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      padding: 10px 11px;
+    }
+
+    .detailCard h4, .listCard h4 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+      line-height: 1.05;
+    }
+
+    .smallList {
+      display: grid;
+      gap: 7px;
+    }
+
+    .smallItem {
+      border-top: 1px solid rgba(46,112,73,0.08);
+      padding-top: 7px;
+    }
+
+    .smallItem:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .smallItem strong {
+      display: block;
+      color: #2f8f5a;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 3px;
+    }
+
+    .smallItem span, .detailCard p, .listCard p {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+      margin: 0;
+    }
+
+    .noteList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel { display: grid; gap: 12px; align-content: start; }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.3; }
+    .tiny { color: #7a8f82; font-size: 0.79rem; line-height: 1.24; }
+
+    @media (max-width: 1240px) {
+      .layout { grid-template-columns: 1fr; }
+      .mapWrap { height: 760px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin garnish pairing engine</h1>
+      <p class="sub">Choose a gin profile, then see which garnishes reinforce it, brighten it, soften it, or risk clashing with or drowning it out.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Choose a gin profile</div>
+          <h2 id="profileName">London Dry</h2>
+          <p id="profileSummary">A firm, dry, juniper-led style where garnish choice can sharpen the profile or pull it off centre surprisingly quickly.</p>
+        </div>
+        <div class="choiceGrid" id="profileGrid"></div>
+        <p class="tiny">This is a matching engine, not a garnish mood board. It assumes garnish changes the nose first, then the perceived balance of the drink.</p>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Matching map</div>
+            <h2 id="resultTitle">London Dry garnish map</h2>
+            <p id="resultSummary">This profile tends to reward clean citrus or disciplined herbal garnishes more than soft florals or very forceful spice accents.</p>
+          </div>
+          <div class="badge" id="resultBadge">12 garnish options</div>
+        </div>
+
+        <div class="chipRow" id="profileChips"></div>
+
+        <div class="mapCard">
+          <div class="sectionTitle"><h3>Orbit map</h3><span>click a garnish for detail</span></div>
+          <div class="mapWrap" id="mapWrap">
+            <svg class="mapSvg" viewBox="0 0 720 640" id="mapSvg"></svg>
+            <div class="centerCard">
+              <div class="eyebrow">Gin profile</div>
+              <h3 id="centerTitle">London Dry</h3>
+              <p id="centerText">Dry, juniper-led, with enough citrus to welcome a bright garnish but not enough softness to absorb anything indiscriminately.</p>
+              <div class="domList" id="dominantPills"></div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legendItem"><span class="swatch" style="background:var(--reinforce)"></span> Reinforces</div>
+            <div class="legendItem"><span class="swatch" style="background:var(--brighten)"></span> Brightens</div>
+            <div class="legendItem"><span class="swatch" style="background:var(--soften)"></span> Softens</div>
+            <div class="legendItem"><span class="swatch" style="background:var(--clash)"></span> Clash / overload risk</div>
+          </div>
+        </div>
+
+        <div class="detailCard">
+          <h4 id="detailTitle">Selected garnish: lemon twist</h4>
+          <p id="detailText">Lemon twist brightens the top of the profile and reinforces the dry classical line without dragging the gin far away from its centre.</p>
+          <div class="chipRow" id="detailChips" style="margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Reading the match</div>
+          <h3 id="readTitle">Why citrus and disciplined herbs do well here</h3>
+          <p id="readText">The gin already has a strong dry spine, so a garnish works best when it sharpens the top or quietly supports the backbone rather than dragging in softness or perfume.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Best garnish lanes</h3></div>
+          <div class="smallList" id="bestLanes"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Tour prompts</h3></div>
+          <div class="factList" id="tourPrompts"></div>
+          <p class="tiny" style="margin-top:10px;">A useful live moment is to ask which garnish people expect to work, then show whether it reinforces, contrasts, or overloads the gin they are smelling.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const axes = ['juniper', 'citrus', 'floral', 'spice', 'savoury', 'dryness', 'intensity'];
+    const axisLabels = {
+      juniper: 'juniper',
+      citrus: 'citrus',
+      floral: 'floral',
+      spice: 'spice',
+      savoury: 'savoury',
+      dryness: 'dryness',
+      intensity: 'intensity'
+    };
+
+    const profiles = {
+      london_dry: {
+        label: 'London Dry',
+        summary: 'A firm, dry, juniper-led style where garnish choice can sharpen the profile or pull it off centre surprisingly quickly.',
+        text: 'Dry, juniper-led, with enough citrus to welcome a bright garnish but not enough softness to absorb anything indiscriminately.',
+        values: { juniper: 84, citrus: 42, floral: 12, spice: 28, savoury: 18, dryness: 82, intensity: 56 }
+      },
+      citrus_contemporary: {
+        label: 'Citrus Contemporary',
+        summary: 'Bright and peel-led, often happy with sharper citrus accents but easy to overwhelm with too many competing top notes.',
+        text: 'Lifted citrus is already prominent, so the garnish can either sharpen the profile neatly or push it into noisy overstatement.',
+        values: { juniper: 48, citrus: 84, floral: 18, spice: 12, savoury: 10, dryness: 48, intensity: 50 }
+      },
+      floral_contemporary: {
+        label: 'Floral Contemporary',
+        summary: 'A softer aromatic lane where garnish can bloom the nose nicely or make it feel perfumed and unfocused.',
+        text: 'The profile is already aromatic and soft, so disciplined garnishes matter more than forceful ones.',
+        values: { juniper: 34, citrus: 34, floral: 84, spice: 10, savoury: 10, dryness: 36, intensity: 42 }
+      },
+      spice_led: {
+        label: 'Spice-led',
+        summary: 'Warmer and more mid-palate-driven, with garnish acting as either a lift, a support, or a source of clutter.',
+        text: 'This style usually benefits from a garnish that either lifts the top or quietly supports the warmth rather than fighting it.',
+        values: { juniper: 56, citrus: 20, floral: 12, spice: 82, savoury: 22, dryness: 62, intensity: 60 }
+      },
+      herbal_savoury: {
+        label: 'Herbal Savoury',
+        summary: 'Green and dry-edged, often well suited to herbal support but easily muddied by the wrong softening garnish.',
+        text: 'A savoury profile tends to like garnishes that echo or sharpen its green line rather than sweeten or perfume it.',
+        values: { juniper: 52, citrus: 18, floral: 16, spice: 24, savoury: 84, dryness: 64, intensity: 52 }
+      },
+      old_tom: {
+        label: 'Old Tom',
+        summary: 'Rounder and sweeter, with more room for softer citrus or floral garnishes than a stern London Dry.',
+        text: 'Because the profile is already rounder, the garnish can lean into softness or brightness without feeling as severe.',
+        values: { juniper: 54, citrus: 24, floral: 18, spice: 24, savoury: 16, dryness: 28, intensity: 46 }
+      },
+      navy_strength: {
+        label: 'Navy Strength',
+        summary: 'High-intensity and forceful, so garnish needs either enough discipline to frame it or enough confidence to stand up to it.',
+        text: 'The centre of gravity is strong enough that timid garnishes disappear and very loud ones can tip into overload.',
+        values: { juniper: 82, citrus: 28, floral: 8, spice: 40, savoury: 20, dryness: 78, intensity: 88 }
+      }
+    };
+
+    const garnishes = [
+      { key: 'lemon', label: 'Lemon twist', effect: { citrus: 24, dryness: 8, intensity: 4 } },
+      { key: 'orange', label: 'Orange peel', effect: { citrus: 18, spice: 4, dryness: -4, intensity: 4 } },
+      { key: 'grapefruit', label: 'Grapefruit peel', effect: { citrus: 26, dryness: 6, intensity: 6 } },
+      { key: 'rosemary', label: 'Rosemary sprig', effect: { savoury: 22, juniper: 8, dryness: 6, intensity: 4 } },
+      { key: 'thyme', label: 'Thyme', effect: { savoury: 18, spice: 10, dryness: 4, intensity: 4 } },
+      { key: 'basil', label: 'Basil leaf', effect: { savoury: 14, floral: 6, citrus: 4, dryness: -2, intensity: 2 } },
+      { key: 'cucumber', label: 'Cucumber ribbon', effect: { floral: 4, citrus: 2, dryness: -14, intensity: -8 } },
+      { key: 'apple', label: 'Apple slice', effect: { floral: 6, citrus: 4, dryness: -12, intensity: -6 } },
+      { key: 'pink_pepper', label: 'Pink peppercorns', effect: { spice: 18, citrus: 8, intensity: 8, dryness: 2 } },
+      { key: 'lavender', label: 'Lavender sprig', effect: { floral: 26, dryness: -6, intensity: 8 } },
+      { key: 'mint', label: 'Mint', effect: { floral: 4, citrus: 8, dryness: -4, intensity: 2 } },
+      { key: 'olive', label: 'Olive', effect: { savoury: 24, dryness: 4, intensity: 4, citrus: -6 } },
+      { key: 'bay', label: 'Bay leaf', effect: { savoury: 18, spice: 8, dryness: 4, intensity: 4 } },
+      { key: 'star_anise', label: 'Star anise', effect: { spice: 24, dryness: -4, intensity: 12 } }
+    ];
+
+    let currentProfile = 'london_dry';
+    let selectedGarnish = 'lemon';
+
+    function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function topAxes(profile, count = 3) {
+      return ['juniper','citrus','floral','spice','savoury','dryness']
+        .map(axis => ({ axis, value: profile[axis] }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, count);
+    }
+
+    function positive(effect, axis) {
+      return Math.max(0, effect[axis] || 0);
+    }
+
+    function scoreGarnish(profile, garnish) {
+      const effect = garnish.effect;
+      const [dom1, dom2] = topAxes(profile, 2);
+
+      const reinforce =
+        positive(effect, dom1.axis) * 1.0 +
+        positive(effect, dom2.axis) * 0.75 +
+        positive(effect, 'juniper') * (profile.juniper / 100) * 0.35 +
+        positive(effect, 'savoury') * (profile.savoury / 100) * 0.25 +
+        positive(effect, 'dryness') * (profile.dryness / 100) * 0.25 -
+        Math.max(0, -(effect.dryness || 0)) * (profile.dryness / 100) * 0.7 -
+        positive(effect, 'floral') * (profile.juniper / 100) * (profile.dryness / 100) * 0.35 -
+        Math.max(0, (effect.intensity || 0) - 10) * (profile.intensity / 100) * 0.6;
+
+      const brighten =
+        positive(effect, 'citrus') * 1.1 +
+        positive(effect, 'dryness') * 0.3 +
+        positive(effect, 'floral') * 0.35 +
+        (profile.spice + profile.savoury + profile.intensity) / 35 -
+        Math.max(0, -(effect.dryness || 0)) * 0.45 -
+        Math.max(0, (effect.intensity || 0) - 16) * 0.3;
+
+      const soften =
+        Math.max(0, -(effect.dryness || 0)) * 1.05 +
+        Math.max(0, -(effect.intensity || 0)) * 0.85 +
+        positive(effect, 'floral') * 0.55 +
+        positive(effect, 'citrus') * 0.18 +
+        (profile.dryness + profile.intensity) / 24 -
+        profile.floral / 18;
+
+      let clash = 0;
+      if (profile.juniper + profile.dryness > 150 && positive(effect, 'floral') > 16) clash += 20;
+      if (profile.floral > 60 && positive(effect, 'savoury') > 15) clash += 22;
+      if (profile.savoury > 60 && positive(effect, 'floral') > 14) clash += 20;
+      if (profile.spice > 60 && positive(effect, 'floral') > 16) clash += 14;
+      if (profile.citrus > 72 && positive(effect, 'savoury') > 18) clash += 10;
+      if (profile.dryness < 40 && Math.max(0, -(effect.dryness || 0)) > 10) clash += 6;
+      const overload = Math.max(0, (effect.intensity || 0) + Math.max(positive(effect, 'citrus'), positive(effect, 'floral'), positive(effect, 'spice'), positive(effect, 'savoury')) - (100 - profile.intensity) / 5 - 20);
+      clash += overload;
+
+      let category = 'brighten';
+      if (clash >= 20) category = 'clash';
+      else {
+        const candidates = [
+          { key: 'reinforce', score: reinforce },
+          { key: 'brighten', score: brighten },
+          { key: 'soften', score: soften }
+        ].sort((a, b) => b.score - a.score);
+        category = candidates[0].key;
+      }
+
+      return {
+        garnish,
+        reinforce: clamp(reinforce),
+        brighten: clamp(brighten),
+        soften: clamp(soften),
+        clash: clamp(clash),
+        category
+      };
+    }
+
+    function getScoredGarnishes() {
+      const profile = profiles[currentProfile].values;
+      return garnishes.map(g => scoreGarnish(profile, g));
+    }
+
+    function reasonFor(scored, profile) {
+      const effect = scored.garnish.effect;
+      const topPos = Object.entries(effect)
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([axis]) => axisLabels[axis]);
+
+      if (scored.category === 'reinforce') {
+        return `Reinforces the gin’s ${topAxes(profile, 2).map(x => axisLabels[x.axis]).join(' and ')} without dragging it far off centre.`;
+      }
+      if (scored.category === 'brighten') {
+        return `Adds ${topPos.join(' and ')} lift, so the top of the glass feels more vivid than the core profile alone.`;
+      }
+      if (scored.category === 'soften') {
+        return `Rounds the glass off by reducing dryness or intensity and making the profile feel gentler.`;
+      }
+      return `Risks competing with the gin’s centre of gravity or pushing the nose into overload rather than support.`;
+    }
+
+    function renderProfileGrid() {
+      const grid = document.getElementById('profileGrid');
+      grid.innerHTML = '';
+      Object.entries(profiles).forEach(([key, profile]) => {
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn' + (key === currentProfile ? ' active' : '');
+        btn.innerHTML = `<strong>${profile.label}</strong><span>${profile.summary}</span>`;
+        btn.addEventListener('click', () => {
+          currentProfile = key;
+          render();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderCenter(profile) {
+      document.getElementById('profileName').textContent = profile.label;
+      document.getElementById('profileSummary').textContent = profile.summary;
+      document.getElementById('resultTitle').textContent = `${profile.label} garnish map`;
+      document.getElementById('resultSummary').textContent = profile.summary;
+      document.getElementById('centerTitle').textContent = profile.label;
+      document.getElementById('centerText').textContent = profile.text;
+      const pills = document.getElementById('dominantPills');
+      pills.innerHTML = '';
+      topAxes(profile.values, 3).forEach(item => {
+        const pill = document.createElement('div');
+        pill.className = 'domPill';
+        pill.textContent = `${axisLabels[item.axis]} ${levelWord(item.value)}`;
+        pills.appendChild(pill);
+      });
+      const chips = document.getElementById('profileChips');
+      chips.innerHTML = '';
+      const defs = [
+        ['juniper', profile.values.juniper],
+        ['citrus', profile.values.citrus],
+        ['floral', profile.values.floral],
+        ['spice', profile.values.spice],
+        ['savoury', profile.values.savoury],
+        ['dryness', profile.values.dryness]
+      ];
+      defs.forEach(([axis, value]) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = `${axisLabels[axis]} ${levelWord(value)}`;
+        chips.appendChild(chip);
+      });
+    }
+
+    function orbitPositions(count, width = 720, height = 640, radiusX = 258, radiusY = 222) {
+      const cx = width / 2;
+      const cy = height / 2;
+      return Array.from({ length: count }, (_, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / count);
+        const bump = i % 2 === 0 ? 0 : 30;
+        return {
+          x: cx + Math.cos(angle) * (radiusX + bump),
+          y: cy + Math.sin(angle) * (radiusY + bump * 0.82)
+        };
+      });
+    }
+
+    function garnishIcon(garnish) {
+      switch (garnish.key) {
+        case 'lemon': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="#f1d869"/><path d="M8 18c6-1 10-5 16-4" stroke="#fff7c7" stroke-width="3" stroke-linecap="round" fill="none"/></svg>';
+        case 'orange': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="#eea24a"/><circle cx="16" cy="16" r="4.2" fill="#f7cf8d"/></svg>';
+        case 'grapefruit': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="#f09d93"/><circle cx="16" cy="16" r="4.4" fill="#ffd8d3"/></svg>';
+        case 'rosemary': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 26V7" stroke="#4a9f63" stroke-width="2.4" stroke-linecap="round"/><path d="M16 10l-5 3M16 13l5 3M16 16l-5 3M16 19l5 3" stroke="#72be84" stroke-width="2.2" stroke-linecap="round"/></svg>';
+        case 'thyme': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 24V9" stroke="#5f9f64" stroke-width="2.3" stroke-linecap="round"/><ellipse cx="12" cy="14" rx="4" ry="2.6" fill="#8ccc7f" transform="rotate(-28 12 14)"/><ellipse cx="20" cy="18" rx="4" ry="2.6" fill="#8ccc7f" transform="rotate(28 20 18)"/></svg>';
+        case 'basil': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 24V11" stroke="#60a565" stroke-width="2.2" stroke-linecap="round"/><path d="M16 10c6 2 7 9 0 13-7-4-6-11 0-13z" fill="#71c06f"/></svg>';
+        case 'cucumber': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="#b8e0b5"/><circle cx="16" cy="16" r="7" fill="#e8f6e6"/><circle cx="13" cy="13" r="1.2" fill="#a8c99f"/><circle cx="19" cy="13" r="1.2" fill="#a8c99f"/><circle cx="13" cy="19" r="1.2" fill="#a8c99f"/><circle cx="19" cy="19" r="1.2" fill="#a8c99f"/></svg>';
+        case 'apple': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="9" fill="#d96b5f"/><path d="M16 8c0-2 1-3 3-4" stroke="#7c5d35" stroke-width="2" stroke-linecap="round"/><path d="M18 9c2-3 5-3 6-1-2 2-5 3-6 1z" fill="#78bf72"/></svg>';
+        case 'pink_pepper': return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="12" cy="18" r="4" fill="#e78a9d"/><circle cx="19" cy="15" r="4" fill="#d96b8b"/><circle cx="19" cy="22" r="4" fill="#f0a0ae"/></svg>';
+        case 'lavender': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M15 25V12" stroke="#5e9e68" stroke-width="2.1" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="#b58ae1"/><circle cx="16" cy="10" r="2" fill="#c39aed"/><circle cx="19" cy="14" r="2" fill="#a979d7"/><circle cx="15" cy="17" r="2" fill="#caa6ef"/></svg>';
+        case 'mint': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 24V11" stroke="#4ea46c" stroke-width="2.2" stroke-linecap="round"/><path d="M16 12c-5 1-7 6-2 10 5-2 6-7 2-10z" fill="#73c98f"/><path d="M16 14c5 1 7 6 2 10-5-2-6-7-2-10z" fill="#8ae0a6"/></svg>';
+        case 'olive': return '<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="17" rx="9" ry="6" fill="#8ba55b" transform="rotate(-18 16 17)"/><circle cx="19" cy="16" r="2.1" fill="#c6534f"/></svg>';
+        case 'bay': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 8c7 3 8 13 0 16-8-3-7-13 0-16z" fill="#79b56d"/><path d="M16 10v12" stroke="#4b8a54" stroke-width="1.8" stroke-linecap="round"/></svg>';
+        case 'star_anise': return '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5l3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8z" fill="#8a6443"/></svg>';
+        default: return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="#b8d9c2"/></svg>';
+      }
+    }
+
+    function renderMap(scoredList) {
+      const wrap = document.getElementById('mapWrap');
+      wrap.querySelectorAll('.garnishNode').forEach(node => node.remove());
+      const svg = document.getElementById('mapSvg');
+      svg.innerHTML = '';
+
+      const positions = orbitPositions(scoredList.length);
+      const cx = 360, cy = 320;
+
+      scoredList.forEach((item, index) => {
+        const pos = positions[index];
+        const color = item.category === 'reinforce' ? 'var(--reinforce)' : item.category === 'brighten' ? 'var(--brighten)' : item.category === 'soften' ? 'var(--soften)' : 'var(--clash)';
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', pos.x);
+        line.setAttribute('y2', pos.y);
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', item.garnish.key === selectedGarnish ? '4' : '2.6');
+        line.setAttribute('stroke-linecap', 'round');
+        if (item.category === 'brighten') line.setAttribute('stroke-dasharray', '7 7');
+        if (item.category === 'soften') line.setAttribute('stroke-dasharray', '3 8');
+        if (item.category === 'clash') line.setAttribute('stroke-dasharray', '10 8');
+        svg.appendChild(line);
+
+        const node = document.createElement('button');
+        node.className = `garnishNode ${item.category}` + (item.garnish.key === selectedGarnish ? ' selected' : '');
+        node.style.left = `${(pos.x / 720) * 100}%`;
+        node.style.top = `${(pos.y / 640) * 100}%`;
+        node.innerHTML = `<div class="nodeInner"><div class="nodeIcon">${garnishIcon(item.garnish)}</div><div class="nodeLabel">${item.garnish.label}</div></div>`;
+        node.addEventListener('click', () => {
+          selectedGarnish = item.garnish.key;
+          render();
+        });
+        wrap.appendChild(node);
+      });
+    }
+
+    function renderDetail(scoredList, profile) {
+      const selected = scoredList.find(x => x.garnish.key === selectedGarnish) || scoredList[0];
+      const relationLabel = selected.category === 'reinforce' ? 'reinforces' : selected.category === 'brighten' ? 'brightens' : selected.category === 'soften' ? 'softens' : 'clash / overload risk';
+      document.getElementById('detailTitle').textContent = `Selected garnish: ${selected.garnish.label}`;
+      document.getElementById('detailText').textContent = `${selected.garnish.label} ${relationLabel} this profile. ${reasonFor(selected, profile.values)}`;
+      const chips = document.getElementById('detailChips');
+      chips.innerHTML = '';
+      const data = [
+        ['reinforce', selected.reinforce, 'var(--reinforce)'],
+        ['brighten', selected.brighten, 'var(--brighten)'],
+        ['soften', selected.soften, 'var(--soften)'],
+        ['clash', selected.clash, 'var(--clash)']
+      ];
+      data.forEach(([label, value, color]) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `<span class="chipSwatch" style="background:${color}"></span>${label} ${levelWord(value)}`;
+        chips.appendChild(chip);
+      });
+    }
+
+    function renderLanes(scoredList, profile) {
+      const sections = [
+        { title: 'Reinforce', key: 'reinforce', filter: item => item.category === 'reinforce', sort: (a, b) => b.reinforce - a.reinforce },
+        { title: 'Brighten', key: 'brighten', filter: item => item.category === 'brighten', sort: (a, b) => b.brighten - a.brighten },
+        { title: 'Soften', key: 'soften', filter: item => item.category === 'soften', sort: (a, b) => b.soften - a.soften },
+        { title: 'Clash / overload risk', key: 'clash', filter: item => item.category === 'clash', sort: (a, b) => b.clash - a.clash }
+      ];
+
+      const wrap = document.getElementById('bestLanes');
+      wrap.innerHTML = '';
+      sections.forEach(section => {
+        const items = scoredList.filter(section.filter).sort(section.sort).slice(0, 2);
+        const block = document.createElement('div');
+        block.className = 'smallItem';
+        block.innerHTML = `<strong>${section.title}</strong>`;
+        const text = document.createElement('span');
+        text.textContent = items.length ? items.map(item => `${item.garnish.label}: ${reasonFor(item, profile.values)}`).join(' ') : 'No strong candidates in this lane for the current profile.';
+        block.appendChild(text);
+        wrap.appendChild(block);
+      });
+    }
+
+    function buildPrompts(profile, scoredList) {
+      const prompts = [];
+      const topReinforce = scoredList.filter(x => x.category === 'reinforce').sort((a,b) => b.reinforce - a.reinforce)[0];
+      const topClash = scoredList.filter(x => x.category === 'clash').sort((a,b) => b.clash - a.clash)[0];
+      if (topReinforce) prompts.push(['Try first', `Ask why ${topReinforce.garnish.label.toLowerCase()} supports this style rather than merely decorating it.`]);
+      if (topClash) prompts.push(['Challenge assumption', `Ask whether ${topClash.garnish.label.toLowerCase()} sounds attractive in theory but actually competes with the gin.`]);
+      if (profile.label === 'Old Tom') prompts.push(['Category twist', 'Ask which garnishes become acceptable once the gin itself is rounder and sweeter than London Dry.']);
+      if (profile.label === 'Navy Strength') prompts.push(['Intensity lesson', 'Ask which garnish can still register clearly without tipping into overload.']);
+      if (profile.label === 'Floral Contemporary') prompts.push(['Perfume risk', 'Ask when a garnish stops complementing the aromatics and starts making the glass feel too perfumed.']);
+      if (prompts.length < 4) prompts.push(['Compare live', 'Switch only the garnish while keeping tonic and glass unchanged so the effect is easier to isolate.']);
+      return prompts.slice(0, 4);
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const card = document.createElement('div');
+        card.className = className;
+        card.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(card);
+      });
+    }
+
+    function render() {
+      const profile = profiles[currentProfile];
+      const scoredList = getScoredGarnishes();
+      if (!scoredList.some(x => x.garnish.key === selectedGarnish)) selectedGarnish = scoredList[0].garnish.key;
+
+      renderProfileGrid();
+      renderCenter(profile);
+      renderMap(scoredList);
+      renderDetail(scoredList, profile);
+      renderLanes(scoredList, profile);
+      renderCards('tourPrompts', buildPrompts(profile, scoredList), 'factCard');
+      document.getElementById('readTitle').textContent = `Why ${profile.label.toLowerCase()} behaves this way with garnish`;
+      document.getElementById('readText').textContent = profile.text;
+      document.getElementById('resultBadge').textContent = `${garnishes.length} garnish options`;
+    }
+
+    render();
+  </script>
+</body>
+</html>

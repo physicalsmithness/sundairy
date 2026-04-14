@@ -593,6 +593,74 @@
       { name: 'Thyme', tags: ['savoury edge', 'spice warmth'], note: 'dry savoury edge' }
     ];
 
+    const cocktailProfiles = [
+      {
+        key: 'martini',
+        label: 'Martini',
+        serve: 'Very cold, clean, and spirit-forward.',
+        likes: { 'classic pull': 0.42, 'juniper pull': 0.34, 'spice warmth': 0.08 },
+        dislikes: { 'floral pull': 0.24, 'citrus lift': 0.10 },
+        note: 'Best when the palate wants structure, dryness, and juniper clarity.'
+      },
+      {
+        key: 'gimlet',
+        label: 'Gimlet',
+        serve: 'Sharp, citrus-led, and still fairly disciplined.',
+        likes: { 'citrus lift': 0.36, 'classic pull': 0.22, 'juniper pull': 0.16 },
+        dislikes: { 'floral pull': 0.18, 'savoury edge': 0.18, 'spice warmth': 0.10 },
+        note: 'Works best when bright citrus sits on top of a clean gin spine.'
+      },
+      {
+        key: 'tom_collins',
+        label: 'Tom Collins',
+        serve: 'Long, bright, and easy rather than severe.',
+        likes: { 'citrus lift': 0.34, 'classic pull': 0.14, 'juniper pull': 0.10 },
+        dislikes: { 'savoury edge': 0.16, 'spice warmth': 0.12, 'floral pull': 0.08 },
+        note: 'Best for people who like brightness and lift more than density.'
+      },
+      {
+        key: 'negroni',
+        label: 'Negroni',
+        serve: 'Bitter, structured, and comfortable with weight.',
+        likes: { 'spice warmth': 0.32, 'classic pull': 0.22, 'juniper pull': 0.16, 'savoury edge': 0.14 },
+        dislikes: { 'floral pull': 0.18, 'citrus lift': 0.06 },
+        note: 'A better fit once warmth, grip, and bitterness tolerance rise.'
+      },
+      {
+        key: 'french_75',
+        label: 'French 75',
+        serve: 'Lifted, sparkling, and aromatic rather than stern.',
+        likes: { 'floral pull': 0.30, 'citrus lift': 0.22, 'classic pull': 0.08 },
+        dislikes: { 'savoury edge': 0.18, 'spice warmth': 0.12, 'juniper pull': 0.08 },
+        note: 'Better when the palate wants brightness plus softness.'
+      },
+      {
+        key: 'herb_highball',
+        label: 'Herb highball',
+        serve: 'Long, green, savoury, and garnish-driven.',
+        likes: { 'savoury edge': 0.34, 'citrus lift': 0.14, 'juniper pull': 0.10 },
+        dislikes: { 'floral pull': 0.16, 'classic pull': 0.08 },
+        note: 'Best when green herbal character matters more than strict classicness.'
+      },
+      {
+        key: 'southside',
+        label: 'Southside',
+        serve: 'Fresh, minty, and lifted with a softer edge than a Gimlet.',
+        likes: { 'citrus lift': 0.22, 'floral pull': 0.14, 'savoury edge': 0.16 },
+        dislikes: { 'spice warmth': 0.10, 'classic pull': 0.06 },
+        note: 'Useful for palates that want freshness without going fully floral.'
+      }
+    ];
+
+    const familyServeIdeas = {
+      london_dry: 'Classic tonic, lemon twist, Martini, or a firmer highball serve.',
+      citrus_contemporary: 'Indian or Mediterranean tonic, grapefruit or lemon peel, Collins-style drinks.',
+      floral_contemporary: 'Lighter tonic, restrained garnish, floral spritz or French 75 direction.',
+      spice_led: 'Orange twist, neutral tonic, Martini or Negroni direction.',
+      herbal_savoury: 'Rosemary garnish, dry tonic, long herbal highball.',
+      navy_strength: 'Classic tonic, lemon twist, Martini, or a firmer highball serve.'
+    };
+
     const state = {
       aromas: { juniper: 68, citrus: 82, floral: 18, spice: 24, savoury: 20 },
       serves: { classic_gt: 76, citrus_serve: 72, floral_serve: 12, martini: 58, herb_long: 24 },
@@ -779,18 +847,42 @@
       return rules;
     }
 
+    function cocktailFitWord(score) {
+      if (score >= 72) return 'strong fit';
+      if (score >= 56) return 'good fit';
+      if (score >= 40) return 'possible fit';
+      return 'weak fit';
+    }
+
+    function scoreCocktails(profile) {
+      return cocktailProfiles.map(cocktail => {
+        let score = 18;
+        Object.entries(cocktail.likes).forEach(([axis, weight]) => {
+          score += profile[axis] * weight;
+        });
+        Object.entries(cocktail.dislikes).forEach(([axis, weight]) => {
+          score -= profile[axis] * weight;
+        });
+        score = clamp(score);
+        return { ...cocktail, score };
+      }).sort((a, b) => b.score - a.score);
+    }
+
     function buildServeNotes(profile, topFamily) {
+      const cocktails = scoreCocktails(profile);
       const items = [];
-      if (topFamily.key === 'london_dry' || topFamily.key === 'navy_strength') items.push(['Serve idea', 'Classic tonic, lemon twist, Martini, or a firmer highball serve.']);
-      if (topFamily.key === 'citrus_contemporary') items.push(['Serve idea', 'Indian or Mediterranean tonic, grapefruit or lemon peel, Collins-style drinks.']);
-      if (topFamily.key === 'floral_contemporary') items.push(['Serve idea', 'Lighter tonic, restrained garnish, floral spritz or French 75 direction.']);
-      if (topFamily.key === 'spice_led') items.push(['Serve idea', 'Orange twist, neutral tonic, Martini or Negroni direction.']);
-      if (topFamily.key === 'herbal_savoury') items.push(['Serve idea', 'Rosemary garnish, dry tonic, long herbal highball.']);
-      if (profile['citrus lift'] >= 58) items.push(['Cocktail lane', 'You may like Gimlets, Tom Collinses, and brighter citrus-led long drinks.']);
-      if (profile['classic pull'] >= 62) items.push(['Cocktail lane', 'You are likely to enjoy Martini structures more than softer, sweeter serves.']);
-      if (profile['floral pull'] >= 54) items.push(['Cocktail lane', 'You may enjoy floral spritzes or lighter sparkling serves more than bitter heavy drinks.']);
-      if (profile['savoury edge'] >= 52) items.push(['Cocktail lane', 'Green herb highballs and savoury garnish lines should suit you well.']);
-      return items.slice(0, 4);
+
+      items.push(['Serve idea', familyServeIdeas[topFamily.key] || 'A clean mixed serve is the safest starting point.']);
+
+      cocktails.slice(0, 3).forEach((cocktail, index) => {
+        const title = index === 0 ? 'Best cocktail fit' : index === 1 ? 'Next cocktail fit' : 'Also worth trying';
+        items.push([
+          `${title}: ${cocktail.label}`,
+          `${cocktailFitWord(cocktail.score)}. ${cocktail.note} ${cocktail.serve}`
+        ]);
+      });
+
+      return items;
     }
 
     function renderFamilyList(matches) {

@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Styles Comparison Tool</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 980px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.14fr 0.84fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+      scrollbar-gutter: stable;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .styleGrid {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .styleBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .styleBtn:hover { transform: translateY(-1px); }
+
+    .styleBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .styleBtn strong {
+      display: block;
+      font-size: 0.96rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .styleBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .checkMark {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(46,112,73,0.24);
+      background: rgba(255,255,255,0.72);
+    }
+
+    .styleBtn.active .checkMark {
+      background: #55bb78;
+      border-color: #55bb78;
+      box-shadow: 0 0 0 4px rgba(85,187,120,0.12);
+    }
+
+    .styleBtn.active .checkMark::after {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border-radius: 999px;
+      background: white;
+    }
+
+    .miniNote {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.25;
+      margin-top: 2px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .chipRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      padding: 7px 10px;
+      font-size: 0.84rem;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chipSwatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 12px;
+    }
+
+    .vizCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .metricTable {
+      display: grid;
+      gap: 10px;
+    }
+
+    .metricRow {
+      display: grid;
+      gap: 7px;
+    }
+
+    .metricHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
+
+    .compareTracks {
+      display: grid;
+      gap: 7px;
+    }
+
+    .compareLine {
+      display: grid;
+      grid-template-columns: 86px 1fr 74px;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+
+    .track {
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37, 90, 62, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 220ms ease;
+    }
+
+    .value {
+      color: #2f8f5a;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+
+    .noteList, .logicList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .styleCardList {
+      display: grid;
+      gap: 8px;
+    }
+
+    .styleCard {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .styleCardTop {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1240px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout, .vizGrid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin styles comparison tool</h1>
+      <p class="sub">Select two or three gin styles, then compare them side by side across juniper prominence, sweetness, spice, citrus brightness, botanical complexity, texture, and ABV impact.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Choose styles to compare</div>
+          <h2 id="selectorTitle">Three-style comparison</h2>
+          <p id="selectorSummary">Select two or three styles. This is meant to make category differences visible at a glance rather than explaining them one by one.</p>
+        </div>
+        <div class="styleGrid" id="styleGrid"></div>
+        <p class="miniNote">Broad category tendencies rather than rigid rules. Actual bottlings can sit well inside or outside these shapes.</p>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Comparison result</div>
+            <h2 id="resultTitle">London Dry vs Old Tom vs Genever-adjacent</h2>
+            <p id="resultSummary">These three styles separate especially clearly on sweetness, texture, and juniper prominence.</p>
+          </div>
+          <div class="badge" id="resultBadge">3 styles selected</div>
+        </div>
+
+        <div class="chipRow" id="selectedChips"></div>
+
+        <div class="vizGrid">
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Style profile overlay</h3><span>category shapes</span></div>
+            <svg viewBox="0 0 620 520" id="radarSvg">
+              <g id="radarGrid"></g>
+              <g id="radarLabels"></g>
+              <g id="radarPolys"></g>
+              <g id="radarPoints"></g>
+            </svg>
+            <div class="legend" id="legend"></div>
+          </div>
+
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Side-by-side metrics</h3><span>same scale for every style</span></div>
+            <div class="metricTable" id="metricTable"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Biggest differences</h3><span>what separates the selected styles most clearly</span></div>
+          <div class="noteList" id="differenceNotes"></div>
+        </div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Reading the comparison</div>
+          <h3 id="readTitle">Why these styles separate clearly</h3>
+          <p id="readText">The selected styles are pulling apart most strongly on sweetness, texture, and how forcefully juniper stays in front.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Style notes</h3></div>
+          <div class="styleCardList" id="styleNotes"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Tour prompts</h3></div>
+          <div class="factList" id="tourPrompts"></div>
+          <p class="tiny" style="margin-top:10px;">Useful because a guide can tell this story linearly, but a screen can let visitors compare the category shapes all at once.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const metrics = [
+      'juniper prominence',
+      'sweetness',
+      'spice',
+      'citrus brightness',
+      'botanical complexity',
+      'texture',
+      'ABV impact'
+    ];
+
+    const styles = {
+      london_dry: {
+        label: 'London Dry',
+        color: '#55bb78',
+        summary: 'Dry, juniper-led, and classically structured.',
+        profile: {
+          'juniper prominence': 86,
+          'sweetness': 8,
+          'spice': 34,
+          'citrus brightness': 52,
+          'botanical complexity': 58,
+          'texture': 34,
+          'ABV impact': 42
+        },
+        note: 'The baseline classic: dry, firm, and built around juniper clarity.'
+      },
+      contemporary_citrus: {
+        label: 'Contemporary Citrus',
+        color: '#f0c94f',
+        summary: 'Brighter, more top-note-led, and less centred on strict juniper dominance.',
+        profile: {
+          'juniper prominence': 54,
+          'sweetness': 16,
+          'spice': 18,
+          'citrus brightness': 86,
+          'botanical complexity': 52,
+          'texture': 30,
+          'ABV impact': 36
+        },
+        note: 'A modern citrus-led lane where lift often matters more than stern classic structure.'
+      },
+      contemporary_floral: {
+        label: 'Contemporary Floral',
+        color: '#d2a8eb',
+        summary: 'Aromatic, softer, and more blossom-led than classic gin categories.',
+        profile: {
+          'juniper prominence': 38,
+          'sweetness': 22,
+          'spice': 12,
+          'citrus brightness': 38,
+          'botanical complexity': 64,
+          'texture': 40,
+          'ABV impact': 32
+        },
+        note: 'Often judged more by aroma and softness than by juniper authority.'
+      },
+      old_tom: {
+        label: 'Old Tom',
+        color: '#ef9f68',
+        summary: 'Sweeter, rounder, and softer-edged than London Dry.',
+        profile: {
+          'juniper prominence': 58,
+          'sweetness': 68,
+          'spice': 28,
+          'citrus brightness': 28,
+          'botanical complexity': 46,
+          'texture': 62,
+          'ABV impact': 34
+        },
+        note: 'The key move is sweetness and roundness rather than a completely different botanical universe.'
+      },
+      navy_strength: {
+        label: 'Navy Strength',
+        color: '#2f8f5a',
+        summary: 'Higher proof, more forceful, and often more assertive in the glass.',
+        profile: {
+          'juniper prominence': 82,
+          'sweetness': 6,
+          'spice': 42,
+          'citrus brightness': 38,
+          'botanical complexity': 60,
+          'texture': 42,
+          'ABV impact': 92
+        },
+        note: 'ABV changes everything: aroma force, perceived structure, and how hard the gin hits.'
+      },
+      genever_adjacent: {
+        label: 'Genever-adjacent',
+        color: '#8c6b47',
+        summary: 'Maltier, heavier, and more textural, with gin identity blending into a fuller spirit base.',
+        profile: {
+          'juniper prominence': 52,
+          'sweetness': 26,
+          'spice': 24,
+          'citrus brightness': 12,
+          'botanical complexity': 48,
+          'texture': 84,
+          'ABV impact': 44
+        },
+        note: 'Texture and spirit body matter almost as much as botanical shape here.'
+      },
+      herbal_savoury: {
+        label: 'Herbal Savoury',
+        color: '#65b39a',
+        summary: 'Greener, more savoury, and drier-edged than floral or citrus-led contemporary styles.',
+        profile: {
+          'juniper prominence': 56,
+          'sweetness': 8,
+          'spice': 30,
+          'citrus brightness': 22,
+          'botanical complexity': 66,
+          'texture': 38,
+          'ABV impact': 40
+        },
+        note: 'Often reads greener and more savoury than sweet or perfumed.'
+      }
+    };
+
+    let selected = ['london_dry', 'old_tom', 'genever_adjacent'];
+
+    function clamp(v) {
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function toggleStyle(key) {
+      const index = selected.indexOf(key);
+      if (index >= 0) {
+        if (selected.length > 2) selected.splice(index, 1);
+      } else {
+        if (selected.length < 3) selected.push(key);
+        else {
+          selected.shift();
+          selected.push(key);
+        }
+      }
+      render();
+    }
+
+    function drawRadar(selectedStyles) {
+      const grid = document.getElementById('radarGrid');
+      const labels = document.getElementById('radarLabels');
+      const polys = document.getElementById('radarPolys');
+      const points = document.getElementById('radarPoints');
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      polys.innerHTML = '';
+      points.innerHTML = '';
+
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = metrics.map((_, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / metrics.length);
+          const r = (level / 100) * maxR;
+          return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+        }).join(' ');
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        shape.setAttribute('points', pts);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', 'rgba(54,81,66,0.11)');
+        shape.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(shape);
+      });
+
+      metrics.forEach((label, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / metrics.length);
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        const lx = cx + Math.cos(angle) * (maxR + 26);
+        const ly = cy + Math.sin(angle) * (maxR + 26);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lx);
+        text.setAttribute('y', ly);
+        text.setAttribute('fill', 'rgba(22,54,36,0.95)');
+        text.setAttribute('font-size', '14');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+
+      selectedStyles.forEach(style => {
+        const pts = metrics.map((metric, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / metrics.length);
+          const r = (style.profile[metric] / 100) * maxR;
+          return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+        });
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+        poly.setAttribute('fill', style.color + '33');
+        poly.setAttribute('stroke', style.color);
+        poly.setAttribute('stroke-width', '3.5');
+        polys.appendChild(poly);
+
+        pts.forEach(p => {
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', p.x);
+          dot.setAttribute('cy', p.y);
+          dot.setAttribute('r', '4.8');
+          dot.setAttribute('fill', style.color);
+          dot.setAttribute('stroke', 'rgba(255,255,255,0.85)');
+          dot.setAttribute('stroke-width', '1.2');
+          points.appendChild(dot);
+        });
+      });
+    }
+
+    function renderStyleGrid() {
+      const grid = document.getElementById('styleGrid');
+      grid.innerHTML = '';
+      Object.entries(styles).forEach(([key, style]) => {
+        const btn = document.createElement('button');
+        btn.className = 'styleBtn' + (selected.includes(key) ? ' active' : '');
+        btn.innerHTML = `
+          <div class="checkMark"></div>
+          <strong>${style.label}</strong>
+          <span>${style.summary}</span>
+        `;
+        btn.addEventListener('click', () => toggleStyle(key));
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderSelectedChips(selectedStyles) {
+      const wrap = document.getElementById('selectedChips');
+      wrap.innerHTML = '';
+      selectedStyles.forEach(style => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `<span class="chipSwatch" style="background:${style.color}"></span>${style.label}`;
+        wrap.appendChild(chip);
+      });
+    }
+
+    function renderLegend(selectedStyles) {
+      const wrap = document.getElementById('legend');
+      wrap.innerHTML = '';
+      selectedStyles.forEach(style => {
+        const item = document.createElement('div');
+        item.className = 'legendItem';
+        item.innerHTML = `<span class="swatch" style="background:${style.color}"></span>${style.label}`;
+        wrap.appendChild(item);
+      });
+    }
+
+    function renderMetricTable(selectedStyles) {
+      const wrap = document.getElementById('metricTable');
+      wrap.innerHTML = '';
+      metrics.forEach(metric => {
+        const row = document.createElement('div');
+        row.className = 'metricRow';
+        row.innerHTML = `<div class="metricHeader"><strong>${metric}</strong><span>${biggestGapWord(metric, selectedStyles)}</span></div>`;
+        const compare = document.createElement('div');
+        compare.className = 'compareTracks';
+        selectedStyles.forEach(style => {
+          const line = document.createElement('div');
+          line.className = 'compareLine';
+          line.innerHTML = `
+            <div>${style.label}</div>
+            <div class="track"><div class="fill" style="width:${style.profile[metric]}%; background:${style.color}"></div></div>
+            <div class="value">${levelWord(style.profile[metric])}</div>
+          `;
+          compare.appendChild(line);
+        });
+        row.appendChild(compare);
+        wrap.appendChild(row);
+      });
+    }
+
+    function biggestGapWord(metric, selectedStyles) {
+      const values = selectedStyles.map(style => style.profile[metric]);
+      const spread = Math.max(...values) - Math.min(...values);
+      if (spread >= 50) return 'very wide split';
+      if (spread >= 32) return 'clear split';
+      if (spread >= 18) return 'noticeable split';
+      return 'fairly close';
+    }
+
+    function buildDifferenceNotes(selectedStyles) {
+      const spreads = metrics.map(metric => {
+        const values = selectedStyles.map(style => style.profile[metric]);
+        return { metric, spread: Math.max(...values) - Math.min(...values) };
+      }).sort((a, b) => b.spread - a.spread).slice(0, 4);
+
+      return spreads.map(item => {
+        const sorted = [...selectedStyles].sort((a, b) => b.profile[item.metric] - a.profile[item.metric]);
+        const top = sorted[0];
+        const bottom = sorted[sorted.length - 1];
+        return [
+          item.metric,
+          `${top.label} sits highest, while ${bottom.label} sits lowest. This is one of the clearest ways these selected styles separate.`
+        ];
+      });
+    }
+
+    function buildTourPrompts(selectedStyles) {
+      const prompts = [];
+      if (selectedStyles.some(s => s.label === 'Old Tom')) {
+        prompts.push(['Ask on tour', 'Is Old Tom really a different botanical idea, or is sweetness and roundness doing most of the work?']);
+      }
+      if (selectedStyles.some(s => s.label === 'Navy Strength')) {
+        prompts.push(['Ask on tour', 'How much of the difference guests notice is category style, and how much is simply ABV force?']);
+      }
+      if (selectedStyles.some(s => s.label === 'Genever-adjacent')) {
+        prompts.push(['Ask on tour', 'At what point does texture and spirit base start mattering as much as the botanical recipe?']);
+      }
+      if (selectedStyles.some(s => s.label.includes('Contemporary'))) {
+        prompts.push(['Ask on tour', 'How far can a gin move away from classic juniper dominance before people stop reading it as “classic gin”?']);
+      }
+      if (prompts.length < 3) {
+        prompts.push(['Compare live', 'Ask guests which axis they think will split the selected styles most clearly before revealing the profiles.']);
+      }
+      return prompts.slice(0, 4);
+    }
+
+    function renderStyleNotes(selectedStyles) {
+      const wrap = document.getElementById('styleNotes');
+      wrap.innerHTML = '';
+      selectedStyles.forEach(style => {
+        const card = document.createElement('div');
+        card.className = 'styleCard';
+        card.innerHTML = `
+          <div class="styleCardTop"><span class="chipSwatch" style="background:${style.color}"></span>${style.label}</div>
+          <div class="tiny">${style.note}</div>
+        `;
+        wrap.appendChild(card);
+      });
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const card = document.createElement('div');
+        card.className = className;
+        card.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(card);
+      });
+    }
+
+    function buildHeaderText(selectedStyles) {
+      const labels = selectedStyles.map(s => s.label);
+      const spreads = metrics.map(metric => {
+        const vals = selectedStyles.map(style => style.profile[metric]);
+        return { metric, spread: Math.max(...vals) - Math.min(...vals) };
+      }).sort((a, b) => b.spread - a.spread);
+      const first = spreads[0]?.metric || 'texture';
+      const second = spreads[1]?.metric || 'sweetness';
+      return {
+        title: labels.join(' vs '),
+        summary: `These selected styles separate especially clearly on ${first}, ${second}, and the way juniper stays in front.`
+      };
+    }
+
+    function render() {
+      const selectedStyles = selected.map(key => styles[key]);
+      const header = buildHeaderText(selectedStyles);
+      document.getElementById('selectorTitle').textContent = `${selectedStyles.length}-style comparison`;
+      document.getElementById('resultTitle').textContent = header.title;
+      document.getElementById('resultSummary').textContent = header.summary;
+      document.getElementById('resultBadge').textContent = `${selectedStyles.length} styles selected`;
+      document.getElementById('readTitle').textContent = 'Why these styles separate clearly';
+      document.getElementById('readText').textContent = header.summary;
+
+      renderStyleGrid();
+      renderSelectedChips(selectedStyles);
+      renderLegend(selectedStyles);
+      drawRadar(selectedStyles);
+      renderMetricTable(selectedStyles);
+      renderStyleNotes(selectedStyles);
+      renderCards('differenceNotes', buildDifferenceNotes(selectedStyles), 'noteCard');
+      renderCards('tourPrompts', buildTourPrompts(selectedStyles), 'factCard');
+    }
+
+    render();
+  </script>
+</body>
+</html>

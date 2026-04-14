@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Dilution and Temperature Explorer</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      min-height: calc(100vh - 20px);
+      height: auto;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 980px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.96fr 1.14fr 0.84fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      min-height: calc(100vh - 120px);
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+      scrollbar-gutter: stable;
+    }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .controlGroup {
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTitle {
+      color: #2f8f5a;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .choiceGrid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choiceBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .choiceBtn:hover { transform: translateY(-1px); }
+
+    .choiceBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .choiceBtn strong {
+      display: block;
+      font-size: 0.94rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .choiceBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .controlCard {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .controlTop strong { font-size: 0.94rem; }
+    .controlTop span {
+      color: #2f8f5a;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .controlNote {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.22;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .vizCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .dumbbellList {
+      display: grid;
+      gap: 10px;
+    }
+
+    .dumbbellRow {
+      display: grid;
+      grid-template-columns: 110px 1fr 80px;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .dumbbellTrack {
+      height: 18px;
+      position: relative;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37, 90, 62, 0.06);
+      overflow: hidden;
+    }
+
+    .dumbbellLine {
+      position: absolute;
+      top: 50%;
+      height: 3px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: rgba(46, 112, 73, 0.32);
+    }
+
+    .dumbbellStart, .dumbbellEnd {
+      position: absolute;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+    }
+
+    .dumbbellStart {
+      background: white;
+      border: 2px solid rgba(46,112,73,0.4);
+    }
+
+    .dumbbellEnd {
+      background: var(--accent);
+      border: 2px solid rgba(255,255,255,0.8);
+    }
+
+    .value {
+      color: #2f8f5a;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+
+    .chartWrap {
+      width: 100%;
+      overflow: hidden;
+    }
+
+    svg { width: 100%; height: auto; display: block; }
+
+    .metricGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .metric strong {
+      display: block;
+      color: #2f8f5a;
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.2;
+    }
+
+    .noteList, .logicList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel { display: grid; gap: 12px; align-content: start; }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1240px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin dilution and temperature explorer</h1>
+      <p class="sub">Change serve conditions and watch what happens to juniper, citrus, florals, bitterness, and spice over the first five minutes in the glass.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Set the serve conditions</div>
+          <h2 id="profileName">London Dry</h2>
+          <p id="profileSummary">A good baseline because structure, citrus, and spice are all present enough to move visibly when the serve changes.</p>
+        </div>
+
+        <div class="controlGroup">
+          <div class="controlTitle">Base gin profile</div>
+          <div class="choiceGrid" id="profileGrid"></div>
+        </div>
+
+        <div class="controlGroup">
+          <div class="controlTitle">Format</div>
+          <div class="choiceGrid" id="formatGrid"></div>
+        </div>
+
+        <div class="controlGroup">
+          <div class="controlTitle">Temperature</div>
+          <div class="choiceGrid" id="tempGrid"></div>
+        </div>
+
+        <div class="controlGroup">
+          <div class="controlTitle">Serve length</div>
+          <div class="choiceGrid" id="lengthGrid"></div>
+        </div>
+
+        <div class="controlCard">
+          <div class="controlTop"><strong>Time in glass</strong><span id="timeLabel">just poured</span></div>
+          <input id="timeSlider" type="range" min="0" max="5" step="1" value="0" />
+          <div class="controlNote">Slide from the first sip to five minutes later. The line chart shows the whole short arc across that period.</div>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">What the glass is doing now</div>
+            <h2 id="resultTitle">Cold crisp early serve</h2>
+            <p id="resultSummary">The drink is still tight and bright: citrus stays lifted, juniper remains clear, and spice has not softened much yet.</p>
+          </div>
+          <div class="badge" id="resultBadge">0 minutes</div>
+        </div>
+
+        <div class="vizGrid">
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Now vs spirit baseline</h3><span>white = base profile, green = current glass</span></div>
+            <div class="dumbbellList" id="dumbbellList"></div>
+          </div>
+
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Five-minute trajectory</h3><span>what rises and what fades</span></div>
+            <div class="chartWrap">
+              <svg viewBox="0 0 620 330" id="lineChart"></svg>
+            </div>
+            <div class="legend" id="lineLegend"></div>
+          </div>
+        </div>
+
+        <div class="metricGrid">
+          <div class="metric"><strong>glass temp</strong><span id="metricTemp">cold</span><small>how open the nose feels</small></div>
+          <div class="metric"><strong>dilution</strong><span id="metricDilution">low</span><small>how much the serve has opened or softened</small></div>
+          <div class="metric"><strong>overall intensity</strong><span id="metricIntensity">high</span><small>how forcefully the gin still shows through</small></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Likely in-glass experience</h3></div>
+          <div class="noteList" id="noteList"></div>
+        </div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Reading the change</div>
+          <h3 id="readTitle">Why this serve still feels tight</h3>
+          <p id="readText">The glass is cold, dilution is still controlled, and the spirit’s structure has not yet softened into a looser long-serve shape.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Rules fired</h3></div>
+          <div class="logicList" id="logicList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Tour prompts</h3></div>
+          <div class="factList" id="factList"></div>
+          <p class="tiny" style="margin-top:10px;">This is useful because guests can see the same gin opening, flattening, or changing emphasis rather than being told the shift in words alone.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const families = ['juniper', 'citrus', 'floral', 'bitterness', 'spice'];
+    const familyLabels = {
+      juniper: 'Juniper',
+      citrus: 'Citrus',
+      floral: 'Florals',
+      bitterness: 'Bitterness',
+      spice: 'Spice'
+    };
+    const familyColors = {
+      juniper: '#55bb78',
+      citrus: '#e2b633',
+      floral: '#c58be0',
+      bitterness: '#b68649',
+      spice: '#d96e52'
+    };
+
+    const profiles = {
+      london_dry: {
+        label: 'London Dry',
+        summary: 'A good baseline because structure, citrus, and spice are all present enough to move visibly when the serve changes.',
+        base: { juniper: 78, citrus: 44, floral: 16, bitterness: 20, spice: 38 }
+      },
+      citrus_contemporary: {
+        label: 'Citrus Contemporary',
+        summary: 'Bright enough to show how dilution and warmth can either open citrus beautifully or let it flatten fast.',
+        base: { juniper: 52, citrus: 78, floral: 22, bitterness: 14, spice: 18 }
+      },
+      floral_contemporary: {
+        label: 'Floral Contemporary',
+        summary: 'Useful for showing how florals can bloom at first, then feel softer or less defined as the serve opens out.',
+        base: { juniper: 36, citrus: 34, floral: 82, bitterness: 10, spice: 12 }
+      },
+      spice_led: {
+        label: 'Spice-led',
+        summary: 'A good test for how warmth, dilution, and time can either hold or soften the middle of the gin.',
+        base: { juniper: 58, citrus: 24, floral: 12, bitterness: 18, spice: 78 }
+      },
+      herbal_savoury: {
+        label: 'Herbal Savoury',
+        summary: 'Shows how dry green edges can feel vivid at first, then broaden or flatten as the glass changes.',
+        base: { juniper: 52, citrus: 22, floral: 18, bitterness: 22, spice: 28 }
+      }
+    };
+
+    const formats = {
+      neat: { label: 'Neat', desc: 'Spirit-forward, less diluted, more direct.' },
+      mixed: { label: 'Mixed', desc: 'A generic mixed serve with water / mixer in play.' }
+    };
+
+    const temps = {
+      fridge_cold: { label: 'Fridge-cold', desc: 'Tight and cold at the start.', celsius: 7 },
+      cool: { label: 'Cool', desc: 'A more open but still brisk starting point.', celsius: 13 },
+      room: { label: 'Room temperature', desc: 'Warmest and most aromatic from the start.', celsius: 21 }
+    };
+
+    const lengths = {
+      strong: { label: 'Strong pour', desc: 'More concentrated and gin-forward.' },
+      balanced: { label: 'Balanced serve', desc: 'Middle lane between concentration and length.' },
+      long: { label: 'Longer serve', desc: 'More diluted and more open, but easier to flatten.' }
+    };
+
+    let currentProfile = 'london_dry';
+    let currentFormat = 'mixed';
+    let currentTemp = 'fridge_cold';
+    let currentLength = 'balanced';
+    let currentTime = 0;
+
+    function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+    function timeWord(v) {
+      if (v === 0) return 'just poured';
+      if (v === 1) return '1 minute';
+      return `${v} minutes`;
+    }
+    function tempWord(c) {
+      if (c <= 9) return 'fridge-cold';
+      if (c <= 15) return 'cool';
+      if (c <= 20) return 'warming';
+      return 'roomish';
+    }
+
+    function renderChoiceGrid(containerId, data, currentKey, onClick) {
+      const grid = document.getElementById(containerId);
+      grid.innerHTML = '';
+      Object.entries(data).forEach(([key, item]) => {
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn' + (key === currentKey ? ' active' : '');
+        btn.innerHTML = `<strong>${item.label}</strong><span>${item.desc || item.summary}</span>`;
+        btn.addEventListener('click', () => onClick(key));
+        grid.appendChild(btn);
+      });
+    }
+
+    function computeStateAtMinute(minute) {
+      const base = profiles[currentProfile].base;
+      const format = currentFormat;
+      const startTemp = temps[currentTemp].celsius;
+      const roomTemp = 22;
+      const warmRate = format === 'neat' ? 2.0 : 0.8;
+      const glassTemp = Math.min(roomTemp, startTemp + minute * warmRate);
+
+      let dilution = format === 'neat' ? 4 : 18;
+      if (currentLength === 'strong') dilution += format === 'neat' ? 0 : -6;
+      if (currentLength === 'balanced') dilution += format === 'neat' ? 2 : 4;
+      if (currentLength === 'long') dilution += format === 'neat' ? 8 : 18;
+      dilution += minute * (format === 'neat' ? 1.2 : 5.0);
+      dilution = Math.max(0, dilution);
+
+      const concentration = Math.max(0, 100 - dilution);
+      const tempForCitrus = Math.max(0, 100 - Math.abs(glassTemp - 14) * 5.2);
+      const tempForFloral = Math.max(0, 100 - Math.abs(glassTemp - 18) * 5.0);
+      const dilutionOpen = Math.max(0, 100 - Math.abs(dilution - 22) * 3.1);
+      const bitternessShape = Math.max(0, 100 - Math.abs(dilution - 28) * 2.6);
+      const spiceRetention = Math.max(0, 100 - dilution * 1.1 + glassTemp * 1.8);
+
+      const juniper = clamp(base.juniper * 0.72 + concentration * 0.30 + (glassTemp - 12) * 1.2 + (format === 'neat' ? 6 : -6));
+      const citrus = clamp(base.citrus * 0.58 + tempForCitrus * 0.24 + dilutionOpen * 0.20 + (format === 'mixed' ? 6 : 0) - minute * 1.2);
+      const floral = clamp(base.floral * 0.58 + tempForFloral * 0.26 + dilutionOpen * 0.16 + (format === 'mixed' ? 3 : 0) - Math.max(0, minute - 2) * 2.2);
+      const bitterness = clamp(base.bitterness * 0.55 + bitternessShape * 0.18 + dilution * 0.22 + (format === 'mixed' ? 10 : -4) + (glassTemp - 10) * 0.7);
+      const spice = clamp(base.spice * 0.64 + spiceRetention * 0.22 + (format === 'neat' ? 4 : -2) - dilution * 0.12 - minute * 0.8);
+
+      return {
+        glassTemp,
+        dilution,
+        intensity: clamp(concentration * 0.72 + juniper * 0.14 + spice * 0.14),
+        families: { juniper, citrus, floral, bitterness, spice }
+      };
+    }
+
+    function buildNowSummary(now) {
+      const f = now.families;
+      let title = 'Cold crisp early serve';
+      let summary = 'The drink is still tight and bright: citrus stays lifted, juniper remains clear, and spice has not softened much yet.';
+
+      if (f.citrus >= 68 && f.juniper >= 54) {
+        title = 'Bright lifted serve';
+        summary = 'Citrus is rising clearly above the baseline while juniper still holds a recognisable spine underneath.';
+      }
+      if (f.floral >= 58) {
+        title = 'Blooming aromatic serve';
+        summary = 'Floral notes are now opening up more strongly, making the glass feel softer and more perfumed.';
+      }
+      if (f.bitterness >= 52) {
+        title = 'Sharper bitter line';
+        summary = 'Dilution and serve format are pushing the bitter edge up, so the drink feels more angular and tonic-driven.';
+      }
+      if (f.spice <= 28 && currentTime >= 3) {
+        title = 'Softening middle';
+        summary = 'The spicier core has started to fade back, so the drink feels broader but less firm in the middle.';
+      }
+      if (now.intensity <= 34) {
+        title = 'Flattening serve';
+        summary = 'The gin is losing force in the glass, with top-note lift and structural grip softening together.';
+      }
+      return { title, summary };
+    }
+
+    function renderDumbbells(base, now) {
+      const wrap = document.getElementById('dumbbellList');
+      wrap.innerHTML = '';
+      families.forEach(key => {
+        const start = base[key];
+        const end = now[key];
+        const left = Math.min(start, end);
+        const width = Math.max(2, Math.abs(end - start));
+        const row = document.createElement('div');
+        row.className = 'dumbbellRow';
+        row.innerHTML = `
+          <div>${familyLabels[key]}</div>
+          <div class="dumbbellTrack">
+            <div class="dumbbellLine" style="left:${left}%; width:${width}%"></div>
+            <div class="dumbbellStart" style="left:${start}%"></div>
+            <div class="dumbbellEnd" style="left:${end}%"></div>
+          </div>
+          <div class="value">${levelWord(end)}</div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function smoothPath(points) {
+      if (points.length < 2) return '';
+      if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+      let d = `M ${points[0].x} ${points[0].y}`;
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i - 1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+      }
+      return d;
+    }
+
+    function renderLineChart(series) {
+      const svg = document.getElementById('lineChart');
+      svg.innerHTML = '';
+      const width = 620, height = 330;
+      const margin = { top: 16, right: 18, bottom: 34, left: 42 };
+      const chartW = width - margin.left - margin.right;
+      const chartH = height - margin.top - margin.bottom;
+
+      for (let i = 0; i <= 5; i++) {
+        const x = margin.left + (chartW / 5) * i;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('y1', margin.top);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', margin.top + chartH);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.10)');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+
+        if (i < 5) {
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', x);
+          label.setAttribute('y', height - 10);
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('fill', 'rgba(85,115,99,0.95)');
+          label.setAttribute('font-size', '12');
+          label.textContent = `${i}m`;
+          svg.appendChild(label);
+        }
+      }
+
+      [0, 25, 50, 75, 100].forEach(v => {
+        const y = margin.top + chartH - (v / 100) * chartH;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', width - margin.right);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.10)');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', 12);
+        label.setAttribute('y', y + 4);
+        label.setAttribute('fill', 'rgba(85,115,99,0.95)');
+        label.setAttribute('font-size', '12');
+        label.textContent = v;
+        svg.appendChild(label);
+      });
+
+      families.forEach(key => {
+        const points = series.map((point, i) => {
+          const x = margin.left + (chartW / 5) * i;
+          const y = margin.top + chartH - (point.families[key] / 100) * chartH;
+          return { x, y };
+        });
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', smoothPath(points));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', familyColors[key]);
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(path);
+      });
+
+      const legend = document.getElementById('lineLegend');
+      legend.innerHTML = '';
+      families.forEach(key => {
+        const item = document.createElement('div');
+        item.className = 'legendItem';
+        item.innerHTML = `<span class="swatch" style="background:${familyColors[key]}"></span>${familyLabels[key]}`;
+        legend.appendChild(item);
+      });
+    }
+
+    function buildNotes(base, now) {
+      const notes = [];
+      const f = now.families;
+      if (f.citrus - base.citrus >= 10) notes.push(['citrus is lifting', 'The current temperature and dilution are putting peel-bright top notes more in front than in the base spirit profile.']);
+      if (f.floral - base.floral >= 10) notes.push(['florals are blooming', 'The glass has opened enough for softer aromatic notes to rise.']);
+      if (f.floral < base.floral - 8) notes.push(['florals are flattening', 'The serve conditions are suppressing the lighter blossom edge rather than helping it bloom.']);
+      if (f.bitterness - base.bitterness >= 10) notes.push(['bitterness is sharpening', 'Dilution and serve format are making the bitter line more noticeable than in the base spirit.']);
+      if (f.spice < base.spice - 10) notes.push(['spice is softening', 'The middle of the gin is losing some of its grip as the serve opens up.']);
+      if (f.juniper < base.juniper - 10) notes.push(['juniper is less obvious', 'Longer or looser serving conditions are pushing the gin away from a firm spirit-forward centre.']);
+      if (f.juniper > base.juniper + 10) notes.push(['juniper is more exposed', 'The glass is still concentrated enough for the classic backbone to show very clearly.']);
+      if (!notes.length) notes.push(['balanced early state', 'No one aroma family has moved dramatically away from the spirit baseline yet.']);
+      return notes.slice(0, 4);
+    }
+
+    function buildRules(now) {
+      const rules = [];
+      if (currentFormat === 'neat') rules.push(['Neat format', 'The serve starts more concentrated, so juniper and spice usually hold more firmly.']);
+      if (currentFormat === 'mixed') rules.push(['Mixed format', 'Dilution and mixer length make bitterness and top-note shifts easier to notice.']);
+      if (currentTemp === 'fridge_cold') rules.push(['Cold start', 'The nose starts tighter and cleaner, with less immediate bloom.']);
+      if (currentTemp === 'room') rules.push(['Warm start', 'The nose is already more open, so floral and citrus lift can show quickly.']);
+      if (currentLength === 'long') rules.push(['Long serve', 'A longer build lowers concentration and makes flattening more likely later in the glass.']);
+      if (currentLength === 'strong') rules.push(['Strong pour', 'The gin backbone stays more visible because concentration remains higher.']);
+      if (currentTime >= 3) rules.push(['Time in glass', 'By this point the serve is showing not just opening, but also what is starting to fade.']);
+      return rules.slice(0, 5);
+    }
+
+    function buildPrompts(now) {
+      const prompts = [];
+      prompts.push(['Ask on tour', 'Which family has moved most: juniper, citrus, floral, bitterness, or spice?']);
+      if (currentFormat === 'mixed') prompts.push(['Try side by side', 'Compare the same gin at minute 0 and minute 5 to show that “the same drink” does not stay sensorially fixed.']);
+      if (currentTemp === 'fridge_cold') prompts.push(['Temperature lesson', 'Ask why the colder glass feels cleaner at first, but not necessarily more aromatic.']);
+      if (currentTemp === 'room') prompts.push(['Temperature lesson', 'Ask why the warmer glass smells bigger but can feel softer or less crisp.']);
+      if (currentLength === 'long') prompts.push(['Length lesson', 'Ask when a long serve stops feeling opened-up and starts feeling simply watered down.']);
+      return prompts.slice(0, 4);
+    }
+
+    function render() {
+      const profile = profiles[currentProfile];
+      const series = [0,1,2,3,4,5].map(minute => computeStateAtMinute(minute));
+      const now = computeStateAtMinute(currentTime);
+      const header = buildNowSummary(now);
+
+      document.getElementById('profileName').textContent = profile.label;
+      document.getElementById('profileSummary').textContent = profile.summary;
+      document.getElementById('resultTitle').textContent = header.title;
+      document.getElementById('resultSummary').textContent = header.summary;
+      document.getElementById('resultBadge').textContent = timeWord(currentTime);
+      document.getElementById('readTitle').textContent = `Why this serve feels ${header.title.toLowerCase()}`;
+      document.getElementById('readText').textContent = header.summary;
+      document.getElementById('timeLabel').textContent = timeWord(currentTime);
+
+      renderChoiceGrid('profileGrid', profiles, currentProfile, key => { currentProfile = key; render(); });
+      renderChoiceGrid('formatGrid', formats, currentFormat, key => { currentFormat = key; render(); });
+      renderChoiceGrid('tempGrid', temps, currentTemp, key => { currentTemp = key; render(); });
+      renderChoiceGrid('lengthGrid', lengths, currentLength, key => { currentLength = key; render(); });
+
+      renderDumbbells(profile.base, now.families);
+      renderLineChart(series);
+      renderCards('noteList', buildNotes(profile.base, now), 'noteCard');
+      renderCards('logicList', buildRules(now), 'logicCard');
+      renderCards('factList', buildPrompts(now), 'factCard');
+
+      document.getElementById('metricTemp').textContent = tempWord(now.glassTemp);
+      document.getElementById('metricDilution').textContent = levelWord(now.dilution);
+      document.getElementById('metricIntensity').textContent = levelWord(now.intensity);
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    document.getElementById('timeSlider').addEventListener('input', e => {
+      currentTime = Number(e.target.value);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
