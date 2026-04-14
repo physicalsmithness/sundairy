@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Serve Science Simulator</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --accent-2: #2f8f5a;
+      --mint: #8fe2c8;
+      --citrus: #f3d86b;
+      --floral: #d8b7ef;
+      --warm: #ef9f68;
+      --dry: #8fd45a;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 980px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.98fr 1.14fr 0.88fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .choiceGroup {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choiceLabel {
+      color: #2f8f5a;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .choiceGrid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choiceBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .choiceBtn:hover { transform: translateY(-1px); }
+
+    .choiceBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .choiceBtn strong {
+      display: block;
+      font-size: 0.94rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .choiceBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .controlCard {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .controlTop strong {
+      font-size: 0.94rem;
+    }
+
+    .controlTop span {
+      color: #2f8f5a;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .controlNote {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.22;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(37, 90, 62, 0.06), rgba(37, 90, 62, 0.12));
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      background: radial-gradient(circle at 35% 30%, #ffffff, #8fe2c8 55%, #55bb78 100%);
+      box-shadow: 0 8px 18px rgba(40,94,63,0.18);
+      cursor: pointer;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 12px;
+    }
+
+    .vizCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .barRow {
+      display: grid;
+      grid-template-columns: 120px 1fr 72px;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .track {
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37, 90, 62, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .baseline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: rgba(54, 81, 66, 0.55);
+      border-radius: 999px;
+      transform: translateX(-50%);
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 240ms ease;
+      background: linear-gradient(90deg, #9fe48e, #55bb78);
+    }
+
+    .value {
+      color: #2f8f5a;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metricGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .metric strong {
+      display: block;
+      color: #2f8f5a;
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.2;
+    }
+
+    .noteList, .logicList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1240px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout, .vizGrid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin serve science simulator</h1>
+      <p class="sub">Choose a gin style, then change tonic, garnish, ice, glass, dilution, and temperature. The serve display shows what happens to aroma lift, bitterness, sweetness, citrus emphasis, floral emphasis, and perceived dryness.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Build the serve</div>
+          <h2 id="styleName">London Dry</h2>
+          <p id="styleSummary">Juniper-forward, crisp, and structurally dry enough to show clearly what the serve is doing to it.</p>
+        </div>
+
+        <div class="choiceGroup">
+          <div class="choiceLabel">Gin style</div>
+          <div class="choiceGrid" id="styleGrid"></div>
+        </div>
+
+        <div class="choiceGroup">
+          <div class="choiceLabel">Tonic type</div>
+          <div class="choiceGrid" id="tonicGrid"></div>
+        </div>
+
+        <div class="choiceGroup">
+          <div class="choiceLabel">Garnish</div>
+          <div class="choiceGrid" id="garnishGrid"></div>
+        </div>
+
+        <div class="choiceGroup">
+          <div class="choiceLabel">Glass type</div>
+          <div class="choiceGrid" id="glassGrid"></div>
+        </div>
+
+        <div class="controlCard">
+          <div class="controlTop"><strong>Ice level</strong><span id="iceLabel">High</span></div>
+          <input id="iceSlider" type="range" min="0" max="100" value="82" />
+          <div class="controlNote">More ice keeps the serve colder and steadier. Less ice makes it flatten and water out faster.</div>
+        </div>
+
+        <div class="controlCard">
+          <div class="controlTop"><strong>Dilution</strong><span id="dilutionLabel">Moderate</span></div>
+          <input id="dilutionSlider" type="range" min="0" max="100" value="34" />
+          <div class="controlNote">A little dilution can open the aroma. Too much softens bitterness, dryness, and detail.</div>
+        </div>
+
+        <div class="controlCard">
+          <div class="controlTop"><strong>Temperature</strong><span id="tempLabel">Cold</span></div>
+          <input id="tempSlider" type="range" min="0" max="100" value="24" />
+          <div class="controlNote">Colder serves feel crisper but quieter on the nose. Warmer serves bloom more but lose sharpness.</div>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Serve result</div>
+            <h2 id="serveTitle">Crisp classic G&T</h2>
+            <p id="serveSummary">High ice, an Indian tonic, and lemon twist keep the drink clean, dry, and clearly juniper-led.</p>
+          </div>
+          <div class="badge" id="serveBadge">Clean & classic</div>
+        </div>
+
+        <div class="vizGrid">
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Serve profile radar</h3><span>served drink vs spirit baseline</span></div>
+            <svg viewBox="0 0 620 520" id="radarSvg">
+              <g id="radarGrid"></g>
+              <g id="radarLabels"></g>
+              <polygon id="baselinePoly" fill="rgba(54, 81, 66, 0.08)" stroke="rgba(54, 81, 66, 0.32)" stroke-width="2"></polygon>
+              <polygon id="currentPoly" fill="rgba(85,187,120,0.24)" stroke="rgba(85,187,120,0.96)" stroke-width="4"></polygon>
+              <g id="radarPoints"></g>
+            </svg>
+            <div class="legend">
+              <div class="legendItem"><span class="swatch" style="background: rgba(85,187,120,0.92)"></span> Current serve</div>
+              <div class="legendItem"><span class="swatch" style="background: rgba(54,81,66,0.32)"></span> Spirit baseline</div>
+            </div>
+          </div>
+
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Serve shifts</h3><span>white markers = spirit baseline</span></div>
+            <div class="bars" id="bars"></div>
+            <div class="metricGrid" style="margin-top:10px;">
+              <div class="metric"><strong>aroma</strong><span id="metricAroma">High</span><small>headspace + top-note release</small></div>
+              <div class="metric"><strong>crispness</strong><span id="metricCrisp">High</span><small>cold structure + dryness</small></div>
+              <div class="metric"><strong>lushness</strong><span id="metricLush">Low</span><small>sweetness + floral softness</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Likely experience</h3></div>
+          <div class="noteList" id="noteList"></div>
+        </div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Reading the serve</div>
+          <h3 id="readTitle">Why this serve feels crisp</h3>
+          <p id="readText">The tonic is adding quinine bite, the garnish is sharpening the nose, and the cold high-ice serve is keeping the structure firm.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Rules fired</h3></div>
+          <div class="logicList" id="logicList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>At-home takeaway</h3></div>
+          <div class="factList" id="factList"></div>
+          <p class="tiny" style="margin-top:10px;">Useful at the end of a tour: guests can see that changing the garnish or tonic can genuinely move the same gin into a different experience.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const axes = ['aroma lift', 'bitterness', 'sweetness', 'citrus emphasis', 'floral emphasis', 'perceived dryness'];
+
+    const ginStyles = {
+      london_dry: {
+        label: 'London Dry',
+        summary: 'Juniper-forward, crisp, and structurally dry enough to show clearly what the serve is doing to it.',
+        badge: 'Classic backbone',
+        base: { 'aroma lift': 52, 'bitterness': 26, 'sweetness': 10, 'citrus emphasis': 28, 'floral emphasis': 10, 'perceived dryness': 72 }
+      },
+      citrus_contemporary: {
+        label: 'Citrus Contemporary',
+        summary: 'Brighter and more top-note-led, with citrus already doing more of the work before tonic or garnish arrive.',
+        badge: 'Bright & modern',
+        base: { 'aroma lift': 56, 'bitterness': 18, 'sweetness': 14, 'citrus emphasis': 64, 'floral emphasis': 16, 'perceived dryness': 48 }
+      },
+      floral_contemporary: {
+        label: 'Floral Contemporary',
+        summary: 'Aromatic and perfumed, with more blossom and softness and less dependence on a classic dry spine.',
+        badge: 'Floral & expressive',
+        base: { 'aroma lift': 60, 'bitterness': 14, 'sweetness': 18, 'citrus emphasis': 20, 'floral emphasis': 72, 'perceived dryness': 34 }
+      },
+      spice_led: {
+        label: 'Spice-led',
+        summary: 'Warmer and more mid-palate-driven, so the serve choices decide whether it stays tight or turns rich.',
+        badge: 'Warm & structured',
+        base: { 'aroma lift': 46, 'bitterness': 20, 'sweetness': 10, 'citrus emphasis': 18, 'floral emphasis': 8, 'perceived dryness': 60 }
+      },
+      herbal_savoury: {
+        label: 'Herbal Savoury',
+        summary: 'Green, savoury, and drier-edged, with plenty of room for garnish and tonic to steer the final experience.',
+        badge: 'Green & savoury',
+        base: { 'aroma lift': 50, 'bitterness': 22, 'sweetness': 8, 'citrus emphasis': 18, 'floral emphasis': 12, 'perceived dryness': 66 }
+      },
+      navy_strength: {
+        label: 'Navy Strength',
+        summary: 'Bigger, louder, and more forceful, so the serve can either sharpen it beautifully or let it become blunt.',
+        badge: 'High-intensity',
+        base: { 'aroma lift': 68, 'bitterness': 30, 'sweetness': 8, 'citrus emphasis': 24, 'floral emphasis': 10, 'perceived dryness': 78 }
+      }
+    };
+
+    const tonics = {
+      indian: {
+        label: 'Indian tonic',
+        desc: 'Classic quinine bite and moderate sweetness.',
+        delta: { 'aroma lift': 4, 'bitterness': 26, 'sweetness': 18, 'citrus emphasis': 0, 'floral emphasis': 0, 'perceived dryness': -6 }
+      },
+      light: {
+        label: 'Light tonic',
+        desc: 'Lower sugar, still bitter, crisper finish.',
+        delta: { 'aroma lift': 4, 'bitterness': 22, 'sweetness': 8, 'citrus emphasis': 0, 'floral emphasis': 0, 'perceived dryness': 4 }
+      },
+      mediterranean: {
+        label: 'Mediterranean tonic',
+        desc: 'More aromatic and softer than classic Indian tonic.',
+        delta: { 'aroma lift': 8, 'bitterness': 12, 'sweetness': 16, 'citrus emphasis': 8, 'floral emphasis': 6, 'perceived dryness': -4 }
+      },
+      elderflower: {
+        label: 'Elderflower tonic',
+        desc: 'Floral and sweeter, with less bitter bite.',
+        delta: { 'aroma lift': 10, 'bitterness': 8, 'sweetness': 24, 'citrus emphasis': 2, 'floral emphasis': 22, 'perceived dryness': -14 }
+      },
+      soda: {
+        label: 'Soda / sparkling water',
+        desc: 'Minimal sweetness; lets the gin stay more exposed.',
+        delta: { 'aroma lift': 2, 'bitterness': 0, 'sweetness': 0, 'citrus emphasis': 0, 'floral emphasis': 0, 'perceived dryness': 8 }
+      }
+    };
+
+    const garnishes = {
+      lemon: {
+        label: 'Lemon twist',
+        desc: 'Sharpens brightness and dry lift.',
+        delta: { 'aroma lift': 10, 'bitterness': 0, 'sweetness': 0, 'citrus emphasis': 18, 'floral emphasis': 0, 'perceived dryness': 4 }
+      },
+      orange: {
+        label: 'Orange peel',
+        desc: 'Rounder citrus and a little more softness.',
+        delta: { 'aroma lift': 8, 'bitterness': 0, 'sweetness': 4, 'citrus emphasis': 12, 'floral emphasis': 0, 'perceived dryness': -2 }
+      },
+      grapefruit: {
+        label: 'Grapefruit peel',
+        desc: 'Lifts citrus hard and adds a bitter edge.',
+        delta: { 'aroma lift': 10, 'bitterness': 6, 'sweetness': 0, 'citrus emphasis': 22, 'floral emphasis': 0, 'perceived dryness': 2 }
+      },
+      rosemary: {
+        label: 'Rosemary',
+        desc: 'Sharp herbal nose and drier feel.',
+        delta: { 'aroma lift': 8, 'bitterness': 2, 'sweetness': 0, 'citrus emphasis': -2, 'floral emphasis': -2, 'perceived dryness': 6 }
+      },
+      cucumber: {
+        label: 'Cucumber',
+        desc: 'Cooler, softer, and less angular.',
+        delta: { 'aroma lift': 6, 'bitterness': -2, 'sweetness': 0, 'citrus emphasis': -2, 'floral emphasis': 6, 'perceived dryness': -6 }
+      },
+      none: {
+        label: 'No garnish',
+        desc: 'Leaves the mixer and gin to do all the work.',
+        delta: { 'aroma lift': 0, 'bitterness': 0, 'sweetness': 0, 'citrus emphasis': 0, 'floral emphasis': 0, 'perceived dryness': 0 }
+      }
+    };
+
+    const glasses = {
+      copa: {
+        label: 'Copa glass',
+        desc: 'Big bowl, wide headspace, garnish-forward.',
+        delta: { 'aroma lift': 14, 'bitterness': 0, 'sweetness': 0, 'citrus emphasis': 6, 'floral emphasis': 8, 'perceived dryness': 0 }
+      },
+      highball: {
+        label: 'Highball',
+        desc: 'Tighter and more linear, with a firmer crisp feel.',
+        delta: { 'aroma lift': 4, 'bitterness': 2, 'sweetness': 0, 'citrus emphasis': 0, 'floral emphasis': -2, 'perceived dryness': 4 }
+      },
+      balloon: {
+        label: 'Balloon goblet',
+        desc: 'Big aromatic sweep, but can make softer serves feel lusher.',
+        delta: { 'aroma lift': 16, 'bitterness': -2, 'sweetness': 2, 'citrus emphasis': 6, 'floral emphasis': 10, 'perceived dryness': -2 }
+      },
+      coupe: {
+        label: 'Martini / coupe',
+        desc: 'Sharper nose, more exposed spirit line, less mixer feel.',
+        delta: { 'aroma lift': 10, 'bitterness': 2, 'sweetness': -2, 'citrus emphasis': 2, 'floral emphasis': 2, 'perceived dryness': 6 }
+      }
+    };
+
+    let currentStyle = 'london_dry';
+    let currentTonic = 'indian';
+    let currentGarnish = 'lemon';
+    let currentGlass = 'copa';
+    let iceValue = 82;
+    let dilutionValue = 34;
+    let tempValue = 24;
+
+    function clamp(v) {
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function iceLabel(v) {
+      if (v >= 78) return 'High';
+      if (v >= 52) return 'Moderate';
+      if (v >= 24) return 'Low';
+      return 'Very low';
+    }
+
+    function dilutionLabel(v) {
+      if (v <= 18) return 'Tight';
+      if (v <= 42) return 'Moderate';
+      if (v <= 68) return 'Loose';
+      return 'Very loose';
+    }
+
+    function tempLabel(v) {
+      if (v <= 18) return 'Ice-cold';
+      if (v <= 38) return 'Cold';
+      if (v <= 62) return 'Cool';
+      return 'Warm';
+    }
+
+    function drawRadar(profile, baseline) {
+      const grid = document.getElementById('radarGrid');
+      const labels = document.getElementById('radarLabels');
+      const baselinePoly = document.getElementById('baselinePoly');
+      const currentPoly = document.getElementById('currentPoly');
+      const ptsGroup = document.getElementById('radarPoints');
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      ptsGroup.innerHTML = '';
+
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = axes.map((_, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+          const r = (level / 100) * maxR;
+          return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+        }).join(' ');
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        shape.setAttribute('points', pts);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', 'rgba(54,81,66,0.11)');
+        shape.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(shape);
+      });
+
+      axes.forEach((label, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        const lx = cx + Math.cos(angle) * (maxR + 24);
+        const ly = cy + Math.sin(angle) * (maxR + 24);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lx);
+        text.setAttribute('y', ly);
+        text.setAttribute('fill', 'rgba(22,54,36,0.95)');
+        text.setAttribute('font-size', '14');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+
+      const basePts = axes.map((key, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const r = (baseline[key] / 100) * maxR;
+        return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+      }).join(' ');
+      baselinePoly.setAttribute('points', basePts);
+
+      const currentPts = axes.map((key, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const r = (profile[key] / 100) * maxR;
+        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+      });
+      currentPoly.setAttribute('points', currentPts.map(p => `${p.x},${p.y}`).join(' '));
+
+      currentPts.forEach(p => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p.x);
+        dot.setAttribute('cy', p.y);
+        dot.setAttribute('r', '5.5');
+        dot.setAttribute('fill', 'rgba(85,187,120,0.96)');
+        dot.setAttribute('stroke', 'rgba(255,255,255,0.85)');
+        dot.setAttribute('stroke-width', '1.4');
+        ptsGroup.appendChild(dot);
+      });
+    }
+
+    function renderChoiceGrid(containerId, data, currentKey, onClick) {
+      const grid = document.getElementById(containerId);
+      grid.innerHTML = '';
+      Object.entries(data).forEach(([key, item]) => {
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn' + (key === currentKey ? ' active' : '');
+        btn.innerHTML = `<strong>${item.label}</strong><span>${item.desc || item.summary}</span>`;
+        btn.addEventListener('click', () => onClick(key));
+        grid.appendChild(btn);
+      });
+    }
+
+    function computeServe() {
+      const base = { ...ginStyles[currentStyle].base };
+      const tonic = tonics[currentTonic].delta;
+      const garnish = garnishes[currentGarnish].delta;
+      const glass = glasses[currentGlass].delta;
+      const current = { ...base };
+
+      axes.forEach(axis => {
+        current[axis] += (tonic[axis] || 0) + (garnish[axis] || 0) + (glass[axis] || 0);
+      });
+
+      const dilution = dilutionValue;
+      const openWindow = Math.max(0, 1 - Math.abs(dilution - 32) / 32);
+      current['aroma lift'] += 8 * openWindow - Math.max(0, dilution - 48) * 0.22;
+      current['citrus emphasis'] += 6 * openWindow - Math.max(0, dilution - 54) * 0.12;
+      current['floral emphasis'] += 5 * openWindow - Math.max(0, dilution - 50) * 0.14;
+      current['bitterness'] -= dilution * 0.10;
+      current['sweetness'] -= dilution * 0.05;
+      current['perceived dryness'] -= dilution * 0.13;
+
+      const ice = iceValue;
+      current['aroma lift'] += (ice - 50) * 0.06;
+      current['citrus emphasis'] += (ice - 50) * 0.03;
+      current['floral emphasis'] += (ice - 50) * 0.025;
+      current['perceived dryness'] += (ice - 50) * 0.06;
+      current['sweetness'] -= (ice - 50) * 0.03;
+
+      const temp = tempValue;
+      current['aroma lift'] += temp * 0.18 - 9;
+      current['bitterness'] += temp * 0.07 - 3;
+      current['sweetness'] += temp * 0.04 - 2;
+      current['citrus emphasis'] += temp * 0.08 - 4;
+      current['floral emphasis'] += temp * 0.07 - 3;
+      current['perceived dryness'] -= temp * 0.09 - 4;
+
+      axes.forEach(axis => {
+        current[axis] = clamp(current[axis]);
+      });
+
+      return { baseline: base, current };
+    }
+
+    function buildServeSummary(profile) {
+      const aroma = profile['aroma lift'];
+      const bitterness = profile['bitterness'];
+      const sweetness = profile['sweetness'];
+      const citrus = profile['citrus emphasis'];
+      const floral = profile['floral emphasis'];
+      const dryness = profile['perceived dryness'];
+
+      let title = 'Balanced mixed serve';
+      let summary = 'The gin is still visible through the mixer, with no single serve choice completely overwhelming it.';
+      let badge = 'Balanced';
+
+      if (dryness >= 64 && bitterness >= 34 && sweetness <= 24) {
+        title = 'Crisp classic G&T';
+        summary = 'The serve is staying firm, dry, and clean, with quinine bite and a clear structural line.';
+        badge = 'Clean & classic';
+      }
+      if (citrus >= 64 && aroma >= 60) {
+        title = 'Bright citrus serve';
+        summary = 'The glass is pushing top-note lift and peel brightness to the front, making the drink feel vivid and zesty.';
+        badge = 'Lifted & zesty';
+      }
+      if (floral >= 58 && sweetness >= 28) {
+        title = 'Soft floral long serve';
+        summary = 'The serve is moving into a rounder, more perfumed lane where softness and aroma matter more than bite.';
+        badge = 'Floral & lush';
+      }
+      if (aroma < 34 && dryness < 40) {
+        title = 'Flattened serve';
+        summary = 'The drink is losing brightness and structural snap, so it may feel diluted or muted rather than expressive.';
+        badge = 'Flat & softened';
+      }
+      if (bitterness >= 54 && citrus >= 54) {
+        title = 'Sharper bitter-citrus serve';
+        summary = 'The serve is now more angular, with grapefruit-like lift, more quinine bite, and less softness.';
+        badge = 'Sharper edge';
+      }
+
+      return { title, summary, badge };
+    }
+
+    function buildNotes(profile, baseline) {
+      const notes = [];
+      if (profile['aroma lift'] - baseline['aroma lift'] >= 10) {
+        notes.push(['lifted nose', 'Glass shape, garnish, and/or temperature are pushing aroma higher than the spirit baseline.']);
+      }
+      if (profile['citrus emphasis'] >= 58) {
+        notes.push(['citrus-led first impression', 'The garnish and tonic are making peel brightness one of the first things the guest notices.']);
+      }
+      if (profile['floral emphasis'] >= 52) {
+        notes.push(['soft aromatic bloom', 'The serve is amplifying blossom-like notes rather than keeping the profile strictly crisp.']);
+      }
+      if (profile['bitterness'] >= 48) {
+        notes.push(['clear quinine bite', 'The mixer and garnish are sharpening the bitter line in the drink.']);
+      }
+      if (profile['sweetness'] >= 28) {
+        notes.push(['rounder tonic sweetness', 'The long serve is moving away from dry structure and towards softness.']);
+      }
+      if (profile['perceived dryness'] >= 62) {
+        notes.push(['clean dry finish', 'The serve is preserving crispness and a firm finish.']);
+      }
+      if (profile['aroma lift'] < 36 && profile['citrus emphasis'] < 36) {
+        notes.push(['muted top notes', 'Too much dilution or too little aromatic lift is flattening the nose.']);
+      }
+      return notes.slice(0, 4);
+    }
+
+    function buildRules(profile, baseline) {
+      const rules = [];
+      const tonic = tonics[currentTonic];
+      const garnish = garnishes[currentGarnish];
+      const glass = glasses[currentGlass];
+
+      if (tonic.delta['bitterness'] >= 20) rules.push(['tonic bite rises', `${tonic.label} is pushing quinine bitterness into the front rank.`]);
+      if (tonic.delta['sweetness'] >= 18) rules.push(['sweetness rises', `${tonic.label} is softening the drink with a sweeter mixer line.`]);
+      if (garnish.delta['citrus emphasis'] >= 12) rules.push(['garnish sharpens citrus', `${garnish.label} is pushing peel aroma above the spirit baseline.`]);
+      if (garnish.delta['floral emphasis'] >= 6) rules.push(['garnish softens the lane', `${garnish.label} is nudging the serve towards a softer aromatic profile.`]);
+      if (glass.delta['aroma lift'] >= 10) rules.push(['glass increases headspace', `${glass.label} is helping the nose feel larger and more aromatic.`]);
+      if (iceValue >= 76) rules.push(['high ice preserves structure', `The serve is staying colder and more stable, so dryness and crispness are holding up.`]);
+      if (iceValue <= 28) rules.push(['low ice weakens the line', `The serve will dilute and flatten faster, reducing firmness.`]);
+      if (dilutionValue >= 62) rules.push(['heavy dilution softens the drink', `Bitterness, dryness, and detail are being pulled down by extra water.`]);
+      else if (dilutionValue >= 18 && dilutionValue <= 42) rules.push(['moderate dilution opens the nose', `A small amount of water is helping aroma release without flattening the drink.`]);
+      if (tempValue >= 60) rules.push(['warmer serve blooms the nose', `Temperature is helping aroma out of the glass, but reducing crispness.`]);
+      if (tempValue <= 20) rules.push(['colder serve tightens the shape', `The drink will feel sharper and crisper, even if the nose is slightly quieter.`]);
+
+      const deltaDry = profile['perceived dryness'] - baseline['perceived dryness'];
+      if (deltaDry >= 12) rules.push(['serve is drier than the gin alone', `Mixer choice, garnish, and service conditions are sharpening the finish.`]);
+      if (deltaDry <= -12) rules.push(['serve is softer than the gin alone', `The long serve is rounding off some of the spirit’s native dryness.`]);
+
+      return rules.slice(0, 5);
+    }
+
+    function buildTakeaways(profile) {
+      const facts = [];
+      if (currentTonic === 'elderflower') facts.push(['Swap idea', 'Try the same gin with Indian or light tonic to see how much of the softness is coming from the mixer rather than the spirit.']);
+      if (currentGarnish === 'grapefruit') facts.push(['Garnish lesson', 'Grapefruit does not just add citrus — it often sharpens bitterness and the whole emotional feel of the serve.']);
+      if (currentGarnish === 'cucumber') facts.push(['Garnish lesson', 'Cucumber can make the same gin feel cooler and softer, not simply “more refreshing.”']);
+      if (currentGlass === 'copa' || currentGlass === 'balloon') facts.push(['Glass lesson', 'Wider-bowled glasses make garnish and tonic aroma more present, which can change the whole first impression.']);
+      if (iceValue < 30) facts.push(['Ice lesson', 'Using too little ice often weakens the drink faster, even when people think they are keeping it stronger.']);
+      if (dilutionValue > 58) facts.push(['Dilution lesson', 'A long serve can lose detail quite quickly once it moves from “opened up” to genuinely watered down.']);
+      if (tempValue > 60) facts.push(['Temperature lesson', 'A warmer serve smells louder, but often feels softer and less crisp.']);
+      if (!facts.length) facts.push(['Use on tour', 'A single swap — tonic, garnish, or glass — is enough to show guests that service is part of the flavour design, not decoration.']);
+      return facts.slice(0, 4);
+    }
+
+    function renderChoiceGrid(containerId, data, currentKey, onClick) {
+      const grid = document.getElementById(containerId);
+      grid.innerHTML = '';
+      Object.entries(data).forEach(([key, item]) => {
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn' + (key === currentKey ? ' active' : '');
+        btn.innerHTML = `<strong>${item.label}</strong><span>${item.desc || item.summary}</span>`;
+        btn.addEventListener('click', () => onClick(key));
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderBars(current, baseline) {
+      const wrap = document.getElementById('bars');
+      wrap.innerHTML = '';
+      axes.forEach(axis => {
+        const row = document.createElement('div');
+        row.className = 'barRow';
+        row.innerHTML = `
+          <div>${axis}</div>
+          <div class="track">
+            <div class="baseline" style="left:${baseline[axis]}%"></div>
+            <div class="fill" style="width:${current[axis]}%"></div>
+          </div>
+          <div class="value">${levelWord(current[axis])}</div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    function render() {
+      const style = ginStyles[currentStyle];
+      const { baseline, current } = computeServe();
+      const serveSummary = buildServeSummary(current);
+
+      document.getElementById('styleName').textContent = style.label;
+      document.getElementById('styleSummary').textContent = style.summary;
+      document.getElementById('serveTitle').textContent = serveSummary.title;
+      document.getElementById('serveSummary').textContent = serveSummary.summary;
+      document.getElementById('serveBadge').textContent = serveSummary.badge;
+
+      document.getElementById('readTitle').textContent = `Why this serve feels ${serveSummary.badge.toLowerCase()}`;
+      document.getElementById('readText').textContent = serveSummary.summary;
+
+      document.getElementById('iceLabel').textContent = iceLabel(iceValue);
+      document.getElementById('dilutionLabel').textContent = dilutionLabel(dilutionValue);
+      document.getElementById('tempLabel').textContent = tempLabel(tempValue);
+
+      renderChoiceGrid('styleGrid', ginStyles, currentStyle, key => { currentStyle = key; render(); });
+      renderChoiceGrid('tonicGrid', tonics, currentTonic, key => { currentTonic = key; render(); });
+      renderChoiceGrid('garnishGrid', garnishes, currentGarnish, key => { currentGarnish = key; render(); });
+      renderChoiceGrid('glassGrid', glasses, currentGlass, key => { currentGlass = key; render(); });
+
+      drawRadar(current, baseline);
+      renderBars(current, baseline);
+      renderCards('noteList', buildNotes(current, baseline), 'noteCard');
+      renderCards('logicList', buildRules(current, baseline), 'logicCard');
+      renderCards('factList', buildTakeaways(current), 'factCard');
+
+      document.getElementById('metricAroma').textContent = levelWord(current['aroma lift']);
+      document.getElementById('metricCrisp').textContent = levelWord((current['perceived dryness'] * 0.65) + (100 - current['sweetness']) * 0.2 + (100 - Math.abs(tempValue - 18)) * 0.15);
+      document.getElementById('metricLush').textContent = levelWord((current['sweetness'] * 0.55) + (current['floral emphasis'] * 0.45));
+    }
+
+    document.getElementById('iceSlider').addEventListener('input', e => { iceValue = Number(e.target.value); render(); });
+    document.getElementById('dilutionSlider').addEventListener('input', e => { dilutionValue = Number(e.target.value); render(); });
+    document.getElementById('tempSlider').addEventListener('input', e => { tempValue = Number(e.target.value); render(); });
+
+    render();
+  </script>
+</body>
+</html>
