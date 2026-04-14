@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Extraction Method Comparator</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248, 255, 249, 0.9);
+      --panel: rgba(255,255,255,0.72);
+      --panel-2: rgba(255,255,255,0.82);
+      --line: rgba(46, 112, 73, 0.14);
+      --text: #163624;
+      --muted: #557363;
+      --accent: #55bb78;
+      --accent-2: #2f8f5a;
+      --lime: #8fd45a;
+      --citrus: #f3d86b;
+      --mint: #8fe2c8;
+      --lav: #d8b7ef;
+      --warm: #ef9f68;
+      --shadow: 0 22px 60px rgba(40, 94, 63, 0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143, 226, 200, 0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243, 216, 107, 0.45), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 940px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.9fr 1.18fr 0.84fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .botanicalGrid {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .botBtn, .methodBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 11px 12px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .botBtn:hover, .methodBtn:hover { transform: translateY(-1px); }
+
+    .botBtn.active, .methodBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .botBtn strong, .methodBtn strong {
+      display: block;
+      font-size: 0.96rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .botBtn span, .methodBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.24;
+    }
+
+    .methodTabs {
+      display: grid;
+      gap: 8px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: #2f8f5a;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .vizGrid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 12px;
+    }
+
+    .vizCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .barRow {
+      display: grid;
+      grid-template-columns: 86px 1fr 72px;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .track {
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37, 90, 62, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .baseline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: rgba(54, 81, 66, 0.55);
+      border-radius: 999px;
+      transform: translateX(-50%);
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 240ms ease;
+      background: linear-gradient(90deg, #9fe48e, #55bb78);
+    }
+
+    .value {
+      color: #2f8f5a;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .noteList, .logicList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .noteCard, .logicCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .noteCard strong, .logicCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2f8f5a;
+      margin-bottom: 4px;
+    }
+
+    .noteCard span, .logicCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1200px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .layout, .vizGrid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin extraction method comparator</h1>
+      <p class="sub">Pick a botanical, then compare how maceration, vapour infusion, basket infusion, and separate distillate blending change the flavour character.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Choose a botanical</div>
+          <h2 id="botanicalName">Lemon Peel</h2>
+          <p id="botanicalIntro">A good test case because guests already know the smell, but often have not seen how extraction choice changes the style of citrus in gin.</p>
+        </div>
+        <div class="botanicalGrid" id="botanicalGrid"></div>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Method result</div>
+            <h2 id="methodTitle">Vapour infusion</h2>
+            <p id="methodSummary">Keeps the citrus bright, lifted, and cleaner-edged, with less oily depth than a full maceration.</p>
+          </div>
+          <div class="badge" id="methodBadge">Bright & delicate</div>
+        </div>
+
+        <div class="methodTabs" id="methodTabs"></div>
+
+        <div class="vizGrid">
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Character radar</h3><span>current method vs botanical baseline</span></div>
+            <svg viewBox="0 0 620 520" id="radarSvg">
+              <g id="radarGrid"></g>
+              <g id="radarLabels"></g>
+              <polygon id="baselinePoly" fill="rgba(54, 81, 66, 0.08)" stroke="rgba(54, 81, 66, 0.32)" stroke-width="2"></polygon>
+              <polygon id="currentPoly" fill="rgba(85,187,120,0.24)" stroke="rgba(85,187,120,0.96)" stroke-width="4"></polygon>
+              <g id="radarPoints"></g>
+            </svg>
+            <div class="legend">
+              <div class="legendItem"><span class="swatch" style="background: rgba(85,187,120,0.92)"></span> Current method</div>
+              <div class="legendItem"><span class="swatch" style="background: rgba(54,81,66,0.32)"></span> Botanical baseline</div>
+            </div>
+          </div>
+
+          <div class="vizCard">
+            <div class="sectionTitle"><h3>Method shifts</h3><span>white markers = baseline</span></div>
+            <div class="bars" id="bars"></div>
+            <div class="sectionTitle" style="margin-top:10px;"><h3>Likely notes</h3></div>
+            <div class="noteList" id="noteList"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Reading the method</div>
+          <h3 id="readTitle">Why vapour infusion feels brighter</h3>
+          <p id="readText">The botanical is being lifted by vapour rather than soaked deeply in spirit, so fresher and lighter fractions dominate while heavier or oilier ones stay lower.</p>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Rules fired</h3></div>
+          <div class="logicList" id="logicList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Tour prompts</h3></div>
+          <div class="factList" id="factList"></div>
+          <p class="tiny" style="margin-top:10px;">Useful for a guide to switch methods live and ask what guests expect to happen before revealing the shift.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const axes = ['brighter', 'heavier', 'oilier', 'fresher', 'bitter', 'delicate'];
+
+    const botanicals = {
+      lemon_peel: {
+        name: 'Lemon Peel',
+        intro: 'A good test case because guests already know the smell, but often have not seen how extraction choice changes the style of citrus in gin.',
+        class: 'citrus_peel',
+        baseline: { brighter: 70, heavier: 30, oilier: 34, fresher: 76, bitter: 22, delicate: 58 },
+        sensitivity: { maceration: 1.15, vapour: 1.05, basket: 1.0, distillate: 0.92 },
+        note_bank: {
+          bright: 'lemon zest / lifted citrus',
+          heavy: 'candied peel / citrus oil',
+          bitter: 'pith bitterness',
+          delicate: 'clean aromatic lift'
+        },
+        prompts: [
+          ['Ask on tour', 'Does this smell like zest, or like the whole peel being twisted and crushed?'],
+          ['Compare against', 'Vapour infusion versus maceration is usually the clearest contrast here.']
+        ]
+      },
+      coriander: {
+        name: 'Coriander Seed',
+        intro: 'Useful because it does two jobs at once: citrus lift and spicy warmth. Extraction method changes which of those appears first.',
+        class: 'seed_spice',
+        baseline: { brighter: 46, heavier: 44, oilier: 34, fresher: 44, bitter: 14, delicate: 30 },
+        sensitivity: { maceration: 1.0, vapour: 1.08, basket: 1.0, distillate: 0.9 },
+        note_bank: {
+          bright: 'coriander citrus lift',
+          heavy: 'warm seed spice',
+          bitter: 'dry spice edge',
+          delicate: 'clean citrus-spice accent'
+        },
+        prompts: [
+          ['Ask on tour', 'How many guests realise coriander can be bright as well as warm?'],
+          ['Compare against', 'Maceration versus vapour infusion usually reveals coriander’s split personality.']
+        ]
+      },
+      lavender: {
+        name: 'Lavender',
+        intro: 'Excellent for showing delicacy versus perfume risk. A small process shift can move it from elegant to overwhelming.',
+        class: 'fragile_floral',
+        baseline: { brighter: 34, heavier: 20, oilier: 18, fresher: 54, bitter: 6, delicate: 82 },
+        sensitivity: { maceration: 1.3, vapour: 1.15, basket: 1.0, distillate: 0.95 },
+        note_bank: {
+          bright: 'airy blossom lift',
+          heavy: 'dense lavender perfume',
+          bitter: 'dry floral edge',
+          delicate: 'clean floral top note'
+        },
+        prompts: [
+          ['Ask on tour', 'When does floral stop feeling elegant and start feeling perfumed?'],
+          ['Compare against', 'Vapour infusion versus maceration is especially revealing for delicate florals.']
+        ]
+      },
+      cardamom: {
+        name: 'Cardamom',
+        intro: 'Shows that spice is not always heavy. Extraction choice can make cardamom cool and lifted, or warm and rounded.',
+        class: 'aromatic_spice',
+        baseline: { brighter: 40, heavier: 34, oilier: 26, fresher: 48, bitter: 10, delicate: 46 },
+        sensitivity: { maceration: 1.0, vapour: 1.08, basket: 1.0, distillate: 0.9 },
+        note_bank: {
+          bright: 'green cardamom lift',
+          heavy: 'rounded warm spice',
+          bitter: 'dry pepper edge',
+          delicate: 'clean aromatic spice'
+        },
+        prompts: [
+          ['Ask on tour', 'Why can cardamom feel almost citrusy under some methods?'],
+          ['Compare against', 'Vapour infusion and maceration show the biggest contrast.']
+        ]
+      },
+      rosemary: {
+        name: 'Rosemary',
+        intro: 'Helpful for showing how herbal notes can shift from fresh and piney to savoury and almost stemmy.',
+        class: 'green_herb',
+        baseline: { brighter: 28, heavier: 28, oilier: 24, fresher: 68, bitter: 18, delicate: 46 },
+        sensitivity: { maceration: 1.1, vapour: 1.05, basket: 1.0, distillate: 0.88 },
+        note_bank: {
+          bright: 'fresh piney herb',
+          heavy: 'savoury stem warmth',
+          bitter: 'herbal bitterness',
+          delicate: 'clean green accent'
+        },
+        prompts: [
+          ['Ask on tour', 'When does herbal move from fresh to savoury?'],
+          ['Compare against', 'Maceration against vapour infusion usually makes the answer obvious.']
+        ]
+      }
+    };
+
+    const method_profiles = {
+      maceration: {
+        label: 'Maceration',
+        badge: 'Broader & deeper',
+        summary: 'Longer spirit contact usually pulls more weight, more oil, and more of the denser side of the botanical.',
+        delta: { brighter: -10, heavier: +24, oilier: +26, fresher: -18, bitter: +16, delicate: -24 }
+      },
+      vapour: {
+        label: 'Vapour infusion',
+        badge: 'Lifted & fine-edged',
+        summary: 'Often favours brighter, fresher, and more delicate fractions while keeping heavier or rougher material lower.',
+        delta: { brighter: +16, heavier: -12, oilier: -16, fresher: +14, bitter: -10, delicate: +18 }
+      },
+      basket: {
+        label: 'Basket infusion',
+        badge: 'Balanced middle lane',
+        summary: 'Usually sits between deep maceration and very lifted vapour treatment: recognisable, rounded, but still fairly clean.',
+        delta: { brighter: +4, heavier: +2, oilier: +4, fresher: +2, bitter: -2, delicate: +4 }
+      },
+      distillate: {
+        label: 'Separate distillate blend',
+        badge: 'Precise & controlled',
+        summary: 'Lets the distiller isolate a cleaner botanical expression and then blend it back with more precision.',
+        delta: { brighter: +8, heavier: -6, oilier: -10, fresher: +8, bitter: -10, delicate: +12 }
+      }
+    };
+
+    const class_bias = {
+      citrus_peel: {
+        maceration: { heavier: +8, oilier: +10, bitter: +8, fresher: -4 },
+        vapour: { brighter: +4, fresher: +4, delicate: +4 },
+        basket: { oilier: +4 },
+        distillate: { bitter: -4, delicate: +2 }
+      },
+      seed_spice: {
+        maceration: { heavier: +8, oilier: +4, brighter: -4 },
+        vapour: { brighter: +8, fresher: +4 },
+        basket: { heavier: +2, brighter: +2 },
+        distillate: { delicate: +4, bitter: -2 }
+      },
+      fragile_floral: {
+        maceration: { heavier: +12, delicate: -8, fresher: -6 },
+        vapour: { delicate: +8, fresher: +6, brighter: +2 },
+        basket: { delicate: +2 },
+        distillate: { delicate: +6, bitter: -2 }
+      },
+      aromatic_spice: {
+        maceration: { heavier: +8, oilier: +4 },
+        vapour: { brighter: +6, delicate: +4, fresher: +4 },
+        basket: { heavier: +2 },
+        distillate: { delicate: +4, bitter: -2 }
+      },
+      green_herb: {
+        maceration: { bitter: +10, heavier: +6, fresher: -10 },
+        vapour: { fresher: +8, delicate: +6, bitter: -4 },
+        basket: { fresher: +2 },
+        distillate: { delicate: +4, bitter: -4 }
+      }
+    };
+
+    let currentBotanical = 'lemon_peel';
+    let currentMethod = 'vapour';
+
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function clamp(v) {
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function computeProfile(botanicalKey, methodKey) {
+      const botanical = botanicals[botanicalKey];
+      const method = method_profiles[methodKey];
+      const bias = class_bias[botanical.class][methodKey] || {};
+      const sensitivity = botanical.sensitivity[methodKey] || 1;
+      const profile = {};
+      axes.forEach(axis => {
+        const delta = (method.delta[axis] || 0) * sensitivity;
+        const extra = bias[axis] || 0;
+        profile[axis] = clamp(botanical.baseline[axis] + delta + extra);
+      });
+      return profile;
+    }
+
+    function drawRadar(profile, baseline) {
+      const grid = document.getElementById('radarGrid');
+      const labels = document.getElementById('radarLabels');
+      const baselinePoly = document.getElementById('baselinePoly');
+      const currentPoly = document.getElementById('currentPoly');
+      const ptsGroup = document.getElementById('radarPoints');
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      ptsGroup.innerHTML = '';
+
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = axes.map((_, i) => {
+          const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+          const r = (level / 100) * maxR;
+          return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+        }).join(' ');
+        const shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        shape.setAttribute('points', pts);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', 'rgba(54,81,66,0.11)');
+        shape.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(shape);
+      });
+
+      axes.forEach((label, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const x = cx + Math.cos(angle) * maxR;
+        const y = cy + Math.sin(angle) * maxR;
+        const lx = cx + Math.cos(angle) * (maxR + 24);
+        const ly = cy + Math.sin(angle) * (maxR + 24);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', 'rgba(54,81,66,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', lx);
+        text.setAttribute('y', ly);
+        text.setAttribute('fill', 'rgba(22,54,36,0.95)');
+        text.setAttribute('font-size', '15');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', lx < cx - 8 ? 'end' : lx > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+
+      const basePts = axes.map((key, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const r = (baseline[key] / 100) * maxR;
+        return `${cx + Math.cos(angle) * r},${cy + Math.sin(angle) * r}`;
+      }).join(' ');
+      baselinePoly.setAttribute('points', basePts);
+
+      const currentPts = axes.map((key, i) => {
+        const angle = -Math.PI / 2 + i * ((Math.PI * 2) / axes.length);
+        const r = (profile[key] / 100) * maxR;
+        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+      });
+      currentPoly.setAttribute('points', currentPts.map(p => `${p.x},${p.y}`).join(' '));
+
+      currentPts.forEach(p => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p.x);
+        dot.setAttribute('cy', p.y);
+        dot.setAttribute('r', '5.5');
+        dot.setAttribute('fill', 'rgba(85,187,120,0.96)');
+        dot.setAttribute('stroke', 'rgba(255,255,255,0.85)');
+        dot.setAttribute('stroke-width', '1.4');
+        ptsGroup.appendChild(dot);
+      });
+    }
+
+    function renderBotanicalButtons() {
+      const grid = document.getElementById('botanicalGrid');
+      grid.innerHTML = '';
+      Object.entries(botanicals).forEach(([key, bot]) => {
+        const btn = document.createElement('button');
+        btn.className = 'botBtn' + (key === currentBotanical ? ' active' : '');
+        btn.innerHTML = `<strong>${bot.name}</strong><span>${bot.intro}</span>`;
+        btn.addEventListener('click', () => {
+          currentBotanical = key;
+          currentMethod = 'vapour';
+          render();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderMethodButtons() {
+      const wrap = document.getElementById('methodTabs');
+      wrap.innerHTML = '';
+      Object.entries(method_profiles).forEach(([key, method]) => {
+        const btn = document.createElement('button');
+        btn.className = 'methodBtn' + (key === currentMethod ? ' active' : '');
+        btn.innerHTML = `<strong>${method.label}</strong><span>${method.summary}</span>`;
+        btn.addEventListener('click', () => {
+          currentMethod = key;
+          render();
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function renderBars(current, baseline) {
+      const wrap = document.getElementById('bars');
+      wrap.innerHTML = '';
+      axes.forEach(axis => {
+        const row = document.createElement('div');
+        row.className = 'barRow';
+        row.innerHTML = `
+          <div>${axis}</div>
+          <div class="track">
+            <div class="baseline" style="left:${baseline[axis]}%"></div>
+            <div class="fill" style="width:${current[axis]}%"></div>
+          </div>
+          <div class="value">${levelWord(current[axis])}</div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderCards(containerId, items, className) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    function buildNotes(botanical, methodKey, current, baseline) {
+      const notes = [];
+      if (current.brighter >= 60 || current.fresher >= 60) {
+        notes.push([botanical.note_bank.bright, `${method_profiles[methodKey].label} is keeping the lighter aromatic fraction in front.`]);
+      }
+      if (current.heavier >= 50 || current.oilier >= 50) {
+        notes.push([botanical.note_bank.heavy, `${method_profiles[methodKey].label} is pulling more body and oil from the botanical.`]);
+      }
+      if (current.bitter - baseline.bitter >= 10) {
+        notes.push([botanical.note_bank.bitter, `Bitterness is higher than the botanical baseline under this method.`]);
+      }
+      if (current.delicate >= 65) {
+        notes.push([botanical.note_bank.delicate, `The finer aromatic edge is staying visible rather than being buried by weight.`]);
+      }
+      if (!notes.length) {
+        notes.push(['balanced botanical expression', 'This method is keeping the botanical relatively close to its baseline behaviour.']);
+      }
+      return notes.slice(0, 4);
+    }
+
+    function buildRules(botanical, methodKey, current, baseline) {
+      const method = method_profiles[methodKey];
+      const rules = [];
+      const delta = axis => current[axis] - baseline[axis];
+
+      if (delta('brighter') >= 10) rules.push(['brightness rises', `${method.label} is bringing forward the brighter side of ${botanical.name.toLowerCase()}.`]);
+      if (delta('heavier') >= 10) rules.push(['weight rises', `${method.label} is giving the botanical more body and depth.`]);
+      if (delta('oilier') >= 10) rules.push(['oiliness rises', `More of the dense oil-bearing fraction is coming through.`]);
+      if (delta('fresher') >= 10) rules.push(['freshness rises', `The greenest or cleanest aromatic edge is more obvious here.`]);
+      if (delta('bitter') >= 10) rules.push(['bitterness rises', `The extraction is reaching further into rougher or pithier material.`]);
+      if (delta('delicate') >= 10) rules.push(['delicacy rises', `The method is preserving a finer aromatic edge.`]);
+      if (delta('delicate') <= -12) rules.push(['delicacy falls', `The botanical is becoming broader and less fine-edged.`]);
+      if (!rules.length) rules.push(['balanced shift', `${method.label} keeps ${botanical.name.toLowerCase()} relatively close to its underlying baseline.`]);
+      return rules.slice(0, 4);
+    }
+
+    function render() {
+      const botanical = botanicals[currentBotanical];
+      const method = method_profiles[currentMethod];
+      const baseline = botanical.baseline;
+      const current = computeProfile(currentBotanical, currentMethod);
+
+      document.getElementById('botanicalName').textContent = botanical.name;
+      document.getElementById('botanicalIntro').textContent = botanical.intro;
+      document.getElementById('methodTitle').textContent = method.label;
+      document.getElementById('methodSummary').textContent = method.summary;
+      document.getElementById('methodBadge').textContent = method.badge;
+
+      const readTitleMap = {
+        maceration: `Why ${method.label.toLowerCase()} feels fuller`,
+        vapour: `Why ${method.label.toLowerCase()} feels brighter`,
+        basket: `Why ${method.label.toLowerCase()} feels more balanced`,
+        distillate: `Why ${method.label.toLowerCase()} feels more precise`
+      };
+
+      document.getElementById('readTitle').textContent = readTitleMap[currentMethod];
+      document.getElementById('readText').textContent = `${method.summary} This model is still interpretive, but it now uses a botanical baseline, a method profile, and a botanical-class bias rather than fully hand-written outcomes for every single combination.`;
+
+      renderBotanicalButtons();
+      renderMethodButtons();
+      drawRadar(current, baseline);
+      renderBars(current, baseline);
+      renderCards('noteList', buildNotes(botanical, currentMethod, current, baseline), 'noteCard');
+      renderCards('logicList', buildRules(botanical, currentMethod, current, baseline), 'logicCard');
+      renderCards('factList', botanical.prompts, 'factCard');
+    }
+
+    render();
+  </script>
+</body>
+</html>
