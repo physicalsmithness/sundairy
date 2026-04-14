@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Directory Listing</title>
     <style>
-        /* Modern, visually appealing GitHub-like styling */
         :root {
             --bg-color: #f6f8fa;
             --text-main: #24292e;
@@ -69,6 +68,7 @@
             text-decoration: none;
             color: var(--text-main);
             transition: background-color 0.2s ease;
+            cursor: pointer;
         }
 
         a:hover {
@@ -80,6 +80,11 @@
             margin-right: 12px;
             font-size: 1.2rem;
             opacity: 0.8;
+        }
+        
+        .back-btn {
+            background-color: #f1f8ff;
+            font-weight: 600;
         }
 
         .status-message {
@@ -102,7 +107,7 @@
 
     <div class="container">
         <div class="header">
-            <h1 id="title">Loading directory...</h1>
+            <h1 id="title">Loading repository...</h1>
         </div>
         <div id="content">
             <div class="status-message">Connecting to GitHub API...</div>
@@ -112,32 +117,23 @@
     <script>
         // ==========================================
         // 🛠️ CONFIGURATION 🛠️
-        // Set up for physicalsmithness/sundairy
         // ==========================================
         const CONFIG = {
             owner: 'physicalsmithness', 
-            repo: 'sundairy',        
-            path: ''       
+            repo: 'sundairy'        
         };
         // ==========================================
 
         const contentDiv = document.getElementById('content');
         const titleEl = document.getElementById('title');
 
-        async function fetchDirectory() {
-            // Safety check to ensure user configured the script
-            if (CONFIG.owner === 'YOUR_GITHUB_USERNAME') {
-                contentDiv.innerHTML = `<div class="error"><strong>Setup Required:</strong> Please open this index.html file in a text editor and fill in your GitHub username, repo name, and folder path in the CONFIG section.</div>`;
-                titleEl.textContent = "Configuration Error";
-                return;
-            }
-
-            // If path is empty, display just the repo name in the header
-            titleEl.textContent = CONFIG.path ? `Index of /${CONFIG.path}` : `Index of ${CONFIG.repo}`;
+        async function fetchDirectory(currentPath = '') {
+            // Update title to show current location
+            titleEl.textContent = currentPath === '' ? `Index of /${CONFIG.repo}` : `Index of /${currentPath}`;
+            contentDiv.innerHTML = '<div class="status-message">Fetching files...</div>';
 
             try {
-                // Fetch the contents of the repository from the GitHub API
-                const apiUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`;
+                const apiUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${currentPath}`;
                 const response = await fetch(apiUrl);
 
                 if (!response.ok) {
@@ -147,7 +143,17 @@
                 const data = await response.json();
                 let html = '<ul>';
 
-                // Sort the results: directories at the top, then files alphabetically
+                // If we are inside a subfolder, add a "Back" button
+                if (currentPath !== '') {
+                    // Calculate the parent path
+                    let pathParts = currentPath.split('/');
+                    pathParts.pop(); // Remove the current folder
+                    let parentPath = pathParts.join('/');
+                    
+                    html += `<li><a class="back-btn" onclick="fetchDirectory('${parentPath}')"><span class="icon">🔙</span>.. (Up a directory)</a></li>`;
+                }
+
+                // Sort: Folders first, then files
                 data.sort((a, b) => {
                     if (a.type === b.type) return a.name.localeCompare(b.name);
                     return a.type === 'dir' ? -1 : 1;
@@ -156,14 +162,14 @@
                 let itemCount = 0;
 
                 data.forEach(item => {
-                    // Handle Directories
                     if (item.type === 'dir') {
-                        html += `<li><a href="${item.name}/"><span class="icon">📁</span>${item.name}/</a></li>`;
+                        // 📁 DIRECTORY: Clicking it runs this function again with the new path
+                        html += `<li><a onclick="fetchDirectory('${item.path}')"><span class="icon">📁</span>${item.name}/</a></li>`;
                         itemCount++;
                     } 
-                    // Handle HTML files (excluding this index.html itself)
                     else if (item.name.endsWith('.html') && item.name !== 'index.html') {
-                        html += `<li><a href="${item.name}"><span class="icon">📄</span>${item.name}</a></li>`;
+                        // 📄 HTML FILE: Clicking it acts as a normal link to open the page
+                        html += `<li><a href="${item.path}"><span class="icon">📄</span>${item.name}</a></li>`;
                         itemCount++;
                     }
                 });
@@ -171,22 +177,17 @@
                 html += '</ul>';
 
                 if (itemCount === 0) {
-                    html = '<div class="status-message">This folder has no HTML files or subfolders.</div>';
+                    html += '<div class="status-message">No HTML files found in this folder.</div>';
                 }
 
                 contentDiv.innerHTML = html;
 
             } catch (error) {
-                contentDiv.innerHTML = `
-                    <div class="error">
-                        <strong>Failed to load directory contents:</strong> ${error.message}
-                        <br><br>
-                        <small>Troubleshooting: Ensure your repo is public, the repository names in the script are correct, and that you haven't hit the GitHub API rate limit.</small>
-                    </div>`;
+                contentDiv.innerHTML = `<div class="error"><strong>Failed to load contents:</strong> ${error.message}</div>`;
             }
         }
 
-        // Initialize
+        // Start the app by fetching the root folder
         fetchDirectory();
     </script>
 </body>
