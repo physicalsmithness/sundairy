@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Botanical Constellation</title>
+  <style>
+    :root {
+      --bg1: #08110d;
+      --bg2: #0d1812;
+      --panel: rgba(255,255,255,0.06);
+      --panel-2: rgba(255,255,255,0.09);
+      --line: rgba(255,255,255,0.10);
+      --text: #edf7ee;
+      --muted: #b7c9bb;
+      --resinous: #6fd38d;
+      --citrus: #f0cb61;
+      --floral: #d79ae9;
+      --spicy: #df8d57;
+      --herbal: #69c2a0;
+      --earthy: #a48763;
+      --sweet: #f1a5a8;
+      --shadow: 0 24px 70px rgba(0,0,0,0.38);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      overflow: auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(111,211,141,0.10), transparent 22%),
+        radial-gradient(circle at 78% 14%, rgba(215,154,233,0.10), transparent 24%),
+        radial-gradient(circle at 52% 84%, rgba(240,203,97,0.08), transparent 22%),
+        linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      min-height: calc(100vh - 20px);
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8, 17, 13, 0.86);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .stars, .stars2 {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.6;
+      background-repeat: repeat;
+    }
+
+    .stars {
+      background-image:
+        radial-gradient(circle at 20px 30px, rgba(255,255,255,0.85) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 120px 80px, rgba(255,255,255,0.55) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 220px 140px, rgba(255,255,255,0.7) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 300px 40px, rgba(255,255,255,0.6) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 420px 100px, rgba(255,255,255,0.75) 0 1px, transparent 1.5px);
+      background-size: 520px 220px;
+    }
+
+    .stars2 {
+      background-image:
+        radial-gradient(circle at 60px 60px, rgba(255,255,255,0.45) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 180px 30px, rgba(255,255,255,0.30) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 260px 110px, rgba(255,255,255,0.35) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 360px 70px, rgba(255,255,255,0.40) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 470px 160px, rgba(255,255,255,0.28) 0 1px, transparent 1.5px);
+      background-size: 560px 240px;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      position: relative;
+      z-index: 2;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.35vw, 2.55rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      max-width: 980px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.94fr 1.26fr 0.82fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      min-height: calc(100vh - 120px);
+      position: relative;
+      z-index: 2;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      scrollbar-gutter: stable;
+    }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #cfe7d2;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #cfe7d2, #6fd38d);
+      box-shadow: 0 0 14px rgba(111,211,141,0.45);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .familyGrid {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .familyBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .familyBtn:hover { transform: translateY(-1px); }
+
+    .familyBtn.active {
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      border-color: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .familyBtn strong {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 0.96rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .familyBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      box-shadow: 0 0 14px currentColor;
+      flex: none;
+    }
+
+    .miniControl {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .controlTop strong { font-size: 0.94rem; }
+    .controlTop span {
+      color: #dff4e2;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.38);
+      background: radial-gradient(circle at 35% 30%, #f4fff2, #8ee3a1 56%, #4faa5b 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.38);
+      background: radial-gradient(circle at 35% 30%, #f4fff2, #8ee3a1 56%, #4faa5b 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.07);
+      color: #dff4e2;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .constellationCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .spaceWrap {
+      position: relative;
+      height: 680px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,0.03), transparent 22%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    }
+
+    .spaceSvg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .clusterLabel {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.68);
+      pointer-events: none;
+    }
+
+    .starNode {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      transition: transform 180ms ease, filter 180ms ease;
+      z-index: 2;
+    }
+
+    .starNode:hover {
+      transform: translate(-50%, -50%) scale(1.06);
+      filter: brightness(1.08);
+    }
+
+    .starCore {
+      border-radius: 999px;
+      box-shadow: 0 0 22px currentColor, 0 0 42px color-mix(in srgb, currentColor 45%, transparent);
+      position: relative;
+    }
+
+    .starNode.selected .starCore {
+      box-shadow: 0 0 28px currentColor, 0 0 58px color-mix(in srgb, currentColor 58%, transparent), 0 0 0 4px rgba(255,255,255,0.10);
+    }
+
+    .starName {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.88);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      pointer-events: none;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .smallList, .noteList, .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .listCard, .noteCard, .factCard {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      padding: 9px 10px;
+    }
+
+    .listCard strong, .noteCard strong, .factCard strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #dff4e2;
+      margin-bottom: 4px;
+    }
+
+    .listCard span, .noteCard span, .factCard span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .sidePanel { display: grid; gap: 12px; align-content: start; }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.08rem;
+      line-height: 1.04;
+    }
+
+    .section p { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.3; }
+
+    .traitPills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .traitPill {
+      font-size: 0.74rem;
+      color: #dff4e2;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 4px 7px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .miniBar {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .miniFill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(255,255,255,0.55), rgba(255,255,255,0.16));
+    }
+
+    .tiny {
+      color: #8ea193;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1240px) {
+      .layout { grid-template-columns: 1fr; }
+      .spaceWrap { height: 780px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="topbar">
+      <h1>Gin botanical constellation</h1>
+      <p class="sub">Explore botanicals as a clustered flavour galaxy. Click a botanical to see nearby relatives, its commonness in gin recipes, and the kind of role it tends to play.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Choose a flavour family</div>
+          <h2 id="familyTitle">All families visible</h2>
+          <p id="familySummary">Use the family filter to bring one cluster forward, or leave the whole constellation visible.</p>
+        </div>
+
+        <div class="familyGrid" id="familyGrid"></div>
+
+        <div class="miniControl">
+          <div class="controlTop"><strong>Recipe commonness emphasis</strong><span id="commonnessLabel">balanced</span></div>
+          <input id="commonnessSlider" type="range" min="0" max="100" value="50" />
+          <p class="tiny">Lower values make the map feel more museum-like. Higher values make frequent recipe botanicals stand out more strongly.</p>
+        </div>
+
+        <div class="miniControl">
+          <div class="controlTop"><strong>Neighbour radius</strong><span id="radiusLabel">medium</span></div>
+          <input id="radiusSlider" type="range" min="0" max="100" value="46" />
+          <p class="tiny">Tighten or widen how many nearby botanicals count as close relatives.</p>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Flavour constellation</div>
+            <h2 id="resultTitle">Whole gin-botanical sky</h2>
+            <p id="resultSummary">Botanicals cluster by the kind of effect they tend to bring, not by strict botanical taxonomy.</p>
+          </div>
+          <div class="badge" id="resultBadge">24 botanicals</div>
+        </div>
+
+        <div class="constellationCard">
+          <div class="sectionTitle"><h3>Interactive galaxy</h3><span>click a star to inspect it</span></div>
+          <div class="spaceWrap" id="spaceWrap">
+            <svg class="spaceSvg" viewBox="0 0 760 680" id="spaceSvg"></svg>
+          </div>
+          <div class="legend" id="legend"></div>
+        </div>
+
+        <div class="noteList" id="relationshipNotes"></div>
+      </section>
+
+      <aside class="panel sidePanel">
+        <div class="section">
+          <div class="eyebrow">Selected botanical</div>
+          <h3 id="detailTitle">Juniper</h3>
+          <p id="detailText">The core resinous anchor of gin. It defines category identity, but it also sits close to herbal and savoury space when the recipe leans greener.</p>
+          <div class="traitPills" id="traitPills"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Nearby relatives</h3></div>
+          <div class="smallList" id="nearbyList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Recipe presence</h3></div>
+          <div class="smallList" id="presenceList"></div>
+          <p class="tiny" style="margin-top:10px;">The commonness values are illustrative and broad-brush: enough to show core vs accent botanicals, not to claim an exact industry census.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const families = {
+      all: { label: 'All families', color: '#dfeee1', summary: 'Show the whole constellation at once.' },
+      resinous: { label: 'Resinous', color: '#6fd38d', summary: 'Piney, juniper-led, and structurally gin-like.' },
+      citrus: { label: 'Citrus', color: '#f0cb61', summary: 'Top-note lift, peel brightness, and freshness.' },
+      floral: { label: 'Floral', color: '#d79ae9', summary: 'Blossom, perfume, and softer aromatic lift.' },
+      spicy: { label: 'Spicy', color: '#df8d57', summary: 'Warmth, pepper, and mid-palate definition.' },
+      herbal: { label: 'Herbal', color: '#69c2a0', summary: 'Green freshness, savoury lift, and garden-like complexity.' },
+      earthy: { label: 'Earthy', color: '#a48763', summary: 'Root, dryness, binding structure, and weight.' },
+      sweet_rounding: { label: 'Sweet / rounding', color: '#f1a5a8', summary: 'Softening, sweetness, and fuller roundness.' }
+    };
+
+    const clusterCenters = {
+      resinous: { x: 240, y: 160 },
+      citrus: { x: 540, y: 160 },
+      floral: { x: 620, y: 318 },
+      spicy: { x: 495, y: 500 },
+      herbal: { x: 258, y: 500 },
+      earthy: { x: 132, y: 332 },
+      sweet_rounding: { x: 388, y: 610 }
+    };
+
+    const botanicals = [
+      { key: 'juniper', name: 'Juniper', family: 'resinous', commonness: 100, x: 232, y: 168, traits: ['piney anchor', 'category core', 'dry backbone'], neighbours: ['rosemary', 'coriander', 'angelica'], note: 'The defining resinous backbone of gin.' },
+      { key: 'coriander', name: 'Coriander seed', family: 'spicy', commonness: 96, x: 380, y: 250, traits: ['citrus-spice bridge', 'core supporting role'], neighbours: ['juniper', 'orange_peel', 'cardamom'], note: 'A bridge botanical: often both bright and spicy.' },
+      { key: 'angelica', name: 'Angelica root', family: 'earthy', commonness: 92, x: 162, y: 300, traits: ['dry binder', 'root structure', 'length'], neighbours: ['orris', 'juniper', 'liquorice'], note: 'One of the great structural roots in classic gin building.' },
+      { key: 'orris', name: 'Orris root', family: 'earthy', commonness: 68, x: 128, y: 372, traits: ['fixative', 'soft root structure', 'floral support'], neighbours: ['angelica', 'lavender', 'rose'], note: 'Often used more for binding and fixing than for obvious flavour volume.' },
+      { key: 'liquorice', name: 'Liquorice root', family: 'sweet_rounding', commonness: 54, x: 314, y: 590, traits: ['rounding', 'sweetness', 'length'], neighbours: ['angelica', 'cassia', 'orange_peel'], note: 'Adds sweetness and weight more than high aroma.' },
+
+      { key: 'lemon_peel', name: 'Lemon peel', family: 'citrus', commonness: 84, x: 516, y: 132, traits: ['bright zest', 'sharp top note'], neighbours: ['lime_peel', 'grapefruit', 'orange_peel'], note: 'A classic brightener with a clean dry lift.' },
+      { key: 'orange_peel', name: 'Orange peel', family: 'citrus', commonness: 80, x: 584, y: 198, traits: ['round citrus', 'oilier lift'], neighbours: ['lemon_peel', 'cassia', 'coriander'], note: 'Rounder and softer than lemon-led citrus.' },
+      { key: 'grapefruit', name: 'Grapefruit peel', family: 'citrus', commonness: 44, x: 618, y: 122, traits: ['bitter zest', 'high lift'], neighbours: ['lemon_peel', 'lime_peel', 'cubeb'], note: 'Brighter and more angular, often with bitterness on its edge.' },
+      { key: 'lime_peel', name: 'Lime peel', family: 'citrus', commonness: 36, x: 470, y: 202, traits: ['sharp green citrus'], neighbours: ['lemon_peel', 'grapefruit', 'mint'], note: 'Sharper and greener than the rounder peel botanicals.' },
+      { key: 'bergamot', name: 'Bergamot', family: 'citrus', commonness: 20, x: 560, y: 84, traits: ['aromatic citrus', 'floral lift'], neighbours: ['lemon_peel', 'lavender', 'orange_peel'], note: 'A more perfumed citrus lane than ordinary peel.' },
+
+      { key: 'lavender', name: 'Lavender', family: 'floral', commonness: 24, x: 634, y: 280, traits: ['perfumed floral', 'delicate accent'], neighbours: ['rose', 'chamomile', 'bergamot'], note: 'Can move from elegant to perfumed very quickly.' },
+      { key: 'rose', name: 'Rose petal', family: 'floral', commonness: 18, x: 674, y: 352, traits: ['soft perfume', 'round floral note'], neighbours: ['lavender', 'hibiscus', 'orris'], note: 'A softer but still forceful floral lane.' },
+      { key: 'chamomile', name: 'Chamomile', family: 'floral', commonness: 22, x: 568, y: 314, traits: ['soft floral', 'honeyed edge'], neighbours: ['lavender', 'hibiscus', 'bergamot'], note: 'A gentler floral route than lavender or rose.' },
+      { key: 'hibiscus', name: 'Hibiscus', family: 'floral', commonness: 16, x: 624, y: 404, traits: ['bright floral-fruity'], neighbours: ['rose', 'chamomile', 'grapefruit'], note: 'Often used more for brightness and style than for classicism.' },
+
+      { key: 'cardamom', name: 'Cardamom', family: 'spicy', commonness: 48, x: 450, y: 432, traits: ['cool spice', 'bright middle'], neighbours: ['coriander', 'cubeb', 'orange_peel'], note: 'A spice that can feel surprisingly lifted rather than heavy.' },
+      { key: 'cassia', name: 'Cassia', family: 'spicy', commonness: 18, x: 548, y: 548, traits: ['warm sweet spice'], neighbours: ['orange_peel', 'star_anise', 'liquorice'], note: 'A rounder and sweeter warming spice.' },
+      { key: 'cubeb', name: 'Cubeb pepper', family: 'spicy', commonness: 16, x: 446, y: 528, traits: ['peppery lift', 'aromatic heat'], neighbours: ['cardamom', 'grains_of_paradise', 'grapefruit'], note: 'Peppery but aromatic rather than just hot.' },
+      { key: 'grains_of_paradise', name: 'Grains of paradise', family: 'spicy', commonness: 10, x: 520, y: 450, traits: ['dry pepper', 'warm bite'], neighbours: ['cubeb', 'cardamom', 'thyme'], note: 'A drier spice line with less sweetness than cassia.' },
+      { key: 'star_anise', name: 'Star anise', family: 'sweet_rounding', commonness: 12, x: 470, y: 610, traits: ['anise sweetness', 'rounding'], neighbours: ['cassia', 'liquorice', 'basil'], note: 'Distinctive, sweet, and easy to overuse.' },
+
+      { key: 'rosemary', name: 'Rosemary', family: 'herbal', commonness: 20, x: 242, y: 452, traits: ['piney herb', 'green lift'], neighbours: ['juniper', 'thyme', 'basil'], note: 'Sits close to juniper in feel, but greener and more culinary.' },
+      { key: 'thyme', name: 'Thyme', family: 'herbal', commonness: 16, x: 180, y: 534, traits: ['dry green herb', 'savoury edge'], neighbours: ['rosemary', 'bay', 'grains_of_paradise'], note: 'Dry, savoury, and more obviously culinary than mint.' },
+      { key: 'basil', name: 'Basil', family: 'herbal', commonness: 14, x: 326, y: 534, traits: ['fresh green aromatic'], neighbours: ['mint', 'rosemary', 'star_anise'], note: 'Fresh and aromatic, often more modern in feel.' },
+      { key: 'mint', name: 'Mint', family: 'herbal', commonness: 10, x: 284, y: 594, traits: ['cool fresh herb'], neighbours: ['basil', 'lime_peel', 'cucumber'], note: 'Can feel more like freshness than classical gin structure.' },
+      { key: 'bay', name: 'Bay leaf', family: 'herbal', commonness: 8, x: 122, y: 462, traits: ['savoury herb', 'warm green note'], neighbours: ['thyme', 'rosemary', 'angelica'], note: 'A drier, more savoury herb lane.' },
+
+      { key: 'almond', name: 'Almond', family: 'sweet_rounding', commonness: 8, x: 344, y: 644, traits: ['soft roundness', 'marzipan note'], neighbours: ['liquorice', 'star_anise', 'orange_peel'], note: 'More about texture and softness than high aromatic lift.' }
+    ];
+
+    let activeFamily = 'all';
+    let selectedBotanical = 'juniper';
+    let commonnessWeight = 50;
+    let radiusValue = 46;
+
+    function levelWord(v) {
+      if (v >= 78) return 'very high';
+      if (v >= 58) return 'high';
+      if (v >= 38) return 'medium';
+      if (v >= 18) return 'low';
+      return 'very low';
+    }
+
+    function commonnessLabel(v) {
+      if (v <= 20) return 'museum-like';
+      if (v <= 40) return 'soft';
+      if (v <= 60) return 'balanced';
+      if (v <= 80) return 'recipe-led';
+      return 'core-biased';
+    }
+
+    function radiusLabel(v) {
+      if (v <= 20) return 'tight';
+      if (v <= 45) return 'medium';
+      if (v <= 70) return 'wide';
+      return 'very wide';
+    }
+
+    function familyColor(key) {
+      return getComputedStyle(document.documentElement).getPropertyValue(`--${key.replace('_', '-')}`) || families[key].color;
+    }
+
+    function visibleBotanicals() {
+      return botanicals.filter(b => activeFamily === 'all' || b.family === activeFamily);
+    }
+
+    function scaledRadius(botanical) {
+      const emphasis = commonnessWeight / 100;
+      return 7 + botanical.commonness * (0.05 + emphasis * 0.06);
+    }
+
+    function drawConstellation(list) {
+      const wrap = document.getElementById('spaceWrap');
+      wrap.querySelectorAll('.starNode, .clusterLabel').forEach(el => el.remove());
+      const svg = document.getElementById('spaceSvg');
+      svg.innerHTML = '';
+
+      Object.entries(clusterCenters).forEach(([family, center]) => {
+        if (activeFamily !== 'all' && activeFamily !== family) return;
+        const label = document.createElement('div');
+        label.className = 'clusterLabel';
+        label.style.left = `${(center.x / 760) * 100}%`;
+        label.style.top = `${(center.y / 680) * 100}%`;
+        label.textContent = families[family].label;
+        wrap.appendChild(label);
+      });
+
+      const selected = botanicals.find(b => b.key === selectedBotanical);
+      const radiusPx = 70 + (radiusValue / 100) * 160;
+
+      list.forEach(botanical => {
+        const center = clusterCenters[botanical.family];
+        const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        halo.setAttribute('cx', botanical.x);
+        halo.setAttribute('cy', botanical.y);
+        halo.setAttribute('r', scaledRadius(botanical) + 8);
+        halo.setAttribute('fill', familyColor(botanical.family).trim() + '16');
+        svg.appendChild(halo);
+      });
+
+      if (selected && list.some(b => b.key === selected.key)) {
+        list.forEach(botanical => {
+          if (botanical.key === selected.key) return;
+          const dx = botanical.x - selected.x;
+          const dy = botanical.y - selected.y;
+          const distance = Math.hypot(dx, dy);
+          const explicitNeighbour = selected.neighbours.includes(botanical.key) || botanical.neighbours.includes(selected.key);
+          if (distance <= radiusPx || explicitNeighbour) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', selected.x);
+            line.setAttribute('y1', selected.y);
+            line.setAttribute('x2', botanical.x);
+            line.setAttribute('y2', botanical.y);
+            line.setAttribute('stroke', botanical.family === selected.family ? familyColor(botanical.family).trim() : 'rgba(255,255,255,0.20)');
+            line.setAttribute('stroke-width', explicitNeighbour ? '2.4' : '1.4');
+            line.setAttribute('stroke-dasharray', explicitNeighbour ? '0' : '6 8');
+            line.setAttribute('stroke-linecap', 'round');
+            svg.appendChild(line);
+          }
+        });
+      }
+
+      list.forEach(botanical => {
+        const node = document.createElement('button');
+        node.className = 'starNode' + (botanical.key === selectedBotanical ? ' selected' : '');
+        node.style.left = `${(botanical.x / 760) * 100}%`;
+        node.style.top = `${(botanical.y / 680) * 100}%`;
+        node.style.color = familyColor(botanical.family).trim();
+        const size = scaledRadius(botanical);
+        node.innerHTML = `<div class="starCore" style="width:${size * 2}px;height:${size * 2}px;background:${familyColor(botanical.family).trim()};"></div><div class="starName">${botanical.name}</div>`;
+        node.addEventListener('click', () => {
+          selectedBotanical = botanical.key;
+          render();
+        });
+        wrap.appendChild(node);
+      });
+    }
+
+    function renderFamilyGrid() {
+      const grid = document.getElementById('familyGrid');
+      grid.innerHTML = '';
+      Object.entries(families).forEach(([key, family]) => {
+        const btn = document.createElement('button');
+        btn.className = 'familyBtn' + (key === activeFamily ? ' active' : '');
+        btn.innerHTML = `<strong><span class="dot" style="background:${family.color}; color:${family.color}"></span>${family.label}</strong><span>${family.summary}</span>`;
+        btn.addEventListener('click', () => {
+          activeFamily = key;
+          const visible = visibleBotanicals();
+          if (!visible.some(b => b.key === selectedBotanical)) selectedBotanical = visible[0]?.key || 'juniper';
+          render();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderLegend() {
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      Object.entries(families).filter(([key]) => key !== 'all').forEach(([key, family]) => {
+        const item = document.createElement('div');
+        item.className = 'legendItem';
+        item.innerHTML = `<span class="dot" style="background:${family.color}; color:${family.color}"></span>${family.label}`;
+        legend.appendChild(item);
+      });
+    }
+
+    function renderDetail() {
+      const botanical = botanicals.find(b => b.key === selectedBotanical) || botanicals[0];
+      document.getElementById('detailTitle').textContent = botanical.name;
+      document.getElementById('detailText').textContent = botanical.note;
+      const pills = document.getElementById('traitPills');
+      pills.innerHTML = '';
+      botanical.traits.forEach(trait => {
+        const pill = document.createElement('div');
+        pill.className = 'traitPill';
+        pill.textContent = trait;
+        pills.appendChild(pill);
+      });
+
+      const nearby = getNearby(botanical);
+      const nearbyList = document.getElementById('nearbyList');
+      nearbyList.innerHTML = '';
+      nearby.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'listCard';
+        card.innerHTML = `<strong>${item.name}</strong><span>${item.reason}</span>`;
+        nearbyList.appendChild(card);
+      });
+
+      const presence = document.getElementById('presenceList');
+      presence.innerHTML = '';
+      const presenceCard = document.createElement('div');
+      presenceCard.className = 'listCard';
+      presenceCard.innerHTML = `<strong>Commonness in gin recipes</strong><span>${levelWord(botanical.commonness)}. This is an illustrative category signal: core botanicals sit higher, niche accents lower.</span><div class="miniBar"><div class="miniFill" style="width:${botanical.commonness}%"></div></div>`;
+      presence.appendChild(presenceCard);
+
+      const familyCard = document.createElement('div');
+      familyCard.className = 'listCard';
+      familyCard.innerHTML = `<strong>Family cluster</strong><span>${families[botanical.family].label}. ${families[botanical.family].summary}</span>`;
+      presence.appendChild(familyCard);
+    }
+
+    function getNearby(botanical) {
+      const radiusPx = 70 + (radiusValue / 100) * 160;
+      return botanicals
+        .filter(b => b.key !== botanical.key)
+        .map(b => {
+          const distance = Math.hypot(b.x - botanical.x, b.y - botanical.y);
+          const linked = botanical.neighbours.includes(b.key) || b.neighbours.includes(botanical.key);
+          return { b, distance, linked };
+        })
+        .filter(x => x.distance <= radiusPx || x.linked)
+        .sort((a, b) => (a.linked === b.linked ? a.distance - b.distance : (a.linked ? -1 : 1)))
+        .slice(0, 5)
+        .map(x => ({
+          name: x.b.name,
+          reason: x.linked
+            ? `A close flavour relative: often used for a similar role or to create a related effect.`
+            : `Sits nearby in the flavour map, suggesting overlap in effect or recipe role.`
+        }));
+    }
+
+    function renderRelationshipNotes() {
+      const botanical = botanicals.find(b => b.key === selectedBotanical) || botanicals[0];
+      const notes = document.getElementById('relationshipNotes');
+      notes.innerHTML = '';
+      const familyNote = document.createElement('div');
+      familyNote.className = 'noteCard';
+      familyNote.innerHTML = `<strong>${botanical.name} in context</strong><span>${botanical.name} sits in the ${families[botanical.family].label.toLowerCase()} cluster, but its nearby links show where that family starts blending into adjacent spaces.</span>`;
+      notes.appendChild(familyNote);
+
+      const bridge = botanicals
+        .filter(b => b.family !== botanical.family)
+        .map(b => ({ b, distance: Math.hypot(b.x - botanical.x, b.y - botanical.y) }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      if (bridge) {
+        const bridgeCard = document.createElement('div');
+        bridgeCard.className = 'noteCard';
+        bridgeCard.innerHTML = `<strong>Nearest neighbouring family</strong><span>${bridge.b.name} is one of the closest botanicals from another cluster, suggesting how recipes can move from ${families[botanical.family].label.toLowerCase()} into ${families[bridge.b.family].label.toLowerCase()} territory.</span>`;
+        notes.appendChild(bridgeCard);
+      }
+    }
+
+    function renderSummary() {
+      const family = families[activeFamily];
+      const count = visibleBotanicals().length;
+      document.getElementById('familyTitle').textContent = family.label === 'All families' ? 'All families visible' : family.label;
+      document.getElementById('familySummary').textContent = family.summary;
+      document.getElementById('resultTitle').textContent = activeFamily === 'all' ? 'Whole gin-botanical sky' : `${family.label} cluster`;
+      document.getElementById('resultSummary').textContent = activeFamily === 'all'
+        ? 'Botanicals cluster by the kind of effect they tend to bring, not by strict botanical taxonomy.'
+        : `${family.label} botanicals are in the foreground, while the rest of the constellation drops away.`;
+      document.getElementById('resultBadge').textContent = `${count} botanical${count === 1 ? '' : 's'}`;
+      document.getElementById('commonnessLabel').textContent = commonnessLabel(commonnessWeight);
+      document.getElementById('radiusLabel').textContent = radiusLabel(radiusValue);
+    }
+
+    document.getElementById('commonnessSlider').addEventListener('input', e => {
+      commonnessWeight = Number(e.target.value);
+      render();
+    });
+
+    document.getElementById('radiusSlider').addEventListener('input', e => {
+      radiusValue = Number(e.target.value);
+      render();
+    });
+
+    function render() {
+      const visible = visibleBotanicals();
+      renderFamilyGrid();
+      renderLegend();
+      renderSummary();
+      drawConstellation(visible);
+      renderDetail();
+      renderRelationshipNotes();
+    }
+
+    render();
+  </script>
+</body>
+</html>
