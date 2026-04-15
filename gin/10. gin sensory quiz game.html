@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Sensory Quiz / Botanical Identification Game</title>
+  <style>
+    :root {
+      --bg: #eef8f1;
+      --shell: rgba(248,255,249,0.92);
+      --panel: rgba(255,255,255,0.74);
+      --panel-2: rgba(255,255,255,0.84);
+      --line: rgba(46,112,73,0.14);
+      --text: #163624;
+      --muted: #557363;
+      --green: #55bb78;
+      --green-deep: #2f8f5a;
+      --gold: #d4ab45;
+      --blue: #78a8d9;
+      --rose: #d998b8;
+      --shadow: 0 22px 60px rgba(40,94,63,0.14);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      overflow: auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 10%, rgba(143,226,200,0.55), transparent 24%),
+        radial-gradient(circle at 84% 12%, rgba(243,216,107,0.42), transparent 22%),
+        linear-gradient(180deg, #f5fff8 0%, #ebf7ee 100%);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      min-height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.45), transparent 24%, transparent 78%, rgba(143,226,200,0.16));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.3vw, 2.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.34;
+      max-width: 1080px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.86fr 1.16fr 0.82fr;
+      gap: 14px;
+      padding: 12px 16px 16px;
+      min-height: calc(100vh - 120px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+      scrollbar-gutter: stable;
+    }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4a8f63;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7ddd8f, #45a965);
+      box-shadow: 0 0 14px rgba(85,187,120,0.35);
+    }
+
+    .panel h2 {
+      margin: 6px 0 5px;
+      font-size: 1.42rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.34;
+    }
+
+    .roundList {
+      display: grid;
+      gap: 8px;
+    }
+
+    .roundBtn {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 10px 11px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .roundBtn:hover { transform: translateY(-1px); }
+
+    .roundBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+    }
+
+    .roundBtn strong {
+      display: block;
+      font-size: 0.94rem;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .roundBtn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.22;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.82);
+      color: var(--green-deep);
+      font-size: 0.86rem;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .mysteryCard,
+    .questionCard,
+    .section,
+    .resultCard {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .mysteryCard {
+      display: grid;
+      gap: 10px;
+    }
+
+    .notePills,
+    .chipRow,
+    .answerRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill,
+    .chip {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+
+    .pill.subtle {
+      color: var(--muted);
+      background: rgba(255,255,255,0.56);
+    }
+
+    .questionBlock {
+      display: grid;
+      gap: 10px;
+    }
+
+    .questionHeader {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .questionHeader h3,
+    .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .questionHeader span,
+    .sectionTitle span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .optionGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .optionBtn {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 9px 11px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.84rem;
+      line-height: 1;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .optionBtn:hover { transform: translateY(-1px); }
+
+    .optionBtn.active {
+      background: linear-gradient(135deg, rgba(143,226,200,0.48), rgba(143,212,90,0.26));
+      border-color: rgba(85,187,120,0.35);
+      box-shadow: 0 10px 24px rgba(85,187,120,0.12);
+      font-weight: 700;
+    }
+
+    .optionBtn.correct {
+      border-color: rgba(85,187,120,0.48);
+      background: rgba(85,187,120,0.14);
+    }
+
+    .optionBtn.wrong {
+      border-color: rgba(217,107,95,0.4);
+      background: rgba(217,107,95,0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .primaryBtn,
+    .secondaryBtn {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 11px 14px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .primaryBtn {
+      background: linear-gradient(135deg, rgba(85,187,120,0.94), rgba(69,169,101,0.92));
+      color: white;
+      border-color: rgba(69,169,101,0.44);
+      box-shadow: 0 12px 26px rgba(85,187,120,0.22);
+    }
+
+    .secondaryBtn {
+      background: rgba(255,255,255,0.74);
+      color: var(--text);
+    }
+
+    .primaryBtn:hover,
+    .secondaryBtn:hover { transform: translateY(-1px); }
+
+    .scoreStrip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .scoreCell {
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 10px;
+    }
+
+    .scoreCell strong {
+      display: block;
+      color: var(--green-deep);
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .scoreCell span {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .resultList,
+    .logicList,
+    .factList {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .resultItem,
+    .logicItem,
+    .factItem {
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 9px 10px;
+    }
+
+    .resultItem strong,
+    .logicItem strong,
+    .factItem strong {
+      display: block;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--green-deep);
+      margin-bottom: 4px;
+    }
+
+    .resultItem span,
+    .logicItem span,
+    .factItem span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.28;
+    }
+
+    .progressBar {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(37,90,62,0.06);
+      overflow: hidden;
+    }
+
+    .progressFill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #9fe48e, #55bb78);
+      transition: width 220ms ease;
+    }
+
+    .tiny {
+      color: #7a8f82;
+      font-size: 0.79rem;
+      line-height: 1.24;
+    }
+
+    @media (max-width: 1240px) {
+      .layout { grid-template-columns: 1fr; }
+      .scoreStrip { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Gin sensory quiz / botanical identification game</h1>
+      <p class="sub">An elegant participation piece for tours: smell or taste a mystery sample, then guess its botanical family, the role it plays, the kind of serve it suits, and whether it behaves like a top-note, mid-note, or structural botanical.</p>
+    </div>
+
+    <div class="layout">
+      <section class="panel stack">
+        <div>
+          <div class="eyebrow">Choose a mystery sample</div>
+          <h2 id="roundTitle">Round 1 selected</h2>
+          <p id="roundSummary">Choose a sample to run as a single-player quiz or a group-tour discussion round.</p>
+        </div>
+
+        <div class="roundList" id="roundList"></div>
+      </section>
+
+      <section class="panel stack">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">Mystery sample</div>
+            <h2 id="mysteryTitle">Bright, dry, peel-led clue set</h2>
+            <p id="mysteryText">Work from the clues rather than trying to guess the exact botanical immediately.</p>
+          </div>
+          <div class="badge" id="mysteryBadge">4 questions</div>
+        </div>
+
+        <div class="mysteryCard">
+          <div class="sectionTitle"><h3>What you notice first</h3><span>sensory cues only</span></div>
+          <div class="notePills" id="cluePills"></div>
+          <div class="chipRow" id="stylePills"></div>
+          <p class="tiny" id="mysteryHint">This clue set is designed so the group can reason from effect to function, not just from memory.</p>
+        </div>
+
+        <div class="questionCard questionBlock">
+          <div class="questionHeader"><h3>1. Which botanical family?</h3><span id="familyFeedback">make a choice</span></div>
+          <div class="optionGrid" id="familyOptions"></div>
+        </div>
+
+        <div class="questionCard questionBlock">
+          <div class="questionHeader"><h3>2. What role does it mainly play?</h3><span id="roleFeedback">make a choice</span></div>
+          <div class="optionGrid" id="roleOptions"></div>
+        </div>
+
+        <div class="questionCard questionBlock">
+          <div class="questionHeader"><h3>3. Which serve direction suits it best?</h3><span id="serveFeedback">make a choice</span></div>
+          <div class="optionGrid" id="serveOptions"></div>
+        </div>
+
+        <div class="questionCard questionBlock">
+          <div class="questionHeader"><h3>4. Is it top-note, mid-note, or structural?</h3><span id="noteFeedback">make a choice</span></div>
+          <div class="optionGrid" id="noteOptions"></div>
+        </div>
+
+        <div class="actions">
+          <button class="primaryBtn" id="checkBtn">Check answers</button>
+          <button class="secondaryBtn" id="revealBtn">Reveal and explain</button>
+          <button class="secondaryBtn" id="nextBtn">Next round</button>
+        </div>
+
+        <div class="resultCard">
+          <div class="sectionTitle"><h3>Round score</h3><span id="scoreLabel">not checked yet</span></div>
+          <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+          <div class="scoreStrip" style="margin-top:10px;">
+            <div class="scoreCell"><strong>family</strong><span id="familyScore">—</span></div>
+            <div class="scoreCell"><strong>role</strong><span id="roleScore">—</span></div>
+            <div class="scoreCell"><strong>serve</strong><span id="serveScore">—</span></div>
+            <div class="scoreCell"><strong>note position</strong><span id="noteScore">—</span></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel stack">
+        <div class="section">
+          <div class="eyebrow">Reveal panel</div>
+          <h3 id="revealTitle">Answer stays hidden until you check</h3>
+          <p id="revealText">Use the reveal panel after the group has discussed what they think the botanical is doing.</p>
+          <div class="chipRow" id="answerChips" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Why this answer makes sense</h3></div>
+          <div class="logicList" id="logicList"></div>
+        </div>
+
+        <div class="section">
+          <div class="sectionTitle"><h3>Related botanicals</h3></div>
+          <div class="resultList" id="relatedList"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const roundData = [
+      {
+        id: 'round_1',
+        label: 'Round 1',
+        title: 'Bright, dry, peel-led clue set',
+        summary: 'A clean lift with brightness rather than perfume or sweetness.',
+        mysteryText: 'Work from the clues rather than trying to guess the exact botanical immediately.',
+        clues: ['bright zest', 'dry lift', 'clean top note', 'little sweetness'],
+        styleHints: ['often sharpens a classic gin line', 'works well in brighter serves'],
+        botanical: 'Lemon peel',
+        family: 'citrus',
+        role: 'brightener / top-note lift',
+        serve: 'Martini or bright G&T',
+        note: 'top-note',
+        explanation: [
+          'This clue set points to a citrus family botanical because the first impact is brightness rather than warmth, perfume, or rooty structure.',
+          'Its main role is not binding or texture. It mainly brightens the top of the recipe and sharpens perception.',
+          'The best-fit serves are the ones that benefit from clean lift and edge rather than heavy warmth or softness.'
+        ],
+        related: ['Grapefruit peel', 'Orange peel', 'Lime peel']
+      },
+      {
+        id: 'round_2',
+        label: 'Round 2',
+        title: 'Piney, dry, backbone clue set',
+        summary: 'Feels like structure, not decoration.',
+        mysteryText: 'This one is less about overt prettiness and more about category identity and backbone.',
+        clues: ['piney', 'dry', 'resinous', 'category-defining'],
+        styleHints: ['holds a Martini together', 'still obvious even without tonic'],
+        botanical: 'Juniper',
+        family: 'resinous',
+        role: 'core anchor / backbone',
+        serve: 'Martini or Neat tasting',
+        note: 'structural',
+        explanation: [
+          'The clues are about category definition and dry resinous structure, which points strongly towards juniper.',
+          'This is a backbone botanical: it does not simply decorate the top of the recipe, it helps define the whole thing.',
+          'It suits serves where the gin must carry itself clearly rather than disappear into modifiers.'
+        ],
+        related: ['Rosemary', 'Coriander seed', 'Piney herbal botanicals']
+      },
+      {
+        id: 'round_3',
+        label: 'Round 3',
+        title: 'Warm bridge clue set',
+        summary: 'Bright and spicy at once, with more bridge than brute force.',
+        mysteryText: 'This sample often links one part of a gin to another rather than dominating by itself.',
+        clues: ['citrus-spice bridge', 'warm but not heavy', 'middle of palate', 'supporting core role'],
+        styleHints: ['helps classical recipes cohere', 'works well in Gimlets and dry styles'],
+        botanical: 'Coriander seed',
+        family: 'spicy',
+        role: 'bridge / supporting structure',
+        serve: 'Gimlet or classic dry styles',
+        note: 'mid-note',
+        explanation: [
+          'This is not a pure warm spice clue set. The bright edge points to coriander seed rather than something sweeter like cassia.',
+          'Its main job is to bridge citrus brightness and spice warmth in the middle of the recipe.',
+          'That is why it often feels central in classical gin architecture without always shouting its own name.'
+        ],
+        related: ['Cardamom', 'Orange peel', 'Juniper']
+      },
+      {
+        id: 'round_4',
+        label: 'Round 4',
+        title: 'Dry root clue set',
+        summary: 'More about binding and length than immediate aroma charm.',
+        mysteryText: 'This clue set is deliberately less showy: think structure, dryness, and recipe shape.',
+        clues: ['dry rooty feel', 'length', 'binder', 'little top-note glamour'],
+        styleHints: ['helps hold botanical sets together', 'reads more in the architecture than in the first aroma hit'],
+        botanical: 'Angelica root',
+        family: 'earthy',
+        role: 'binder / structural support',
+        serve: 'Neat tasting or structured dry serve',
+        note: 'structural',
+        explanation: [
+          'This clue set points to a root botanical rather than a peel, herb, or flower because it speaks to dryness and framework.',
+          'Its role is structural support: it helps build length and shape rather than top-note excitement.',
+          'It matters in recipe design even when guests do not identify it immediately as a distinct flavour.'
+        ],
+        related: ['Orris root', 'Liquorice root', 'Juniper']
+      },
+      {
+        id: 'round_5',
+        label: 'Round 5',
+        title: 'Perfumed restraint clue set',
+        summary: 'Aromatic, elegant, but risky if overused.',
+        mysteryText: 'This one can add lift beautifully, but it can also make a gin feel too perfumed if pushed too far.',
+        clues: ['perfumed', 'soft aromatic lift', 'delicate', 'easy to overdo'],
+        styleHints: ['works best in disciplined contemporary styles', 'less comfortable in sternly dry structures'],
+        botanical: 'Lavender',
+        family: 'floral',
+        role: 'accent / aromatic lift',
+        serve: 'Floral G&T or sparkling serve',
+        note: 'top-note',
+        explanation: [
+          'The clues indicate a floral family botanical because the sensory impact is perfume and softness rather than root, spice, or peel brightness.',
+          'Its role is accent and aromatic lift, not deep structure.',
+          'The best serve directions are the ones that can carry delicacy without crushing it or making it feel cloying.'
+        ],
+        related: ['Rose', 'Chamomile', 'Bergamot']
+      },
+      {
+        id: 'round_6',
+        label: 'Round 6',
+        title: 'Rounder sweetness clue set',
+        summary: 'Less about top-note aroma, more about weight and softness.',
+        mysteryText: 'Think of what might round off a recipe rather than announce itself first from the glass.',
+        clues: ['soft sweetness', 'length', 'weight', 'rounding rather than lift'],
+        styleHints: ['can soften a harder recipe', 'more obvious in mouthfeel than in sharp aroma'],
+        botanical: 'Liquorice root',
+        family: 'sweet / rounding',
+        role: 'rounder / softener',
+        serve: 'Softer long serve or rounded style',
+        note: 'structural',
+        explanation: [
+          'The clue set points away from bright top-note families and towards something that rounds and softens.',
+          'Its main role is weight, sweetness, and length rather than obvious perfume or peel brightness.',
+          'That makes it structurally important even though it is not always the first thing people name.'
+        ],
+        related: ['Cassia', 'Star anise', 'Angelica root']
+      }
+    ];
+
+    const optionSets = {
+      family: ['resinous', 'citrus', 'floral', 'spicy', 'herbal', 'earthy', 'sweet / rounding'],
+      role: ['core anchor / backbone', 'brightener / top-note lift', 'bridge / supporting structure', 'binder / structural support', 'accent / aromatic lift', 'rounder / softener'],
+      serve: ['Martini or bright G&T', 'Martini or Neat tasting', 'Gimlet or classic dry styles', 'Neat tasting or structured dry serve', 'Floral G&T or sparkling serve', 'Softer long serve or rounded style'],
+      note: ['top-note', 'mid-note', 'structural']
+    };
+
+    let currentRoundIndex = 0;
+    let selections = { family: null, role: null, serve: null, note: null };
+    let checked = false;
+    let revealed = false;
+
+    function currentRound() {
+      return roundData[currentRoundIndex];
+    }
+
+    function resetRoundState() {
+      selections = { family: null, role: null, serve: null, note: null };
+      checked = false;
+      revealed = false;
+    }
+
+    function normaliseCategoryText(text) {
+      return text.replace(/\s+/g, ' ').trim();
+    }
+
+    function scoreLabel(value, hasSelection) {
+      if (!hasSelection) return '—';
+      return value === 1 ? 'correct' : 'wrong';
+    }
+
+    function renderRoundList() {
+      const wrap = document.getElementById('roundList');
+      wrap.innerHTML = '';
+      roundData.forEach((round, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'roundBtn' + (index === currentRoundIndex ? ' active' : '');
+        btn.innerHTML = `<strong>${round.label}: ${round.botanical}</strong><span>${round.summary}</span>`;
+        btn.addEventListener('click', () => {
+          currentRoundIndex = index;
+          resetRoundState();
+          render();
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function renderClues(round) {
+      document.getElementById('roundTitle').textContent = `${round.label} selected`;
+      document.getElementById('roundSummary').textContent = round.summary;
+      document.getElementById('mysteryTitle').textContent = round.title;
+      document.getElementById('mysteryText').textContent = round.mysteryText;
+      document.getElementById('mysteryBadge').textContent = '4 questions';
+      document.getElementById('mysteryHint').textContent = 'This clue set is designed so the group can reason from effect to function, not just from memory.';
+
+      const cluePills = document.getElementById('cluePills');
+      cluePills.innerHTML = '';
+      round.clues.forEach(clue => {
+        const pill = document.createElement('div');
+        pill.className = 'pill';
+        pill.textContent = clue;
+        cluePills.appendChild(pill);
+      });
+
+      const stylePills = document.getElementById('stylePills');
+      stylePills.innerHTML = '';
+      round.styleHints.forEach(clue => {
+        const pill = document.createElement('div');
+        pill.className = 'pill subtle';
+        pill.textContent = clue;
+        stylePills.appendChild(pill);
+      });
+    }
+
+    function renderOptionGroup(containerId, type) {
+      const wrap = document.getElementById(containerId);
+      wrap.innerHTML = '';
+      const answer = currentRound()[type];
+      optionSets[type].forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'optionBtn';
+        if (selections[type] === option) btn.classList.add('active');
+        if (checked || revealed) {
+          if (option === answer) btn.classList.add('correct');
+          if (selections[type] === option && option !== answer) btn.classList.add('wrong');
+        }
+        btn.textContent = option;
+        btn.addEventListener('click', () => {
+          selections[type] = option;
+          render();
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function computeScore() {
+      const round = currentRound();
+      const active = checked || revealed;
+      return {
+        family: active && selections.family ? Number(selections.family === round.family) : 0,
+        role: active && selections.role ? Number(selections.role === round.role) : 0,
+        serve: active && selections.serve ? Number(selections.serve === round.serve) : 0,
+        note: active && selections.note ? Number(selections.note === round.note) : 0
+      };
+    }
+
+    function updateFeedback() {
+      const round = currentRound();
+      const score = computeScore();
+
+      function labelFor(type, id) {
+        const el = document.getElementById(id);
+        if (!checked && !revealed) {
+          el.textContent = selections[type] ? 'selected' : 'make a choice';
+          return;
+        }
+        if (revealed && !selections[type]) {
+          el.textContent = `answer: ${round[type]}`;
+          return;
+        }
+        el.textContent = selections[type] === round[type] ? 'correct' : `answer: ${round[type]}`;
+      }
+
+      labelFor('family', 'familyFeedback');
+      labelFor('role', 'roleFeedback');
+      labelFor('serve', 'serveFeedback');
+      labelFor('note', 'noteFeedback');
+
+      document.getElementById('familyScore').textContent = checked || revealed ? scoreLabel(score.family, !!selections.family) : '—';
+      document.getElementById('roleScore').textContent = checked || revealed ? scoreLabel(score.role, !!selections.role) : '—';
+      document.getElementById('serveScore').textContent = checked || revealed ? scoreLabel(score.serve, !!selections.serve) : '—';
+      document.getElementById('noteScore').textContent = checked || revealed ? scoreLabel(score.note, !!selections.note) : '—';
+
+      const total = score.family + score.role + score.serve + score.note;
+      document.getElementById('scoreLabel').textContent = checked || revealed ? `${total} / 4` : 'not checked yet';
+      document.getElementById('progressFill').style.width = `${(total / 4) * 100}%`;
+    }
+
+    function renderReveal(round) {
+      const title = document.getElementById('revealTitle');
+      const text = document.getElementById('revealText');
+      const chips = document.getElementById('answerChips');
+      chips.innerHTML = '';
+
+      if (!checked && !revealed) {
+        title.textContent = 'Answer stays hidden until you check';
+        text.textContent = 'Use the reveal panel after the group has discussed what they think the botanical is doing.';
+        return;
+      }
+
+      title.textContent = round.botanical;
+      text.textContent = `This sample sits in the ${round.family} family and mainly behaves as ${round.role}.`;
+
+      [
+        `family: ${round.family}`,
+        `role: ${round.role}`,
+        `serve: ${round.serve}`,
+        `note: ${round.note}`
+      ].forEach(item => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = item;
+        chips.appendChild(chip);
+      });
+    }
+
+    function renderLogic(round) {
+      const wrap = document.getElementById('logicList');
+      wrap.innerHTML = '';
+      const items = !checked && !revealed
+        ? [['What this panel does', 'After checking or revealing, this panel explains why the clues point to the answer rather than simply stating the answer.']]
+        : round.explanation.map((text, i) => [`Reason ${i + 1}`, text]);
+
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = 'logicItem';
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    function renderRelated(round) {
+      const wrap = document.getElementById('relatedList');
+      wrap.innerHTML = '';
+      const items = !checked && !revealed
+        ? [['Related botanicals stay hidden', 'Reveal first, then compare the answer with nearby botanicals that create related effects.']]
+        : round.related.map(item => [item, 'A nearby botanical in function, family, or recipe role.']);
+
+      items.forEach(([title, body]) => {
+        const div = document.createElement('div');
+        div.className = 'resultItem';
+        div.innerHTML = `<strong>${title}</strong><span>${body}</span>`;
+        wrap.appendChild(div);
+      });
+    }
+
+    document.getElementById('checkBtn').addEventListener('click', () => {
+      checked = true;
+      revealed = false;
+      render();
+    });
+
+    document.getElementById('revealBtn').addEventListener('click', () => {
+      revealed = true;
+      checked = false;
+      render();
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      currentRoundIndex = (currentRoundIndex + 1) % roundData.length;
+      resetRoundState();
+      render();
+    });
+
+    function render() {
+      const round = currentRound();
+      renderRoundList();
+      renderClues(round);
+      renderOptionGroup('familyOptions', 'family');
+      renderOptionGroup('roleOptions', 'role');
+      renderOptionGroup('serveOptions', 'serve');
+      renderOptionGroup('noteOptions', 'note');
+      updateFeedback();
+      renderReveal(round);
+      renderLogic(round);
+      renderRelated(round);
+    }
+
+    render();
+  </script>
+</body>
+</html>
