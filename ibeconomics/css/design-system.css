@@ -1,0 +1,539 @@
+/* =========================================================================
+   IB Economics Interactive Diagrams — shared design system
+   -------------------------------------------------------------------------
+   These tokens define the visual and interaction language shared across
+   every diagram. If you want to change something site-wide (colour of
+   demand curves, rounded corner radius, font choice), change it here and
+   it propagates everywhere.
+   ========================================================================= */
+
+/* ---- Fonts -------------------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,500;1,400&display=swap');
+
+/* ---- Tokens ------------------------------------------------------------- */
+
+:root {
+  /* Surfaces */
+  --paper:            #faf7f0;   /* off-white, warmer than pure white */
+  --paper-deep:       #f1ede2;   /* slightly darker for panels */
+  --ink:              #1f2a37;   /* near-black, slight blue for structural lines */
+  --ink-soft:         #4a5565;   /* secondary text */
+  --ink-ghost:        #8a93a1;   /* tertiary text, axis ticks */
+  --rule:             #e4dccb;   /* hairlines, grid */
+
+  /* Semantic curve colours — these never change meaning */
+  --demand:           #c88a2b;   /* warm amber, buyers */
+  --demand-soft:      #e8c88a;
+  --demand-fill:      rgba(200, 138, 43, 0.12);
+
+  --supply:           #1f7a6a;   /* cool teal, sellers */
+  --supply-soft:      #88b8ae;
+  --supply-fill:      rgba(31, 122, 106, 0.12);
+
+  /* Secondary curves for tax/subsidy/externality work */
+  --demand-shift:     #8c5a10;   /* darker amber for a shifted demand curve */
+  --supply-shift:     #0f4a40;   /* darker teal for a shifted supply curve */
+
+  /* Welfare regions */
+  --welfare-gain:     #6a9240;   /* soft leaf green */
+  --welfare-gain-fill: rgba(106, 146, 64, 0.18);
+  --welfare-loss:     #b8502f;   /* muted coral */
+  --welfare-loss-fill: rgba(184, 80, 47, 0.20);
+  --transfer:         #6b6f76;   /* slate grey for tax revenue, transfers */
+  --transfer-fill:    rgba(107, 111, 118, 0.18);
+
+  /* Markers */
+  --equilibrium:      #1f2a37;   /* deep navy for the equilibrium dot */
+  --socially-optimal: #6b6f76;   /* for dashed MSC/MSB optimum markers */
+  --ghost:            #c2b99f;   /* for the pre-shift ghost curve */
+
+  /* Corners, spacing, motion */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --shadow-soft: 0 1px 2px rgba(31,42,55,0.04), 0 4px 16px rgba(31,42,55,0.06);
+
+  --spring-duration: 900ms;
+  --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot, for the springy equilibrium feel */
+}
+
+/* ---- Base --------------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prose uses the serif for a textbook feel. */
+.prose, .narration p, .key-idea p {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+h1, h2, h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+h1 { font-size: 28px; margin: 0 0 0.4em; }
+h2 { font-size: 20px; margin: 1.2em 0 0.4em; }
+h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+/* ---- Page layout -------------------------------------------------------- */
+
+.diagram-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.diagram-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.diagram-header .title-block h1 {
+  margin: 0;
+}
+.diagram-header .title-block .syllabus-tag {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3em;
+}
+
+/* Main two-column layout: graph on the left, narration panel on the right */
+.diagram-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .diagram-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.graph-area {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1rem 0.5rem;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+}
+
+.narration {
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.2rem;
+  font-size: 15px;
+}
+
+.narration h3 {
+  margin-top: 0;
+}
+
+.narration .live-readout {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.9rem;
+  margin-bottom: 1rem;
+}
+.narration .live-readout dt {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.narration .live-readout dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Controls row ------------------------------------------------------- */
+
+.controls {
+  margin-top: 1.5rem;
+  padding: 1rem 1.2rem;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem 1.5rem;
+  align-items: center;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.control label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.control label .value {
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+/* Sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  outline: none;
+  margin: 8px 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  cursor: grab;
+  border: 2px solid var(--paper);
+  transition: transform 0.12s ease;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.12);
+  cursor: grabbing;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  cursor: grab;
+  border: 2px solid var(--paper);
+}
+
+/* Scenario dropdown */
+.scenario-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.scenario-picker label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.scenario-picker select {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%234a5565' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+/* Mode tabs (explain / play / quiz) */
+.mode-tabs {
+  display: inline-flex;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.mode-tabs button {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mode-tabs button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(31,42,55,0.08);
+}
+
+/* Toggle switches (for features like "derived numbers on/off") */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.toggle input { display: none; }
+.toggle .track {
+  width: 32px;
+  height: 18px;
+  background: var(--rule);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+.toggle .track::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+}
+.toggle input:checked + .track { background: var(--ink); }
+.toggle input:checked + .track::after { transform: translateX(14px); }
+
+/* ---- SVG defaults ------------------------------------------------------- */
+
+.graph-area svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible; /* allow labels to sit outside the plot area */
+}
+
+/* SVG text classes — mirror the HTML classes for consistent typography inside the SVG */
+.graph-area svg text {
+  font-family: 'Inter', sans-serif;
+  fill: var(--ink);
+}
+.graph-area svg text.axis-label {
+  font-size: 13px;
+  fill: var(--ink-soft);
+  font-weight: 500;
+}
+.graph-area svg text.axis-tick {
+  font-size: 11px;
+  fill: var(--ink-ghost);
+  font-variant-numeric: tabular-nums;
+}
+.graph-area svg text.curve-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+.graph-area svg text.point-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Axes */
+.graph-area svg .axis {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  fill: none;
+  stroke-linecap: round;
+}
+.graph-area svg .grid {
+  stroke: var(--rule);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 3;
+}
+
+/* Curves */
+.graph-area svg .curve {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.graph-area svg .curve.demand  { stroke: var(--demand); }
+.graph-area svg .curve.supply  { stroke: var(--supply); }
+.graph-area svg .curve.ghost   { stroke: var(--ghost); stroke-dasharray: 4 4; }
+
+/* Equilibrium dot */
+.graph-area svg .eq-dot {
+  fill: var(--equilibrium);
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: grab;
+  transition: r 0.15s ease;
+}
+.graph-area svg .eq-dot:hover { r: 8; }
+.graph-area svg .eq-dot.dragging { cursor: grabbing; r: 9; }
+
+/* Draggable curve handles */
+.graph-area svg .handle {
+  fill: #fff;
+  stroke-width: 2.5;
+  cursor: grab;
+  transition: r 0.15s ease;
+}
+.graph-area svg .handle.demand { stroke: var(--demand); }
+.graph-area svg .handle.supply { stroke: var(--supply); }
+.graph-area svg .handle:hover  { r: 9; }
+.graph-area svg .handle.dragging { cursor: grabbing; r: 10; }
+
+/* Disequilibrium price marker — a horizontal line that the user can drag up/down */
+.graph-area svg .price-line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  cursor: ns-resize;
+}
+.graph-area svg .price-line-handle {
+  fill: var(--ink);
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: ns-resize;
+}
+
+/* Welfare / surplus regions — highlightable */
+.graph-area svg .region {
+  opacity: 0.8;
+  transition: opacity 0.2s, stroke-width 0.2s;
+  cursor: pointer;
+}
+.graph-area svg .region:hover {
+  opacity: 1;
+}
+.graph-area svg .region.consumer-surplus { fill: var(--demand-fill); stroke: var(--demand); stroke-width: 0.5; }
+.graph-area svg .region.producer-surplus { fill: var(--supply-fill); stroke: var(--supply); stroke-width: 0.5; }
+.graph-area svg .region.welfare-loss     { fill: var(--welfare-loss-fill); stroke: var(--welfare-loss); stroke-width: 0.5; }
+.graph-area svg .region.welfare-gain     { fill: var(--welfare-gain-fill); stroke: var(--welfare-gain); stroke-width: 0.5; }
+.graph-area svg .region.transfer         { fill: var(--transfer-fill); stroke: var(--transfer); stroke-width: 0.5; }
+.graph-area svg .region.shortage         { fill: rgba(200, 138, 43, 0.18); stroke: var(--demand); stroke-width: 0.5; stroke-dasharray: 3 3; }
+.graph-area svg .region.surplus          { fill: rgba(31, 122, 106, 0.18); stroke: var(--supply); stroke-width: 0.5; stroke-dasharray: 3 3; }
+
+/* Flash animation when a region is activated from a legend click */
+@keyframes region-flash {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.25); }
+}
+.graph-area svg .region.flash {
+  animation: region-flash 0.6s ease-out;
+}
+
+/* Annotations — arrows, callouts, guide lines */
+.graph-area svg .annotation {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  fill: none;
+}
+.graph-area svg .annotation.dashed {
+  stroke-dasharray: 3 3;
+}
+.graph-area svg .annotation-label {
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  font-size: 13px;
+  fill: var(--ink-soft);
+}
+
+/* ---- Legend ------------------------------------------------------------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.legend .item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.legend .item:hover { background: var(--paper-deep); }
+.legend .swatch {
+  width: 14px; height: 10px;
+  border-radius: 2px;
+  border: 0.5px solid rgba(0,0,0,0.15);
+}
+
+/* ---- Key idea box ------------------------------------------------------- */
+
+.key-idea {
+  background: var(--paper-deep);
+  border-left: 3px solid var(--ink);
+  padding: 0.8rem 1.2rem;
+  margin-top: 1rem;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.key-idea p { margin: 0; }
+
+/* ---- Explainer arrows (for the Explain mode) ---------------------------- */
+
+.explain-note {
+  position: absolute;
+  max-width: 200px;
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.explain-note.hidden { opacity: 0; }
+
+/* ---- Utility classes ---------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted { color: var(--ink-soft); }
+.small { font-size: 13px; }

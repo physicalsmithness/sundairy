@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <style>
+    .unit-group { margin-bottom: 2rem; }
+    .unit-group h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.3rem;
+      font-size: 18px;
+      margin-bottom: 0.5rem;
+    }
+    .diagram-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .diagram-list li {
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 0.4rem;
+      background: #fff;
+      border: 1px solid var(--rule);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .diagram-list li:hover {
+      background: var(--paper-deep);
+    }
+    .diagram-list a {
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .diagram-list .tag {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-left: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .diagram-list .desc {
+      display: block;
+      margin-top: 0.2em;
+      font-size: 14px;
+      color: var(--ink-soft);
+      font-weight: 400;
+    }
+    .diagram-list li.stub {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .diagram-list li.stub .tag::after {
+      content: ' · not yet built';
+    }
+    .intro {
+      background: var(--paper-deep);
+      padding: 1.2rem 1.5rem;
+      border-radius: var(--radius-lg);
+      border-left: 3px solid var(--ink);
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <span class="syllabus-tag">IB Economics · Interactive diagrams</span>
+      <h1>The whole set</h1>
+    </div>
+  </header>
+
+  <div class="intro">
+    <p class="prose" style="margin: 0;">
+      A collection of interactive diagrams covering every required graphical element of the IB Economics syllabus, designed for use after teacher introduction, in class play, and at revision time. Drag things. Release them. Change the setting from a St Andrews greengrocer to Albanian wheat and see how the same logic survives.
+    </p>
+  </div>
+
+  <section class="unit-group">
+    <h2>Unit 2 · Microeconomics</h2>
+    <ul class="diagram-list">
+      <li>
+        <a href="diagrams/01-market-equilibrium.html">Market equilibrium <span class="tag">2.3 · Required</span></a>
+        <span class="desc">Demand, supply, equilibrium, shortages and surpluses, with springy return to equilibrium.</span>
+      </li>
+      <li class="stub">
+        <a>Price elasticity of demand <span class="tag">2.5 · Required</span></a>
+        <span class="desc">Constant PED (perfectly elastic/inelastic/unitary) and the linear demand curve.</span>
+      </li>
+      <li class="stub">
+        <a>Indirect tax <span class="tag">2.7 · Required</span></a>
+        <span class="desc">Specific and ad valorem taxes, tax incidence, welfare loss.</span>
+      </li>
+      <li class="stub">
+        <a>Subsidy <span class="tag">2.7 · Required</span></a>
+        <span class="desc">Subsidy incidence, cost to government, welfare effects.</span>
+      </li>
+      <li class="stub">
+        <a>Price ceilings and price floors <span class="tag">2.7 · Required</span></a>
+        <span class="desc">Maximum and minimum prices, with stickiness and black-market pressure.</span>
+      </li>
+      <li class="stub">
+        <a>Negative externalities of production &amp; consumption <span class="tag">2.8 · Required</span></a>
+        <span class="desc">MSC vs MPC, overproduction, welfare loss, Pigouvian tax response.</span>
+      </li>
+      <li class="stub">
+        <a>Positive externalities of production &amp; consumption <span class="tag">2.8 · Required</span></a>
+        <span class="desc">MSB vs MPB, underconsumption, subsidy and provision responses.</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="unit-group">
+    <h2>Unit 3 · Macroeconomics</h2>
+    <ul class="diagram-list">
+      <li class="stub">
+        <a>AD–AS (Keynesian) <span class="tag">3.2 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>AD–AS (neoclassical/monetarist) <span class="tag">3.2 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>Business cycle <span class="tag">3.1 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>Lorenz curve and Gini <span class="tag">3.5 · Required</span></a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="unit-group">
+    <h2>Unit 4 · The global economy</h2>
+    <ul class="diagram-list">
+      <li class="stub">
+        <a>Tariff <span class="tag">4.3 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>Quota <span class="tag">4.3 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>Subsidy on an imported good <span class="tag">4.3 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>Floating exchange rate <span class="tag">4.5 · Required</span></a>
+      </li>
+      <li class="stub">
+        <a>J-curve and Marshall–Lerner <span class="tag">4.6 · HL only</span></a>
+      </li>
+    </ul>
+  </section>
+
+  <p class="small muted" style="margin-top: 3rem;">
+    This is an evolving project. Stubs link to nothing yet; live diagrams are bold. Built for teaching, revision and exploration of IB Economics.
+  </p>
+
+</main>
+
+</body>
+</html>
