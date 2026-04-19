@@ -19,21 +19,20 @@ import {
    body, single raised arm holding a prop.
 */
 function drawBuyerFigure(group, cx, yBase) {
-  const headY = yBase - 20;
-  const head = svgEl('circle', { cx, cy: headY, r: 4.5, fill: 'var(--ink-soft)' });
+  const headY = yBase - 15;
+  const head = svgEl('circle', { cx, cy: headY, r: 3.5, fill: 'var(--ink-soft)' });
   const body = svgEl('path', {
-    d: `M ${cx-5} ${yBase} L ${cx+5} ${yBase} L ${cx} ${headY + 4} Z`,
+    d: `M ${cx-4} ${yBase} L ${cx+4} ${yBase} L ${cx} ${headY + 3} Z`,
     fill: 'var(--ink-soft)', opacity: 0.9,
   });
   const arm = svgEl('line', {
-    x1: cx, y1: headY + 4,
-    x2: cx + 12, y2: headY - 8,
-    stroke: 'var(--ink-soft)', 'stroke-width': 1.8, 'stroke-linecap': 'round',
+    x1: cx, y1: headY + 3,
+    x2: cx + 9, y2: headY - 7,
+    stroke: 'var(--ink-soft)', 'stroke-width': 1.4, 'stroke-linecap': 'round',
   });
-  // Banknote
   const note = svgEl('rect', {
-    x: cx + 10, y: headY - 15, width: 14, height: 9,
-    fill: 'var(--demand)', stroke: 'var(--demand-shift)', 'stroke-width': 0.6, rx: 1.5,
+    x: cx + 8, y: headY - 12, width: 11, height: 7,
+    fill: 'var(--demand)', stroke: 'var(--demand-shift)', 'stroke-width': 0.5, rx: 1.2,
   });
   group.appendChild(body);
   group.appendChild(head);
@@ -42,25 +41,24 @@ function drawBuyerFigure(group, cx, yBase) {
 }
 
 function drawSellerFigure(group, cx, yBase) {
-  const headY = yBase - 20;
-  const head = svgEl('circle', { cx, cy: headY, r: 4.5, fill: 'var(--ink-soft)' });
+  const headY = yBase - 15;
+  const head = svgEl('circle', { cx, cy: headY, r: 3.5, fill: 'var(--ink-soft)' });
   const body = svgEl('path', {
-    d: `M ${cx-5} ${yBase} L ${cx+5} ${yBase} L ${cx} ${headY + 4} Z`,
+    d: `M ${cx-4} ${yBase} L ${cx+4} ${yBase} L ${cx} ${headY + 3} Z`,
     fill: 'var(--ink-soft)', opacity: 0.9,
   });
-  // Holding up a SALE sticker
   const arm = svgEl('line', {
-    x1: cx, y1: headY + 4,
-    x2: cx + 10, y2: headY - 6,
-    stroke: 'var(--ink-soft)', 'stroke-width': 1.8, 'stroke-linecap': 'round',
+    x1: cx, y1: headY + 3,
+    x2: cx + 8, y2: headY - 5,
+    stroke: 'var(--ink-soft)', 'stroke-width': 1.4, 'stroke-linecap': 'round',
   });
   const tag = svgEl('rect', {
-    x: cx + 6, y: headY - 13, width: 22, height: 12,
-    fill: 'var(--welfare-loss-fill)', stroke: 'var(--welfare-loss)', 'stroke-width': 0.8, rx: 2,
+    x: cx + 5, y: headY - 10, width: 18, height: 9,
+    fill: 'var(--welfare-loss-fill)', stroke: 'var(--welfare-loss)', 'stroke-width': 0.6, rx: 1.5,
   });
   const tagText = svgEl('text', {
-    x: cx + 17, y: headY - 4,
-    'text-anchor': 'middle', 'font-size': 8.5,
+    x: cx + 14, y: headY - 3,
+    'text-anchor': 'middle', 'font-size': 7,
     fill: 'var(--welfare-loss)', 'font-weight': 600,
   });
   tagText.textContent = 'SALE';
@@ -715,51 +713,37 @@ export class PQPlot {
 
     const group = svgEl('g', { class: 'off-graph' });
     const yAt = this.yScale(atPrice);
-
-    // Characters sit INSIDE the plot area, spread horizontally, in the
-    // "direction the price wants to move". So for a shortage (price wants
-    // to go UP), buyers appear above the forced-price line. For a surplus
-    // (price wants to go DOWN), sellers appear below it.
-    //
-    // Position them in the middle horizontal third of the plot, spaced
-    // evenly, so they're visible without clashing with curves or the
-    // equilibrium marker at the centre.
-    const leftEdge = this.margin.left + this.plotW * 0.55;
-    const rightEdge = this.margin.left + this.plotW * 0.92;
-    const count = 4;
-    const stepX = (rightEdge - leftEdge) / (count - 1);
+    // Sit just outside the right edge of the plot, in the right margin.
+    // The margin is wide enough (70px) that figures and the curve labels
+    // can coexist without colliding.
+    const x = this.margin.left + this.plotW + 14;
 
     if (direction === 'shortage') {
-      // Buyers waving banknotes, above the price line
-      const labelY = yAt - 72;
+      // A small stack of buyer figures in the margin, pressing upward.
+      // Their banknotes raised — clearly they'd pay more if allowed.
       const label = svgEl('text', {
         class: 'off-graph-label',
-        x: (leftEdge + rightEdge) / 2,
-        y: labelY - 4,
+        x: x + 14, y: yAt - 16,
         'text-anchor': 'middle',
       });
       label.textContent = 'buyers bid up';
       group.appendChild(label);
-      for (let i = 0; i < count; i++) {
-        const cx = leftEdge + i * stepX;
-        const yBase = yAt - 48;
-        drawBuyerFigure(group, cx, yBase);
+      for (let i = 0; i < 3; i++) {
+        const yBase = yAt + 10 + i * 22;
+        drawBuyerFigure(group, x + 8, yBase);
       }
     } else if (direction === 'surplus') {
-      // Sellers with SALE stickers, below the price line
-      const labelY = yAt + 68;
+      // Sellers beneath the price line, SALE tags aloft.
       const label = svgEl('text', {
         class: 'off-graph-label',
-        x: (leftEdge + rightEdge) / 2,
-        y: labelY,
+        x: x + 18, y: yAt + 68,
         'text-anchor': 'middle',
       });
       label.textContent = 'sellers cut prices';
       group.appendChild(label);
-      for (let i = 0; i < count; i++) {
-        const cx = leftEdge + i * stepX;
-        const yBase = yAt + 20;
-        drawSellerFigure(group, cx, yBase);
+      for (let i = 0; i < 3; i++) {
+        const yBase = yAt + 24 + i * 18;
+        drawSellerFigure(group, x + 8, yBase);
       }
     }
 

@@ -168,12 +168,18 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   min-width: 0;
 }
 .diagram-main > aside.narration {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  /* Stick just below the sticky header (which is about 60px tall) */
+  top: 70px;
+  /* Constrain height so content can scroll within the panel if it grows */
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  align-self: start;
 }
 .diagram-main > aside.narration > .key-idea {
-  margin-top: auto; /* push key idea to the bottom of the panel */
+  margin-top: auto;
 }
 
 @media (max-width: 960px) {

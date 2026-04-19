@@ -397,6 +397,25 @@ function currentPrice() {
   return e ? e.p : 0;
 }
 
+/**
+ * Quantities demanded and supplied at price p, CLAMPED so neither can be
+ * negative. When p is above demand's y-intercept, nobody buys (qD = 0).
+ * When p is below supply's y-intercept, nobody sells (qS = 0, unless supply
+ * has a positive x-intercept in which case the quantity offered is 0 up
+ * until price reaches that supply's lowest-valid price).
+ *
+ * Without this clamping, the live readout shows nonsense like "-45 apples"
+ * and the gap bar draws left of the y-axis.
+ */
+function effectiveQuantities(p) {
+  const sc = scenarios[state.scenarioKey];
+  const rawD = state.demand.quantityAt(p);
+  const rawS = state.supply.quantityAt(p);
+  const qD = Math.max(0, Math.min(sc.quantityMax, rawD));
+  const qS = Math.max(0, Math.min(sc.quantityMax, rawS));
+  return { qD, qS };
+}
+
 /* -----------------------------------------------------------------------
    Regions
    ----------------------------------------------------------------------- */
@@ -407,8 +426,7 @@ function computeRegions() {
   if (!e) return regions;
   const s = scenarios[state.scenarioKey];
   const p = currentPrice();
-  const qD = state.demand.quantityAt(p);
-  const qS = state.supply.quantityAt(p);
+  const { qD, qS } = effectiveQuantities(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
 
   // Consumer surplus: region above market price, below demand curve,
@@ -443,43 +461,44 @@ function computeRegions() {
     });
   }
 
-  // Producer surplus: region below market price, above supply curve,
-  // between q=0 and qTraded.
-  // KEY: if supply has a positive x-intercept (i.e. some units would be
-  // offered at zero price), those "free" units still sell at market price p.
-  // Producers' surplus on those units is the full p × qSStart rectangle.
-  // The triangle above the supply curve adds to that.
-  // So the polygon walks:
-  //   - (0, 0)                         bottom-left
-  //   - (0, p)                         up the y-axis to market price
-  //   - (qTraded, p)                   across the top at market price
-  //   - (qTraded, supply.priceAt(qTraded))  down to supply curve
-  //   - follow supply back along its path to its left edge
-  //   - close to (0, 0)
-  // The "left edge" of supply is (qSStart, pSStart) = either on the y-axis
-  // (if supply's y-intercept is >= 0) or on the x-axis (if supply's
-  // y-intercept is negative, meaning supply crosses the x-axis at qSStart).
+  // Producer surplus. The polygon depends on where the supply curve enters
+  // the plot on the left:
+  //   Case A: supply.priceAt(0) >= 0 — supply enters through the y-axis at
+  //     some price p_y >= 0. PS is the standard triangle:
+  //       (0, p_y) → (0, p) → (qTraded, p) → (qTraded, S(qTraded)) [and
+  //       closes back along supply to (0, p_y)].
+  //   Case B: supply.priceAt(0) < 0 — supply crosses the x-axis at
+  //     qSStart > 0 (some units would be offered at zero price). Those
+  //     units still sell at market price p, adding a zero-cost rectangle
+  //     to PS:
+  //       (0, 0) → (0, p) → (qTraded, p) → (qTraded, S(qTraded)) →
+  //       close along supply to (qSStart, 0) → (0, 0).
   const sAtZero = state.supply.priceAt(0);
-  const qSStart = sAtZero < 0 ? state.supply.quantityAt(0) : 0;
-  const pSStart = sAtZero < 0 ? 0 : Math.max(0, sAtZero);
-  if (qTraded > qSStart && p > pSStart) {
-    const pts = [
-      [0, 0],
-      [0, p],
-      [qTraded, p],
-      [qTraded, state.supply.priceAt(qTraded)],
-    ];
-    // Only include the "bend point" at the supply curve's left edge if
-    // that point is to the right of (0,0). Otherwise we're already closing
-    // through (0,0) directly.
-    if (qSStart > 0.01) {
-      pts.push([qSStart, pSStart]);
+  if (sAtZero >= 0) {
+    // Case A
+    const pSStart = sAtZero;
+    if (qTraded > 0 && p > pSStart) {
+      const pts = [
+        [0, pSStart],
+        [0, p],
+        [qTraded, p],
+        [qTraded, state.supply.priceAt(qTraded)],
+      ];
+      regions.push({ id: 'producer-surplus', className: 'producer-surplus', points: pts });
     }
-    regions.push({
-      id: 'producer-surplus',
-      className: 'producer-surplus',
-      points: pts,
-    });
+  } else {
+    // Case B
+    const qSStart = state.supply.quantityAt(0);
+    if (qTraded > qSStart && p > 0) {
+      const pts = [
+        [0, 0],
+        [0, p],
+        [qTraded, p],
+        [qTraded, state.supply.priceAt(qTraded)],
+        [qSStart, 0],
+      ];
+      regions.push({ id: 'producer-surplus', className: 'producer-surplus', points: pts });
+    }
   }
 
   // The quantity gap at the forced price is shown as a bracket bar on the
@@ -603,13 +622,12 @@ function renderAll() {
 
   // Gap bar (horizontal bar showing shortage or surplus quantity)
   if (state.forcedPrice != null && e) {
-    const qD = state.demand.quantityAt(p);
-    const qS = state.supply.quantityAt(p);
+    const { qD, qS } = effectiveQuantities(p);
     if (Math.abs(qD - qS) > 0.5) {
       if (qD > qS) {
         plot.setGapBar({
           atPrice: p,
-          qLow: Math.max(0, qS),
+          qLow: qS,
           qHigh: qD,
           label: `unmet demand: ${formatQuantity(state.scenarioKey, qD - qS)}`,
           direction: 'shortage',
@@ -633,7 +651,8 @@ function renderAll() {
   // Force arrow: sits on equilibrium's x-coord, running from current price
   // to equilibrium price. Pulses via CSS.
   if (state.forcedPrice != null && e) {
-    const gap = state.demand.quantityAt(p) - state.supply.quantityAt(p);
+    const { qD, qS } = effectiveQuantities(p);
+    const gap = qD - qS;
     const s = scenarios[state.scenarioKey];
     const magnitude = Math.min(1, Math.abs(gap) / (s.quantityMax * 0.5));
     plot.setForceArrow({
@@ -714,15 +733,14 @@ function updateNarration() {
   const s = scenarios[state.scenarioKey];
   const e = eq();
   const p = currentPrice();
-  const qD = state.demand.quantityAt(p);
-  const qS = state.supply.quantityAt(p);
+  const { qD, qS } = effectiveQuantities(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
   const atEq = e && Math.abs(p - e.p) < 0.005 && state.forcedPrice == null;
 
   document.getElementById('out-price').textContent = atEq ? `${formatPrice(state.scenarioKey, p)} (P*)` : formatPrice(state.scenarioKey, p);
   document.getElementById('out-qstar').textContent = e ? formatQuantity(state.scenarioKey, e.q) : '—';
-  document.getElementById('out-qd').textContent = formatQuantity(state.scenarioKey, Math.max(0, qD));
-  document.getElementById('out-qs').textContent = formatQuantity(state.scenarioKey, Math.max(0, qS));
+  document.getElementById('out-qd').textContent = formatQuantity(state.scenarioKey, qD);
+  document.getElementById('out-qs').textContent = formatQuantity(state.scenarioKey, qS);
   const gap = qD - qS;
   const gapEl = document.getElementById('out-gap');
   if (atEq) {
@@ -1296,13 +1314,13 @@ document.getElementById('scenario').addEventListener('change', ev => {
   buildEventRow();
   buildCurves();
   updateSpeedNotes();
+  updateSliderHelpers();
   renderAll();
 });
 
-// When the user moves a slider manually, they've diverged from any preset
-// event; unhighlight the active chip (but leave the narration banner, it's
-// still roughly relevant) and update the reset chip. Also cancels any
-// active shock.
+// When the user moves a slider or drags a curve/price line manually, they've
+// diverged from any preset event; unhighlight the active chip, clear the
+// narration banner, cancel any active shock.
 function manualSliderChange() {
   if (state.activeShock) {
     cancelAnimationFrame(state.activeShock.rafId);
@@ -1313,6 +1331,11 @@ function manualSliderChange() {
   if (state.activeEventId) {
     state.activeEventId = null;
     document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
+    // Also clear the lingering narration — it describes an event that the
+    // user has now moved past.
+    const narr = document.getElementById('event-narration');
+    narr.classList.remove('visible');
+    narr.textContent = 'Click an event or shock above to see the market react.';
   }
   updateResetDisabled();
 }
