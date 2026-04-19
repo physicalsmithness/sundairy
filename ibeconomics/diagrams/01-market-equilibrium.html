@@ -88,6 +88,18 @@
           </div>
           <span class="small muted" id="return-style-note">Market returns smoothly to equilibrium, no overshoot.</span>
         </div>
+        <div class="control" style="grid-column: span 2; flex-direction: row; gap: 1.2rem; flex-wrap: wrap; align-items: flex-start;">
+          <label class="toggle">
+            <input type="checkbox" id="resist-toggle" checked />
+            <span class="track"></span>
+            <span>Feel the force when dragging</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="off-graph-toggle" />
+            <span class="track"></span>
+            <span>Show buyers &amp; sellers reacting</span>
+          </label>
+        </div>
       </section>
     </div>
 
@@ -128,12 +140,14 @@ const state = {
   scenarioKey: 'greengrocer',
   demand: null,
   supply: null,
-  forcedPrice: null,       // set by dragging the price line
+  forcedPrice: null,
   demandShift: 0,
   supplyShift: 0,
   demandPivot: 0,
   supplyPivot: 0,
   returnStyle: 'critical',
+  resistEnabled: true,
+  offGraphEnabled: false,
 };
 
 const returnStyleLabels = {
@@ -361,6 +375,7 @@ function renderAll() {
   plot.setPriceLine({
     price: p,
     draggable: true,
+    resistEnabled: state.resistEnabled,
     onMove: (newP) => {
       state.forcedPrice = newP;
       renderAll();
@@ -415,7 +430,7 @@ function renderAll() {
     plot.setGapBar(null);
   }
 
-  // Force arrow (Pass A: visible when off equilibrium; Pass B will animate)
+  // Force arrow (Pass A: visible when off equilibrium; Pass B animates pulse)
   if (state.forcedPrice != null && e) {
     const gap = state.demand.quantityAt(p) - state.supply.quantityAt(p);
     const s = scenarios[state.scenarioKey];
@@ -425,8 +440,14 @@ function renderAll() {
       magnitude,
       direction: gap > 0 ? 'up' : 'down',
     });
+    plot.setOffGraph({
+      enabled: state.offGraphEnabled,
+      direction: gap > 0 ? 'shortage' : 'surplus',
+      atPrice: p,
+    });
   } else {
     plot.setForceArrow(null);
+    plot.setOffGraph({ enabled: false });
   }
 
   // Labels: P* and Q* near the equilibrium ring (callouts that don't collide
@@ -583,6 +604,18 @@ document.querySelectorAll('#return-style button').forEach(btn => {
     state.returnStyle = btn.dataset.style;
     document.getElementById('return-style-note').textContent = returnStyleLabels[state.returnStyle];
   });
+});
+
+// Resistive-drag toggle
+document.getElementById('resist-toggle').addEventListener('change', ev => {
+  state.resistEnabled = ev.target.checked;
+  renderAll();
+});
+
+// Off-graph characters toggle
+document.getElementById('off-graph-toggle').addEventListener('change', ev => {
+  state.offGraphEnabled = ev.target.checked;
+  renderAll();
 });
 
 // Legend toggles

@@ -596,15 +596,59 @@ input[type="range"]::-moz-range-thumb {
   fill: var(--ink-soft);
 }
 
-/* Force arrows (Pass B will animate these more, Pass A just shows them) */
+/* Force arrows — animated to pulse when the market is off equilibrium */
+@keyframes force-pulse {
+  0%, 100% { opacity: 0.85; stroke-width: 2; }
+  50%      { opacity: 1;    stroke-width: 2.4; }
+}
 .graph-area svg .force-arrow {
   stroke: var(--welfare-loss);
   stroke-width: 2;
   fill: none;
   stroke-linecap: round;
+  animation: force-pulse 1.1s ease-in-out infinite;
 }
 .graph-area svg .force-arrow.up    { /* shortage: price wants to rise */ }
 .graph-area svg .force-arrow.down  { /* surplus: price wants to fall */ }
+
+/* Off-graph characters — small icons just outside the plot area */
+.graph-area svg .off-graph {
+  transition: opacity 0.3s;
+}
+.graph-area svg .off-graph.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.graph-area svg .off-graph-label {
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  font-size: 11px;
+  fill: var(--ink-soft);
+}
+
+/* Return-animation annotation arrows */
+.graph-area svg .return-arrow {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.graph-area svg .return-arrow.visible {
+  opacity: 1;
+}
+.graph-area svg .return-arrow-label {
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  font-size: 12px;
+  fill: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.graph-area svg .return-arrow-label.visible {
+  opacity: 1;
+}
 
 /* ---- Legend (toggleable region visibility) ----------------------------- */
 

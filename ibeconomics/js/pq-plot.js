@@ -156,7 +156,61 @@ export class PQPlot {
   setAnnotations(annots)     { this.annotations = annots; return this; }
   setForceArrow(config)      { this.forceArrow = config; return this; }
   setGapBar(config)          { this.gapBar = config; return this; }
-  setEquilibriumMarker(mark) { this.equilibriumMarker = mark; return this; }
+  setEquilibriumMarker(mark) {
+    // When the target changes, start a glide animation from the current
+    // displayed position to the new target. If no current position exists
+    // (first frame), snap immediately.
+    if (!mark) {
+      this.equilibriumMarker = null;
+      this._eqDisplayed = null;
+      if (this._eqGlideFrame) cancelAnimationFrame(this._eqGlideFrame);
+      return this;
+    }
+    if (!this._eqDisplayed) {
+      this._eqDisplayed = { q: mark.q, p: mark.p };
+      this.equilibriumMarker = { ...this._eqDisplayed, ghost: mark.ghost };
+      return this;
+    }
+    // If the target is very close to current displayed, snap
+    const dq = mark.q - this._eqDisplayed.q;
+    const dp = mark.p - this._eqDisplayed.p;
+    if (Math.abs(dq) < 0.1 && Math.abs(dp) < 0.001) {
+      this._eqDisplayed = { q: mark.q, p: mark.p };
+      this.equilibriumMarker = { ...this._eqDisplayed, ghost: mark.ghost };
+      return this;
+    }
+    // Start a glide animation
+    if (this._eqGlideFrame) cancelAnimationFrame(this._eqGlideFrame);
+    const startQ = this._eqDisplayed.q;
+    const startP = this._eqDisplayed.p;
+    const targetQ = mark.q;
+    const targetP = mark.p;
+    const duration = 220;
+    const t0 = performance.now();
+    const self = this;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / duration);
+      // Gentle ease-out
+      const e = 1 - Math.pow(1 - t, 3);
+      self._eqDisplayed = {
+        q: startQ + (targetQ - startQ) * e,
+        p: startP + (targetP - startP) * e,
+      };
+      self.equilibriumMarker = { ...self._eqDisplayed, ghost: mark.ghost };
+      // Trigger re-render of just the marker (and labels, which may depend on it)
+      self._renderEquilibriumMarker();
+      self._renderLabels();
+      if (t < 1) {
+        self._eqGlideFrame = requestAnimationFrame(step);
+      } else {
+        self._eqGlideFrame = null;
+      }
+    };
+    this._eqGlideFrame = requestAnimationFrame(step);
+    // Set immediate marker so next full render picks up the glide source
+    this.equilibriumMarker = { ...this._eqDisplayed, ghost: mark.ghost };
+    return this;
+  }
 
   setRegionVisibility(id, visible) { this.regionVisibility[id] = visible; }
   isRegionVisible(id) { return this.regionVisibility[id] !== false; }
@@ -170,9 +224,11 @@ export class PQPlot {
     this._renderCurves();
     this._renderGapBar();
     this._renderForceArrow();
+    this._renderOffGraph();
     this._renderPriceLine();
     this._renderEquilibriumMarker();
     this._renderLabels();
+    this._renderReturnAnnotation();
   }
 
   get _s()     { return scenarios[this.scenarioKey] || scenarios.generic; }
@@ -411,6 +467,116 @@ export class PQPlot {
     this.forceG.appendChild(arrow);
   }
 
+  /**
+   * Off-graph characters: small figures that appear in the margin to the
+   * right of the plot when the market is off equilibrium. Buyers waving
+   * banknotes at a shortage, sellers with reduced stickers at a surplus.
+   * Controlled via this.offGraphConfig = { enabled, direction, atPrice }.
+   */
+  setOffGraph(config) { this.offGraphConfig = config; return this; }
+
+  _renderOffGraph() {
+    // Use a dedicated group so it doesn't interfere with force arrows
+    if (!this._offGraphG) {
+      this._offGraphG = svgEl('g', { class: 'off-graph-layer' });
+      this.plot.plotGroup.appendChild(this._offGraphG);
+    }
+    this._clear(this._offGraphG);
+    if (!this.offGraphConfig || !this.offGraphConfig.enabled) return;
+    const { direction, atPrice } = this.offGraphConfig;
+    if (!direction || atPrice == null) return;
+
+    const x = this.margin.left + this.plotW + 24;
+    const yAt = this.yScale(atPrice);
+
+    const group = svgEl('g', { class: 'off-graph' });
+
+    if (direction === 'shortage') {
+      // Three small buyer figures, waving banknotes. Stacked vertically.
+      const label = svgEl('text', {
+        class: 'off-graph-label',
+        x: x + 12, y: yAt - 4,
+        'text-anchor': 'middle',
+      });
+      label.textContent = 'buyers bid up';
+      group.appendChild(label);
+      for (let i = 0; i < 3; i++) {
+        const yBase = yAt + 12 + i * 26;
+        const head = svgEl('circle', {
+          cx: x + 6, cy: yBase, r: 4,
+          fill: 'var(--ink-soft)',
+        });
+        const body = svgEl('path', {
+          d: `M ${x+2} ${yBase+14} L ${x+10} ${yBase+14} L ${x+6} ${yBase+4} Z`,
+          fill: 'var(--ink-soft)',
+          opacity: 0.85,
+        });
+        const arm = svgEl('line', {
+          x1: x + 6, y1: yBase + 4,
+          x2: x + 16, y2: yBase - 6,
+          stroke: 'var(--ink-soft)',
+          'stroke-width': 1.5,
+          'stroke-linecap': 'round',
+        });
+        const note = svgEl('rect', {
+          x: x + 15, y: yBase - 12,
+          width: 10, height: 7,
+          fill: 'var(--demand)',
+          stroke: 'var(--demand-shift)',
+          'stroke-width': 0.5,
+          rx: 1,
+        });
+        group.appendChild(body);
+        group.appendChild(head);
+        group.appendChild(arm);
+        group.appendChild(note);
+      }
+    } else if (direction === 'surplus') {
+      // Two sellers with reduced stickers, below the price line
+      const label = svgEl('text', {
+        class: 'off-graph-label',
+        x: x + 18, y: yAt + 8,
+        'text-anchor': 'middle',
+      });
+      label.textContent = 'sellers cut prices';
+      group.appendChild(label);
+      for (let i = 0; i < 2; i++) {
+        const yBase = yAt + 22 + i * 28;
+        const head = svgEl('circle', {
+          cx: x + 6, cy: yBase, r: 4,
+          fill: 'var(--ink-soft)',
+        });
+        const body = svgEl('path', {
+          d: `M ${x+2} ${yBase+14} L ${x+10} ${yBase+14} L ${x+6} ${yBase+4} Z`,
+          fill: 'var(--ink-soft)',
+          opacity: 0.85,
+        });
+        const tag = svgEl('rect', {
+          x: x + 14, y: yBase - 2,
+          width: 22, height: 10,
+          fill: 'var(--welfare-loss-fill)',
+          stroke: 'var(--welfare-loss)',
+          'stroke-width': 0.5,
+          rx: 2,
+        });
+        const tagText = svgEl('text', {
+          x: x + 25, y: yBase + 6,
+          'text-anchor': 'middle',
+          'font-size': 8,
+          fill: 'var(--welfare-loss)',
+          'font-weight': 500,
+        });
+        tagText.textContent = 'SALE';
+        group.appendChild(body);
+        group.appendChild(head);
+        group.appendChild(tag);
+        group.appendChild(tagText);
+      }
+    }
+
+    this._offGraphG.appendChild(group);
+  }
+
   _renderPriceLine() {
     if (!this.priceLine) {
       this._clear(this.priceLineG);
@@ -455,12 +621,16 @@ export class PQPlot {
     if (!draggable) return;
 
     const self = this;
-    const ds = { dragging: false };
+    const ds = { dragging: false, startY: null, startP: null, resistedP: null };
 
     const startDrag = ev => {
       ev.preventDefault();
       if (self._spring) { self._spring.stop(); self._spring = null; }
       ds.dragging = true;
+      const pt = self._pointerData(ev);
+      ds.startY = pt.svgY;
+      ds.startP = self.priceLine.price;
+      ds.resistedP = ds.startP;
       handle.classList.add('dragging');
       ev.target.setPointerCapture?.(ev.pointerId);
     };
@@ -468,10 +638,28 @@ export class PQPlot {
       if (!ds.dragging) return;
       const pt = self._pointerData(ev);
       const clampedY = Math.max(self.margin.top, Math.min(self.margin.top + self.plotH, pt.svgY));
-      const newP = self.yInv(clampedY);
-      // Read the latest onMove from the current priceLine config — may
-      // have been replaced since the listeners were attached
       const pl = self.priceLine;
+      let newP = self.yInv(clampedY);
+
+      // Resistive pull: the further from equilibrium, the more of the
+      // user's motion is absorbed. At eq, ratio is 1 (free movement);
+      // at a large displacement, ratio approaches 0.3.
+      //
+      // We use resistedDisp = rawDisp / (1 + k * |rawDisp|/range)
+      // which gives ratio 1 at displacement 0 and decreasing ratio for
+      // larger displacements.
+      if (pl && pl.resistEnabled && pl.springTarget != null) {
+        const eqP = pl.springTarget;
+        const rawDisplacement = newP - eqP;
+        const range = self._s.priceMax;
+        const k = 2.5;
+        const normAbs = Math.abs(rawDisplacement) / range;
+        const factor = 1 / (1 + k * normAbs);
+        newP = eqP + rawDisplacement * factor;
+        newP = Math.max(0, Math.min(self._s.priceMax, newP));
+      }
+
+      ds.resistedP = newP;
       if (pl && pl.onMove) pl.onMove(newP);
     };
     const endDrag = ev => {
@@ -500,6 +688,12 @@ export class PQPlot {
       this._runCobweb(from, onUpdate);
       return;
     }
+    // Set return-in-progress state so we can render an annotation
+    this._returnInProgress = {
+      direction: from > to ? 'surplus' : 'shortage',
+      startedAt: performance.now(),
+    };
+    this._renderReturnAnnotation();
     const stiffness = 150;
     const critDamping = 2 * Math.sqrt(stiffness);
     const damping = style === 'underdamped' ? critDamping * 0.35 : critDamping;
@@ -509,8 +703,38 @@ export class PQPlot {
       onComplete: () => {
         this._spring = null;
         if (onUpdate) onUpdate(to);
+        // Fade out the return annotation shortly after the spring settles
+        setTimeout(() => {
+          this._returnInProgress = null;
+          this._renderReturnAnnotation();
+        }, 300);
       },
     });
+  }
+
+  _renderReturnAnnotation() {
+    if (!this._returnAnnotG) {
+      this._returnAnnotG = svgEl('g', { class: 'return-annotation' });
+      this.plot.plotGroup.appendChild(this._returnAnnotG);
+    }
+    this._clear(this._returnAnnotG);
+    if (!this._returnInProgress || !this.priceLine) return;
+    const { direction } = this._returnInProgress;
+    const y = this.yScale(this.priceLine.price);
+    // Place the annotation in the middle of the plot, a little offset
+    // from the price line so it doesn't collide.
+    const xMid = this.margin.left + this.plotW * 0.5;
+    const label = direction === 'surplus'
+      ? 'sellers cut prices, market eases back'
+      : 'buyers bid prices up, market rises';
+    const yLabel = direction === 'surplus' ? y + 22 : y - 18;
+    const text = svgEl('text', {
+      class: 'return-arrow-label visible',
+      x: xMid, y: yLabel,
+      'text-anchor': 'middle',
+    });
+    text.textContent = label;
+    this._returnAnnotG.appendChild(text);
   }
 
   _runCobweb(fromPrice, onUpdate) {
