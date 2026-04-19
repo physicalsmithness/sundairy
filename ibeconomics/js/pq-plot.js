@@ -1,46 +1,40 @@
 /* =========================================================================
-   pq-plot.js — shared high-level plotting component
+   pq-plot.js — shared plotting component for supply/demand diagrams
    -------------------------------------------------------------------------
-   Wraps createPlot() from common.js with the boilerplate each diagram
-   would otherwise have to reinvent: layered SVG groups, curve drawing with
-   axis-clipping, draggable handles that shift curves, regions (polygons),
-   price-line dragging with optional springy return, and labels for the
-   equilibrium point.
-
-   A diagram provides its own computation of what curves to draw and what
-   regions to fill; PQPlot handles the rendering plumbing.
-
-   Usage:
-     const plot = new PQPlot({
-       container: document.getElementById('plot'),
-       scenario: 'greengrocer',
-       width: 640, height: 460,
-     });
-     plot.setCurves({ demand, supply });
-     plot.addRegion('consumer-surplus', polygonPoints);
-     plot.setPriceLine(p, { draggable: true, onRelease: ... });
-     plot.render();
+   Each diagram constructs a PQPlot, sets its curves, regions, price line
+   and labels each frame, and calls render(). The component handles all
+   the SVG plumbing: axes, grid, hatching patterns, draggable curves with
+   a cursor-following handle, draggable price line with optional spring
+   return, region polygons, force arrows, and a non-grabby equilibrium
+   marker.
    ========================================================================= */
 
 import {
-  createPlot, makeDraggable, spring, scenarios,
-  formatPrice, formatQuantity, linearCurve, intersect, svgEl, logEvent,
+  createPlot, spring, scenarios, svgEl, logEvent, linearCurve,
 } from './common.js';
 
 export class PQPlot {
-  constructor({ container, scenario = 'generic', width = 640, height = 460, margin } = {}) {
+  constructor({ container, scenario = 'generic', width = 720, height = 420, margin } = {}) {
     this.container = container;
     this.scenarioKey = scenario;
     this.width = width;
     this.height = height;
     this.customMargin = margin;
+
+    // Per-frame state
     this.curves = [];
     this.regions = [];
-    this.priceLine = null;       // { price, draggable, onMove, onRelease, springy }
+    this.priceLine = null;
     this.labels = [];
-    this.handles = [];           // curve handles the diagram has requested
-    this.annotations = [];       // arrows/callouts added by the diagram
-    this.equilibriumMarker = null;   // { q, p } or null
+    this.annotations = [];
+    this.forceArrow = null;
+    this.gapBar = null;
+    this.equilibriumMarker = null;
+
+    this.regionVisibility = {};
+    this._spring = null;
+    this._cobwebCurves = null;
+
     this._build();
   }
 
@@ -52,88 +46,134 @@ export class PQPlot {
       height: this.height,
       ...(this.customMargin ? { margin: this.customMargin } : {}),
     });
+
     const g = this.plot.plotGroup;
-    // Layer order: regions (bottom), annotations, curves, priceLine, handles, labels (top).
+    this._ensureDefs();
     this.regionsG     = svgEl('g', { class: 'regions' });
     this.annotationsG = svgEl('g', { class: 'annotations' });
+    this.hitG         = svgEl('g', { class: 'hit-areas' });
     this.curvesG      = svgEl('g', { class: 'curves' });
+    this.gapG         = svgEl('g', { class: 'gap' });
+    this.forceG       = svgEl('g', { class: 'force-arrows' });
     this.priceLineG   = svgEl('g', { class: 'price-line-group' });
     this.handlesG     = svgEl('g', { class: 'handles' });
     this.labelsG      = svgEl('g', { class: 'labels' });
     g.appendChild(this.regionsG);
     g.appendChild(this.annotationsG);
+    g.appendChild(this.hitG);
     g.appendChild(this.curvesG);
+    g.appendChild(this.gapG);
+    g.appendChild(this.forceG);
     g.appendChild(this.priceLineG);
     g.appendChild(this.handlesG);
     g.appendChild(this.labelsG);
+
+    this.hoverHandle = svgEl('circle', {
+      class: 'hover-handle hidden', cx: 0, cy: 0, r: 7,
+    });
+    this.handlesG.appendChild(this.hoverHandle);
   }
 
-  // ---- public configuration API ----
-
-  /**
-   * Set the list of curves to draw. Each item:
-   *   { curve, kind: 'demand'|'supply'|'custom', variant: 'primary'|'ghost'|'shifted', label }
-   */
-  setCurves(curves) { this.curves = curves; return this; }
-
-  /**
-   * Add a filled region. points is an array of [q, p] pairs in data space.
-   * className picks up the design-system fill colour via CSS.
-   */
-  addRegion({ id, className, points, label, onHover, onClick } = {}) {
-    this.regions.push({ id, className, points, label, onHover, onClick });
-    return this;
+  _ensureDefs() {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    let defs = this.plot.svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(svgNS, 'defs');
+      this.plot.svg.insertBefore(defs, this.plot.svg.firstChild);
+    }
+    // Hatching patterns
+    if (!defs.querySelector('#hatch-shortage')) {
+      const makeHatch = (id, angle) => {
+        const pat = document.createElementNS(svgNS, 'pattern');
+        pat.setAttribute('id', id);
+        pat.setAttribute('width', 7);
+        pat.setAttribute('height', 7);
+        pat.setAttribute('patternUnits', 'userSpaceOnUse');
+        pat.setAttribute('patternTransform', `rotate(${angle})`);
+        const rect = document.createElementNS(svgNS, 'rect');
+        rect.setAttribute('width', 7); rect.setAttribute('height', 7);
+        rect.setAttribute('fill', 'rgba(241, 237, 226, 0.75)');
+        pat.appendChild(rect);
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', 0); line.setAttribute('y1', 0);
+        line.setAttribute('x2', 0); line.setAttribute('y2', 7);
+        line.setAttribute('stroke', 'rgba(74, 85, 101, 0.9)');
+        line.setAttribute('stroke-width', 1.6);
+        pat.appendChild(line);
+        defs.appendChild(pat);
+      };
+      makeHatch('hatch-shortage', 45);
+      makeHatch('hatch-surplus', -45);
+    }
+    // Force arrow marker
+    if (!defs.querySelector('#arrowhead-force')) {
+      const marker = document.createElementNS(svgNS, 'marker');
+      marker.setAttribute('id', 'arrowhead-force');
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', 8); marker.setAttribute('refY', 5);
+      marker.setAttribute('markerWidth', 7); marker.setAttribute('markerHeight', 7);
+      marker.setAttribute('orient', 'auto-start-reverse');
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', 'M1 2 L9 5 L1 8 Z');
+      path.setAttribute('fill', '#b8502f');
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    }
+    // Thin arrow marker for annotations
+    if (!defs.querySelector('#arrowhead-thin')) {
+      const marker = document.createElementNS(svgNS, 'marker');
+      marker.setAttribute('id', 'arrowhead-thin');
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', 8); marker.setAttribute('refY', 5);
+      marker.setAttribute('markerWidth', 6); marker.setAttribute('markerHeight', 6);
+      marker.setAttribute('orient', 'auto-start-reverse');
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', 'M2 1L8 5L2 9');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', '#4a5565');
+      path.setAttribute('stroke-width', 1.5);
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    }
   }
 
-  /** Clear all regions (call at start of each diagram render cycle). */
-  clearRegions() { this.regions = []; return this; }
-
-  /**
-   * Configure the draggable horizontal price line.
-   *   { price, draggable, springy, springTo, onMove, onRelease }
-   * If springy + springTo is set, releasing the line runs a spring to that price.
-   */
-  setPriceLine(config) { this.priceLine = config; return this; }
-  clearPriceLine() { this.priceLine = null; return this; }
-
-  /**
-   * Add a draggable handle on a specific curve. The diagram provides the
-   * data-space coords and a callback that receives the drop point.
-   *   { x: q, y: p, kind: 'demand'|'supply'|'custom', onDrag: (q, p) => void }
-   */
-  addHandle({ x, y, kind, onDrag, onRelease, radius = 7 }) {
-    this.handles.push({ x, y, kind, onDrag, onRelease, radius });
-    return this;
+  setScenario(scenarioKey) {
+    this.scenarioKey = scenarioKey;
+    const preserved = { ...this.regionVisibility };
+    // Clear persistent element caches before rebuild, otherwise next render
+    // will try to update elements that have been orphaned.
+    this._priceLineElems = null;
+    this._build();
+    this.regionVisibility = preserved;
   }
-  clearHandles() { this.handles = []; return this; }
 
-  addLabel({ x, y, text, textAnchor = 'start', color, className = 'point-label', italic = false, offset = null }) {
-    this.labels.push({ x, y, text, textAnchor, color, className, italic, offset });
-    return this;
-  }
-  clearLabels() { this.labels = []; return this; }
+  setCurves(curves)          { this.curves = curves; return this; }
+  setRegions(regions)        { this.regions = regions; return this; }
+  setPriceLine(config)       { this.priceLine = config; return this; }
+  setLabels(labels)          { this.labels = labels; return this; }
+  setAnnotations(annots)     { this.annotations = annots; return this; }
+  setForceArrow(config)      { this.forceArrow = config; return this; }
+  setGapBar(config)          { this.gapBar = config; return this; }
+  setEquilibriumMarker(mark) { this.equilibriumMarker = mark; return this; }
 
-  /**
-   * Add an annotation (a line or arrow callout). Kinds: 'dropLine', 'bracket', 'leader'.
-   */
-  addAnnotation(annot) { this.annotations.push(annot); return this; }
-  clearAnnotations() { this.annotations = []; return this; }
+  setRegionVisibility(id, visible) { this.regionVisibility[id] = visible; }
+  isRegionVisible(id) { return this.regionVisibility[id] !== false; }
 
-  setEquilibriumMarker(point) { this.equilibriumMarker = point; return this; }
-
-  // ---- render ----
+  setCobwebCurves(curves) { this._cobwebCurves = curves; }
 
   render() {
     this._renderRegions();
     this._renderAnnotations();
+    this._renderHitAreas();
     this._renderCurves();
+    this._renderGapBar();
+    this._renderForceArrow();
     this._renderPriceLine();
-    this._renderHandles();
-    this._renderLabels();
     this._renderEquilibriumMarker();
+    this._renderLabels();
   }
-
-  // ---- internals ----
 
   get _s()     { return scenarios[this.scenarioKey] || scenarios.generic; }
   get xScale() { return this.plot.xScale; }
@@ -171,51 +211,121 @@ export class PQPlot {
     for (const { curve, kind, variant = 'primary', label } of this.curves) {
       const ends = this._visibleEndpoints(curve);
       if (!ends) continue;
-      // CSS class: 'curve demand' for demand primary, 'curve supply ghost' for ghost supply, etc.
       const cls = ['curve', kind, variant === 'ghost' ? 'ghost' : ''].filter(Boolean).join(' ');
       const line = svgEl('line', {
         class: cls,
         x1: this.xScale(ends[0].q), y1: this.yScale(ends[0].p),
         x2: this.xScale(ends[1].q), y2: this.yScale(ends[1].p),
       });
-      // Variant-specific styling overrides
-      if (variant === 'shifted') {
-        // Shifted curve: darker shade of the same family, slightly thicker
-        const colorVar = kind === 'demand' ? 'var(--demand-shift)' : kind === 'supply' ? 'var(--supply-shift)' : 'var(--ink)';
-        line.setAttribute('stroke', colorVar);
-      }
       this.curvesG.appendChild(line);
 
       if (label) {
         const upper = ends[0].p > ends[1].p ? ends[0] : ends[1];
+        const offsetX = kind === 'demand' ? -18 : 8;
         const txt = svgEl('text', {
           class: 'curve-label',
-          x: this.xScale(upper.q) + (kind === 'supply' ? -18 : 8),
+          x: this.xScale(upper.q) + offsetX,
           y: this.yScale(upper.p) + 4,
-          fill: variant === 'shifted'
-            ? (kind === 'demand' ? 'var(--demand-shift)' : 'var(--supply-shift)')
-            : (kind === 'demand' ? 'var(--demand)' : kind === 'supply' ? 'var(--supply)' : 'var(--ink)'),
+          fill: variant === 'ghost' ? 'var(--ghost)' : (kind === 'demand' ? 'var(--demand)' : 'var(--supply)'),
         });
-        if (variant === 'ghost') txt.setAttribute('fill', 'var(--ghost)');
         txt.textContent = label;
         this.curvesG.appendChild(txt);
       }
     }
   }
 
+  _renderHitAreas() {
+    this._clear(this.hitG);
+    for (const cfg of this.curves) {
+      if (!cfg.draggable) continue;
+      const ends = this._visibleEndpoints(cfg.curve);
+      if (!ends) continue;
+      const hit = svgEl('line', {
+        class: `curve-hit ${cfg.kind}-hit`,
+        x1: this.xScale(ends[0].q), y1: this.yScale(ends[0].p),
+        x2: this.xScale(ends[1].q), y2: this.yScale(ends[1].p),
+        'data-kind': cfg.kind,
+      });
+      this._attachCurveDrag(hit, cfg);
+      this.hitG.appendChild(hit);
+    }
+  }
+
+  _attachCurveDrag(hitLine, cfg) {
+    const self = this;
+    let dragging = false;
+
+    const showHover = (ev) => {
+      if (dragging) return;
+      const pt = self._pointerData(ev);
+      const pOnCurve = cfg.curve.priceAt(pt.q);
+      self.hoverHandle.setAttribute('class', `hover-handle ${cfg.kind}`);
+      self.hoverHandle.setAttribute('cx', self.xScale(pt.q));
+      self.hoverHandle.setAttribute('cy', self.yScale(pOnCurve));
+    };
+    const hideHover = () => {
+      if (dragging) return;
+      self.hoverHandle.setAttribute('class', `hover-handle ${cfg.kind || ''} hidden`);
+    };
+
+    hitLine.addEventListener('pointerenter', showHover);
+    hitLine.addEventListener('pointermove', showHover);
+    hitLine.addEventListener('pointerleave', hideHover);
+
+    hitLine.addEventListener('pointerdown', ev => {
+      ev.preventDefault();
+      dragging = true;
+      hitLine.classList.add('dragging');
+      hitLine.setPointerCapture?.(ev.pointerId);
+    });
+
+    hitLine.addEventListener('pointermove', ev => {
+      if (!dragging) return;
+      const pt = self._pointerData(ev);
+      // Translate-only: build a new curve shifted horizontally so it passes
+      // through the pointer's (q, p).
+      const orig = cfg.curve;
+      const slope = orig.slope;
+      const a = orig.p1.p - slope * orig.p1.q;
+      const shift = pt.q - (pt.p - a) / slope;
+      const newCurve = linearCurve(
+        { q: orig.p1.q + shift, p: orig.p1.p },
+        { q: orig.p2.q + shift, p: orig.p2.p }
+      );
+      if (cfg.onDrag) cfg.onDrag(newCurve, shift);
+      // Also update hover handle position to follow the pointer
+      self.hoverHandle.setAttribute('cx', self.xScale(pt.q));
+      self.hoverHandle.setAttribute('cy', self.yScale(newCurve.priceAt(pt.q)));
+    });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      hitLine.classList.remove('dragging');
+      if (cfg.onDragEnd) cfg.onDragEnd();
+    };
+    hitLine.addEventListener('pointerup', endDrag);
+    hitLine.addEventListener('pointercancel', endDrag);
+  }
+
+  _pointerData(ev) {
+    const rect = this.svg.getBoundingClientRect();
+    const vb = this.svg.viewBox.baseVal;
+    const x = ((ev.clientX - rect.left) / rect.width) * vb.width;
+    const y = ((ev.clientY - rect.top) / rect.height) * vb.height;
+    return { svgX: x, svgY: y, q: this.xInv(x), p: this.yInv(y) };
+  }
+
   _renderRegions() {
     this._clear(this.regionsG);
     for (const r of this.regions) {
       if (!r.points || r.points.length < 3) continue;
+      const visible = this.isRegionVisible(r.id);
       const poly = svgEl('polygon', {
-        class: `region ${r.className || ''}`,
+        class: `region ${r.className || ''} ${visible ? '' : 'hidden'}`,
         'data-region': r.id || '',
         points: r.points.map(([q, p]) => `${this.xScale(q)},${this.yScale(p)}`).join(' '),
       });
-      if (r.onHover) {
-        poly.addEventListener('mouseenter', () => r.onHover(true));
-        poly.addEventListener('mouseleave', () => r.onHover(false));
-      }
       if (r.onClick) poly.addEventListener('click', r.onClick);
       this.regionsG.appendChild(poly);
     }
@@ -225,7 +335,6 @@ export class PQPlot {
     this._clear(this.annotationsG);
     for (const a of this.annotations) {
       if (a.kind === 'dropLine') {
-        // Vertical drop line at x, from yTop to yBottom
         const line = svgEl('line', {
           class: 'annotation' + (a.dashed ? ' dashed' : ''),
           x1: this.xScale(a.q), y1: this.yScale(a.pFrom),
@@ -241,60 +350,94 @@ export class PQPlot {
           y2: this.yScale(a.p),
         });
         this.annotationsG.appendChild(line);
-      } else if (a.kind === 'bracket') {
-        // A horizontal line with small end-caps, used e.g. for shortage/surplus gap
-        const line = svgEl('line', {
-          x1: this.xScale(a.qFrom), x2: this.xScale(a.qTo),
-          y1: this.yScale(a.p), y2: this.yScale(a.p),
-          stroke: a.color || 'var(--ink)',
-          'stroke-width': 3,
-        });
-        this.annotationsG.appendChild(line);
       } else if (a.kind === 'arrow') {
-        // Simple line with an arrowhead marker
-        const id = `arrow-${Math.random().toString(36).slice(2, 8)}`;
-        const defs = this.svg.querySelector('defs') || (() => {
-          const d = svgEl('defs'); this.svg.insertBefore(d, this.svg.firstChild); return d;
-        })();
-        const marker = svgEl('marker', {
-          id, viewBox: '0 0 10 10', refX: '8', refY: '5',
-          markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse',
-        });
-        const path = svgEl('path', {
-          d: 'M2 1L8 5L2 9', fill: 'none',
-          stroke: a.color || 'var(--ink-soft)', 'stroke-width': '1.5',
-          'stroke-linecap': 'round', 'stroke-linejoin': 'round',
-        });
-        marker.appendChild(path);
-        defs.appendChild(marker);
         const line = svgEl('line', {
           class: 'annotation',
           x1: this.xScale(a.qFrom), y1: this.yScale(a.pFrom),
           x2: this.xScale(a.qTo),   y2: this.yScale(a.pTo),
-          stroke: a.color || 'var(--ink-soft)',
-          'marker-end': `url(#${id})`,
+          'marker-end': 'url(#arrowhead-thin)',
         });
         this.annotationsG.appendChild(line);
-        if (a.label) {
-          const mx = (this.xScale(a.qFrom) + this.xScale(a.qTo)) / 2;
-          const my = (this.yScale(a.pFrom) + this.yScale(a.pTo)) / 2;
-          const t = svgEl('text', {
-            class: 'annotation-label',
-            x: mx + (a.labelOffsetX || 6),
-            y: my + (a.labelOffsetY || -6),
-          });
-          t.textContent = a.label;
-          this.annotationsG.appendChild(t);
-        }
       }
     }
   }
 
+  _renderGapBar() {
+    this._clear(this.gapG);
+    if (!this.gapBar) return;
+    const { atPrice, qLow, qHigh, label, direction } = this.gapBar;
+    if (qLow == null || qHigh == null || Math.abs(qHigh - qLow) < 0.5) return;
+    const y = this.yScale(atPrice);
+    const xLow = this.xScale(qLow);
+    const xHigh = this.xScale(qHigh);
+    const bar = svgEl('line', {
+      class: 'gap-bar',
+      x1: xLow, y1: y, x2: xHigh, y2: y,
+    });
+    this.gapG.appendChild(bar);
+    [xLow, xHigh].forEach(x => {
+      const tick = svgEl('line', {
+        class: 'gap-bar-tick',
+        x1: x, x2: x, y1: y - 4, y2: y + 4,
+      });
+      this.gapG.appendChild(tick);
+    });
+    const midX = (xLow + xHigh) / 2;
+    const labelY = direction === 'shortage' ? y - 10 : y + 18;
+    const t = svgEl('text', {
+      class: 'gap-label',
+      x: midX, y: labelY,
+      'text-anchor': 'middle',
+    });
+    t.textContent = label;
+    this.gapG.appendChild(t);
+  }
+
+  _renderForceArrow() {
+    this._clear(this.forceG);
+    if (!this.forceArrow) return;
+    const { atPrice, magnitude, direction } = this.forceArrow;
+    if (magnitude < 0.02) return;
+    const len = Math.min(70, 15 + magnitude * 90);
+    const x = this.margin.left - 22;
+    const yAt = this.yScale(atPrice);
+    const y1 = direction === 'up' ? yAt + len * 0.2 : yAt - len * 0.2;
+    const y2 = direction === 'up' ? yAt - len * 0.8 : yAt + len * 0.8;
+    const arrow = svgEl('line', {
+      class: `force-arrow ${direction}`,
+      x1: x, y1, x2: x, y2,
+      'marker-end': 'url(#arrowhead-force)',
+    });
+    this.forceG.appendChild(arrow);
+  }
+
   _renderPriceLine() {
-    this._clear(this.priceLineG);
-    if (!this.priceLine) return;
-    const { price, draggable, onMove, onRelease, springy, springTo } = this.priceLine;
+    if (!this.priceLine) {
+      this._clear(this.priceLineG);
+      this._priceLineElems = null;
+      return;
+    }
+    const { price, draggable, onMove, onRelease, springTarget, springStyle, onSpringUpdate } = this.priceLine;
     const y = this.yScale(price);
+
+    // If elements exist, update their positions. Otherwise, build them.
+    if (this._priceLineElems) {
+      const { hit, line, handle } = this._priceLineElems;
+      hit.setAttribute('y1', y); hit.setAttribute('y2', y);
+      line.setAttribute('y1', y); line.setAttribute('y2', y);
+      handle.setAttribute('cy', y);
+      // Also keep the latest price line config so the drag listeners see
+      // the current spring target and callbacks.
+      return;
+    }
+
+    this._clear(this.priceLineG);
+    const hit = svgEl('line', {
+      class: 'price-line-hit',
+      x1: this.margin.left, x2: this.margin.left + this.plotW,
+      y1: y, y2: y,
+    });
+    this.priceLineG.appendChild(hit);
     const line = svgEl('line', {
       class: 'price-line',
       x1: this.margin.left, x2: this.margin.left + this.plotW,
@@ -303,90 +446,128 @@ export class PQPlot {
     this.priceLineG.appendChild(line);
     const handle = svgEl('circle', {
       class: 'price-line-handle',
-      cx: this.margin.left + this.plotW - 8, cy: y, r: 6,
+      cx: this.margin.left + this.plotW - 10, cy: y, r: 6,
     });
     this.priceLineG.appendChild(handle);
 
-    if (draggable) {
-      const doDrag = (ev) => {
-        const yPx = this._svgY(ev);
-        const clamped = Math.max(this.margin.top, Math.min(this.margin.top + this.plotH, yPx));
-        const newP = this.yInv(clamped);
-        if (onMove) onMove(newP, ev);
-      };
-      const doRelease = (ev) => {
-        const yPx = this._svgY(ev);
-        const clamped = Math.max(this.margin.top, Math.min(this.margin.top + this.plotH, yPx));
-        const newP = this.yInv(clamped);
-        if (onRelease) onRelease(newP, ev);
-        if (springy && springTo != null) this._springTo(newP, springTo, onMove);
-      };
-      makeDraggable(line,   { svg: this.svg, axis: 'y', onMove: (_, y, ev) => doDrag(ev), onEnd: (_, y, ev) => doRelease(ev) });
-      makeDraggable(handle, { svg: this.svg, axis: 'y', onMove: (_, y, ev) => doDrag(ev), onEnd: (_, y, ev) => doRelease(ev) });
-    }
-  }
+    this._priceLineElems = { hit, line, handle };
 
-  _springTo(from, to, onUpdate) {
-    if (this._spring) this._spring.stop();
-    this._spring = spring({
-      from, to,
-      stiffness: 120, damping: 10, mass: 1, precision: 0.005,
-      onUpdate: (v) => { if (onUpdate) onUpdate(v); },
-      onComplete: () => { this._spring = null; if (onUpdate) onUpdate(to); },
+    if (!draggable) return;
+
+    const self = this;
+    const ds = { dragging: false };
+
+    const startDrag = ev => {
+      ev.preventDefault();
+      if (self._spring) { self._spring.stop(); self._spring = null; }
+      ds.dragging = true;
+      handle.classList.add('dragging');
+      ev.target.setPointerCapture?.(ev.pointerId);
+    };
+    const doDrag = ev => {
+      if (!ds.dragging) return;
+      const pt = self._pointerData(ev);
+      const clampedY = Math.max(self.margin.top, Math.min(self.margin.top + self.plotH, pt.svgY));
+      const newP = self.yInv(clampedY);
+      // Read the latest onMove from the current priceLine config — may
+      // have been replaced since the listeners were attached
+      const pl = self.priceLine;
+      if (pl && pl.onMove) pl.onMove(newP);
+    };
+    const endDrag = ev => {
+      if (!ds.dragging) return;
+      ds.dragging = false;
+      handle.classList.remove('dragging');
+      ev.target.releasePointerCapture?.(ev.pointerId);
+      const pl = self.priceLine;
+      if (pl && pl.onRelease) pl.onRelease();
+      if (pl && pl.springStyle && pl.springStyle !== 'none' && pl.springTarget != null) {
+        self._runSpring(pl.price, pl.springTarget, pl.springStyle, pl.onSpringUpdate);
+      }
+    };
+
+    [hit, line, handle].forEach(elem => {
+      elem.addEventListener('pointerdown', startDrag);
+      elem.addEventListener('pointermove', doDrag);
+      elem.addEventListener('pointerup', endDrag);
+      elem.addEventListener('pointercancel', endDrag);
     });
   }
 
-  _svgY(ev) {
-    const rect = this.svg.getBoundingClientRect();
-    const vb = this.svg.viewBox.baseVal;
-    return ((ev.clientY - rect.top) / rect.height) * vb.height;
-  }
-  _svgX(ev) {
-    const rect = this.svg.getBoundingClientRect();
-    const vb = this.svg.viewBox.baseVal;
-    return ((ev.clientX - rect.left) / rect.width) * vb.width;
+  _runSpring(from, to, style, onUpdate) {
+    if (this._spring) this._spring.stop();
+    if (style === 'cobweb') {
+      this._runCobweb(from, onUpdate);
+      return;
+    }
+    const stiffness = 150;
+    const critDamping = 2 * Math.sqrt(stiffness);
+    const damping = style === 'underdamped' ? critDamping * 0.35 : critDamping;
+    this._spring = spring({
+      from, to, stiffness, damping, mass: 1, precision: 0.005,
+      onUpdate: v => { if (onUpdate) onUpdate(v); },
+      onComplete: () => {
+        this._spring = null;
+        if (onUpdate) onUpdate(to);
+      },
+    });
   }
 
-  _renderHandles() {
-    this._clear(this.handlesG);
-    for (const h of this.handles) {
-      const dot = svgEl('circle', {
-        class: `handle ${h.kind || ''}`,
-        cx: this.xScale(h.x), cy: this.yScale(h.y), r: h.radius,
-      });
-      if (h.onDrag) {
-        const move = (ev) => {
-          const sx = this._svgX(ev), sy = this._svgY(ev);
-          const q = this.xInv(sx), p = this.yInv(sy);
-          h.onDrag(q, p, ev);
-        };
-        const up = (ev) => {
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', up);
-          if (h.onRelease) {
-            const sx = this._svgX(ev), sy = this._svgY(ev);
-            const q = this.xInv(sx), p = this.yInv(sy);
-            h.onRelease(q, p, ev);
-          }
-        };
-        dot.addEventListener('pointerdown', (ev) => {
-          ev.preventDefault();
-          window.addEventListener('pointermove', move);
-          window.addEventListener('pointerup', up);
-        });
-      }
-      this.handlesG.appendChild(dot);
-    }
+  _runCobweb(fromPrice, onUpdate) {
+    const { demand, supply } = this._cobwebCurves || {};
+    if (!demand || !supply) { if (onUpdate) onUpdate(fromPrice); return; }
+    let p = fromPrice;
+    const maxSteps = 10;
+    let step = 0;
+    const stepDuration = 500;
+    const runStep = () => {
+      if (step >= maxSteps) return;
+      const qSupplied = supply.quantityAt(p);
+      if (!isFinite(qSupplied) || qSupplied < 0) return;
+      const newP = demand.priceAt(qSupplied);
+      const pEnd = Math.max(0, Math.min(this._s.priceMax * 0.98, newP));
+      const pStart = p;
+      if (Math.abs(pEnd - pStart) < 0.005) return;
+      const t0 = performance.now();
+      const frame = now => {
+        const t = Math.min(1, (now - t0) / stepDuration);
+        const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+        const v = pStart + (pEnd - pStart) * eased;
+        if (onUpdate) onUpdate(v);
+        if (t < 1) requestAnimationFrame(frame);
+        else {
+          p = pEnd;
+          step++;
+          setTimeout(runStep, 80);
+        }
+      };
+      requestAnimationFrame(frame);
+    };
+    runStep();
+  }
+
+  _renderEquilibriumMarker() {
+    const oldMarks = this.handlesG.querySelectorAll('.eq-mark');
+    oldMarks.forEach(m => m.remove());
+    if (!this.equilibriumMarker) return;
+    const m = this.equilibriumMarker;
+    const mark = svgEl('circle', {
+      class: `eq-mark ${m.ghost ? 'ghost' : ''}`,
+      cx: this.xScale(m.q), cy: this.yScale(m.p), r: 5,
+    });
+    this.handlesG.appendChild(mark);
   }
 
   _renderLabels() {
     this._clear(this.labelsG);
     for (const l of this.labels) {
+      const cx = l.rawX != null ? l.rawX : this.xScale(l.x);
+      const cy = l.rawY != null ? l.rawY : this.yScale(l.y);
       const t = svgEl('text', {
-        class: l.className,
-        x: this.xScale(l.x) + (l.offset?.x || 0),
-        y: this.yScale(l.y) + (l.offset?.y || 0),
-        'text-anchor': l.textAnchor,
+        class: l.className || 'point-label',
+        x: cx + (l.offset?.x || 0),
+        y: cy + (l.offset?.y || 0),
+        'text-anchor': l.textAnchor || 'start',
         fill: l.color || 'var(--ink)',
       });
       if (l.italic) t.setAttribute('font-style', 'italic');
@@ -394,37 +575,4 @@ export class PQPlot {
       this.labelsG.appendChild(t);
     }
   }
-
-  _renderEquilibriumMarker() {
-    // This is a minor convenience; diagrams often want a visible marker at
-    // the "natural" equilibrium even when the user has forced a different
-    // price or the equilibrium has shifted.
-    if (!this.equilibriumMarker) return;
-    const m = this.equilibriumMarker;
-    const dot = svgEl('circle', {
-      class: 'eq-dot',
-      cx: this.xScale(m.q), cy: this.yScale(m.p), r: 6,
-    });
-    this.handlesG.appendChild(dot);
-  }
-
-  // ---- utility exposed to diagrams ----
-
-  /** Replace the scenario entirely, rebuilding the plot. */
-  setScenario(scenarioKey) {
-    this.scenarioKey = scenarioKey;
-    this._build();
-  }
-}
-
-// ---- Generic diagram-page scaffolding helpers ---------------------------
-//
-// Every diagram page shares the same layout. This helper stamps out the
-// boilerplate HTML so each diagram's main file can focus on its specific
-// controls and narration.
-
-export function buildHeader({ syllabus, title, onScenarioChange, onModeChange, initialScenario = 'generic' }) {
-  // This is here for future use when we want to generate headers from JS.
-  // For now, each diagram page includes the header HTML inline because it's
-  // easier to tweak per-diagram copy without touching JS.
 }

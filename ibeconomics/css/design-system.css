@@ -96,9 +96,9 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
 /* ---- Page layout -------------------------------------------------------- */
 
 .diagram-page {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 1.25rem 1.5rem 2rem;
 }
 
 .diagram-header {
@@ -106,34 +106,51 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--rule);
 }
 
 .diagram-header .title-block h1 {
   margin: 0;
+  font-size: 24px;
 }
 .diagram-header .title-block .syllabus-tag {
   display: inline-block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.3em;
+  margin-bottom: 0.2em;
 }
 
-/* Main two-column layout: graph on the left, narration panel on the right */
-.diagram-layout {
+/* Main grid: graph on the left, narration on the right, sliders below
+   the graph. The narration should visually align with the graph height
+   plus the sliders, so the whole lot feels like one composed unit. */
+.diagram-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 1.5rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: stretch;
+}
+.diagram-main .left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.diagram-main > aside.narration {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.diagram-main > aside.narration > .key-idea {
+  margin-top: auto; /* push key idea to the bottom of the panel */
 }
 
-@media (max-width: 900px) {
-  .diagram-layout {
+@media (max-width: 960px) {
+  .diagram-main {
     grid-template-columns: 1fr;
   }
 }
@@ -142,7 +159,7 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   background: #fff;
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
-  padding: 1rem 1rem 0.5rem;
+  padding: 0.8rem 1rem 0.4rem;
   box-shadow: var(--shadow-soft);
   position: relative;
 }
@@ -151,22 +168,25 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   background: var(--paper-deep);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
-  padding: 1.1rem 1.2rem;
-  font-size: 15px;
+  padding: 1rem 1.1rem;
+  font-size: 14px;
+  line-height: 1.5;
 }
-
 .narration h3 {
-  margin-top: 0;
+  margin: 0 0 0.4rem;
+}
+.narration p {
+  margin: 0.6rem 0 0;
 }
 
 .narration .live-readout {
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink);
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.25rem 0.9rem;
-  margin-bottom: 1rem;
+  gap: 0.2rem 0.8rem;
+  margin-bottom: 0.5rem;
 }
 .narration .live-readout dt {
   color: var(--ink-soft);
@@ -177,27 +197,72 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   font-variant-numeric: tabular-nums;
 }
 
+/* Key idea sits at the bottom of narration */
+.key-idea {
+  background: #fff;
+  border-left: 3px solid var(--ink);
+  padding: 0.7rem 1rem;
+  margin-top: 0.8rem;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.key-idea p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Help popover instead of a big "How to play" section */
+.help-toggle {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.help-toggle:hover { background: #fff; }
+.help-panel {
+  position: absolute;
+  top: 40px;
+  right: 14px;
+  width: 280px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  box-shadow: var(--shadow-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  z-index: 10;
+  display: none;
+}
+.help-panel.open { display: block; }
+.help-panel h4 { margin: 0 0 0.4em; font-size: 13px; }
+.help-panel ul { margin: 0; padding-left: 1.2em; }
+.help-panel li { margin: 0.2em 0; }
+
 /* ---- Controls row ------------------------------------------------------- */
 
 .controls {
-  margin-top: 1.5rem;
-  padding: 1rem 1.2rem;
+  padding: 0.7rem 1rem;
   background: var(--paper-deep);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.7rem 1.2rem;
   align-items: center;
 }
 
 .control {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.15rem;
 }
 .control label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -213,6 +278,11 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
+}
+.control .small {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 0.1rem;
 }
 
 /* Sliders */
@@ -381,46 +451,73 @@ input[type="range"]::-moz-range-thumb {
   stroke-dasharray: 2 3;
 }
 
-/* Curves */
+/* Curves — draggable anywhere along their length */
 .graph-area svg .curve {
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.graph-area svg .curve.draggable {
+  cursor: grab;
+}
+.graph-area svg .curve.draggable.dragging {
+  cursor: grabbing;
+}
+/* A wider invisible hit-line sits behind each curve so users don't have to
+   hit a 2px-wide target. The visible curve rides on top. */
+.graph-area svg .curve-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: grab;
+}
+.graph-area svg .curve-hit.dragging {
+  cursor: grabbing;
+}
 .graph-area svg .curve.demand  { stroke: var(--demand); }
 .graph-area svg .curve.supply  { stroke: var(--supply); }
-.graph-area svg .curve.ghost   { stroke: var(--ghost); stroke-dasharray: 4 4; }
+.graph-area svg .curve.ghost   { stroke: var(--ghost); stroke-dasharray: 4 4; stroke-width: 1.5; }
 
-/* Equilibrium dot */
-.graph-area svg .eq-dot {
-  fill: var(--equilibrium);
-  stroke: #fff;
-  stroke-width: 2;
-  cursor: grab;
-  transition: r 0.15s ease;
-}
-.graph-area svg .eq-dot:hover { r: 8; }
-.graph-area svg .eq-dot.dragging { cursor: grabbing; r: 9; }
-
-/* Draggable curve handles */
-.graph-area svg .handle {
+/* Equilibrium marker — explicitly non-grabby. A thin ring, not a solid dot. */
+.graph-area svg .eq-mark {
   fill: #fff;
-  stroke-width: 2.5;
-  cursor: grab;
-  transition: r 0.15s ease;
+  stroke: var(--equilibrium);
+  stroke-width: 1.8;
+  cursor: default;
+  pointer-events: none;
 }
-.graph-area svg .handle.demand { stroke: var(--demand); }
-.graph-area svg .handle.supply { stroke: var(--supply); }
-.graph-area svg .handle:hover  { r: 9; }
-.graph-area svg .handle.dragging { cursor: grabbing; r: 10; }
+/* When the market has been shifted, a faint ghost of the previous equilibrium remains */
+.graph-area svg .eq-mark.ghost {
+  stroke: var(--ghost);
+  stroke-dasharray: 2 2;
+  opacity: 0.7;
+}
 
-/* Disequilibrium price marker — a horizontal line that the user can drag up/down */
+/* Cursor-following hover handle: appears under the pointer when hovering a curve */
+.graph-area svg .hover-handle {
+  fill: #fff;
+  stroke-width: 2.2;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.graph-area svg .hover-handle.demand { stroke: var(--demand); }
+.graph-area svg .hover-handle.supply { stroke: var(--supply); }
+.graph-area svg .hover-handle.hidden { opacity: 0; }
+
+/* Price-line dragging: only the handle carries grab, the rest carries ns-resize */
 .graph-area svg .price-line {
   stroke: var(--ink);
   stroke-width: 1.5;
   stroke-dasharray: 5 4;
   cursor: ns-resize;
+  fill: none;
+}
+.graph-area svg .price-line-hit {
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: ns-resize;
+  fill: none;
 }
 .graph-area svg .price-line-handle {
   fill: var(--ink);
@@ -428,28 +525,56 @@ input[type="range"]::-moz-range-thumb {
   stroke-width: 2;
   cursor: ns-resize;
 }
+.graph-area svg .price-line-handle.dragging {
+  r: 8;
+}
 
-/* Welfare / surplus regions — highlightable */
+/* Welfare / surplus regions — highlightable, toggleable */
 .graph-area svg .region {
-  opacity: 0.8;
+  opacity: 0.85;
   transition: opacity 0.2s, stroke-width 0.2s;
-  cursor: pointer;
+  pointer-events: auto;
 }
 .graph-area svg .region:hover {
   opacity: 1;
+}
+.graph-area svg .region.hidden {
+  display: none;
 }
 .graph-area svg .region.consumer-surplus { fill: var(--demand-fill); stroke: var(--demand); stroke-width: 0.5; }
 .graph-area svg .region.producer-surplus { fill: var(--supply-fill); stroke: var(--supply); stroke-width: 0.5; }
 .graph-area svg .region.welfare-loss     { fill: var(--welfare-loss-fill); stroke: var(--welfare-loss); stroke-width: 0.5; }
 .graph-area svg .region.welfare-gain     { fill: var(--welfare-gain-fill); stroke: var(--welfare-gain); stroke-width: 0.5; }
 .graph-area svg .region.transfer         { fill: var(--transfer-fill); stroke: var(--transfer); stroke-width: 0.5; }
-.graph-area svg .region.shortage         { fill: rgba(200, 138, 43, 0.18); stroke: var(--demand); stroke-width: 0.5; stroke-dasharray: 3 3; }
-.graph-area svg .region.surplus          { fill: rgba(31, 122, 106, 0.18); stroke: var(--supply); stroke-width: 0.5; stroke-dasharray: 3 3; }
+
+/* Disequilibrium regions use hatching in a neutral grey.
+   Hatch slope differs: "/" for shortage, "\" for surplus, giving different
+   visual character without colour clashing with the CS/PS fills. */
+.graph-area svg .region.shortage { fill: url(#hatch-shortage); stroke: var(--ink-soft); stroke-width: 0.5; }
+.graph-area svg .region.surplus  { fill: url(#hatch-surplus);  stroke: var(--ink-soft); stroke-width: 0.5; }
+
+/* Horizontal bar indicating the quantity gap at the forced price */
+.graph-area svg .gap-bar {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: square;
+  fill: none;
+}
+.graph-area svg .gap-bar-tick {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.graph-area svg .gap-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--ink);
+}
 
 /* Flash animation when a region is activated from a legend click */
 @keyframes region-flash {
   0%, 100% { filter: brightness(1); }
-  50%      { filter: brightness(1.25); }
+  50%      { filter: brightness(1.3); }
 }
 .graph-area svg .region.flash {
   animation: region-flash 0.6s ease-out;
@@ -471,14 +596,24 @@ input[type="range"]::-moz-range-thumb {
   fill: var(--ink-soft);
 }
 
-/* ---- Legend ------------------------------------------------------------- */
+/* Force arrows (Pass B will animate these more, Pass A just shows them) */
+.graph-area svg .force-arrow {
+  stroke: var(--welfare-loss);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+.graph-area svg .force-arrow.up    { /* shortage: price wants to rise */ }
+.graph-area svg .force-arrow.down  { /* surplus: price wants to fall */ }
+
+/* ---- Legend (toggleable region visibility) ----------------------------- */
 
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1rem;
-  margin-top: 0.5rem;
-  font-size: 13px;
+  gap: 0.3rem 0.6rem;
+  margin-top: 0.4rem;
+  font-size: 12px;
   color: var(--ink-soft);
 }
 .legend .item {
@@ -486,27 +621,75 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.15s;
+  user-select: none;
+  border: 1px solid transparent;
 }
 .legend .item:hover { background: var(--paper-deep); }
+.legend .item.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
 .legend .swatch {
   width: 14px; height: 10px;
   border-radius: 2px;
   border: 0.5px solid rgba(0,0,0,0.15);
 }
-
-/* ---- Key idea box ------------------------------------------------------- */
-
-.key-idea {
-  background: var(--paper-deep);
-  border-left: 3px solid var(--ink);
-  padding: 0.8rem 1.2rem;
-  margin-top: 1rem;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+.legend .swatch.hatched-shortage,
+.legend .swatch.hatched-surplus {
+  background: repeating-linear-gradient(45deg, rgba(241, 237, 226, 0.75), rgba(241, 237, 226, 0.75) 2px, rgba(74, 85, 101, 0.9) 2px, rgba(74, 85, 101, 0.9) 3.5px);
 }
-.key-idea p { margin: 0; }
+.legend .swatch.hatched-surplus {
+  background: repeating-linear-gradient(-45deg, rgba(241, 237, 226, 0.75), rgba(241, 237, 226, 0.75) 2px, rgba(74, 85, 101, 0.9) 2px, rgba(74, 85, 101, 0.9) 3.5px);
+}
+
+/* ---- Return style selector (four-option segmented control) ------------- */
+
+.return-style {
+  display: inline-flex;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.return-style button {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.return-style button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(31,42,55,0.08);
+}
+.return-style button.beyond::after {
+  content: '✦';
+  font-size: 9px;
+  color: var(--demand);
+  margin-left: 3px;
+  vertical-align: super;
+}
+
+.beyond-note {
+  display: inline-block;
+  background: rgba(200, 138, 43, 0.12);
+  color: var(--demand-shift);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
 
 /* ---- Explainer arrows (for the Explain mode) ---------------------------- */
 

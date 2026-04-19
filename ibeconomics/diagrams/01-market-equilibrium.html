@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Market equilibrium — IB Economics diagrams</title>
-  <!-- Syllabus metadata, machine-readable for future indexing -->
+  <title>Market equilibrium · IB Economics diagrams</title>
   <meta name="ibecon:unit"        content="2.3 Competitive market equilibrium" />
   <meta name="ibecon:level"       content="Both" />
   <meta name="ibecon:required"    content="true" />
@@ -20,7 +19,7 @@
       <span class="syllabus-tag">2.3 Competitive market equilibrium · Both SL &amp; HL</span>
       <h1>Market equilibrium</h1>
     </div>
-    <div class="header-controls" style="display:flex; gap:1rem; align-items:center; flex-wrap: wrap;">
+    <div class="header-controls" style="display:flex; gap:0.8rem; align-items:center; flex-wrap: wrap;">
       <div class="scenario-picker">
         <label for="scenario">Setting</label>
         <select id="scenario">
@@ -31,29 +30,72 @@
           <option value="danny">Danny's lemonade stand</option>
         </select>
       </div>
-      <div class="mode-tabs" role="tablist">
-        <button data-mode="explain" class="active">Explain</button>
-        <button data-mode="play">Play</button>
-      </div>
+      <button class="help-toggle" id="help-toggle">How to play</button>
     </div>
   </header>
 
-  <div class="diagram-layout">
+  <div class="diagram-main">
 
-    <section class="graph-area">
-      <div id="plot" aria-label="Interactive supply and demand diagram"></div>
-      <div class="legend" id="legend">
-        <span class="item" data-region="consumer-surplus"><span class="swatch" style="background: var(--demand-fill); border-color: var(--demand);"></span> Consumer surplus</span>
-        <span class="item" data-region="producer-surplus"><span class="swatch" style="background: var(--supply-fill); border-color: var(--supply);"></span> Producer surplus</span>
-        <span class="item" data-region="shortage"><span class="swatch" style="background: rgba(200,138,43,0.18); border-color: var(--demand);"></span> Shortage</span>
-        <span class="item" data-region="surplus"><span class="swatch" style="background: rgba(31,122,106,0.18); border-color: var(--supply);"></span> Surplus (of goods)</span>
-      </div>
-    </section>
+    <div class="left-col">
+      <section class="graph-area">
+        <div id="help-panel" class="help-panel">
+          <h4>How to play</h4>
+          <ul>
+            <li>Drag the <strong>dashed price line</strong> up or down. Release to see the market return.</li>
+            <li>Hover the demand or supply line, grab anywhere, drag to shift it.</li>
+            <li>Use the sliders for shifts and to change the steepness of each curve.</li>
+            <li>Click legend items to hide or show regions.</li>
+            <li>Try the four <strong>Return style</strong> options for different dynamics.</li>
+          </ul>
+        </div>
+        <div id="plot" aria-label="Interactive supply and demand diagram"></div>
+        <div class="legend" id="legend">
+          <span class="item" data-region="consumer-surplus"><span class="swatch" style="background: var(--demand-fill); border-color: var(--demand);"></span> Consumer surplus</span>
+          <span class="item" data-region="producer-surplus"><span class="swatch" style="background: var(--supply-fill); border-color: var(--supply);"></span> Producer surplus</span>
+          <span class="item" data-region="shortage"><span class="swatch hatched-shortage"></span> Shortage</span>
+          <span class="item" data-region="surplus"><span class="swatch hatched-surplus"></span> Surplus of goods</span>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Shift controls">
+        <div class="control">
+          <label>Shift demand <span class="value" id="demand-shift-val">0%</span></label>
+          <input type="range" id="demand-shift" min="-40" max="40" step="1" value="0" />
+          <span class="small muted">More buyers, higher incomes, tastes changing</span>
+        </div>
+        <div class="control">
+          <label>Shift supply <span class="value" id="supply-shift-val">0%</span></label>
+          <input type="range" id="supply-shift" min="-40" max="40" step="1" value="0" />
+          <span class="small muted">Input costs, technology, number of firms</span>
+        </div>
+        <div class="control">
+          <label>Demand steepness <span class="value" id="demand-pivot-val">normal</span></label>
+          <input type="range" id="demand-pivot" min="-60" max="60" step="1" value="0" />
+          <span class="small muted">Flatter = more elastic; steeper = more inelastic</span>
+        </div>
+        <div class="control">
+          <label>Supply steepness <span class="value" id="supply-pivot-val">normal</span></label>
+          <input type="range" id="supply-pivot" min="-60" max="60" step="1" value="0" />
+          <span class="small muted">Flatter = more elastic; steeper = more inelastic</span>
+        </div>
+        <div class="control" style="grid-column: span 2;">
+          <label>Return style</label>
+          <div class="return-style" id="return-style">
+            <button data-style="none">None</button>
+            <button data-style="critical" class="active">Critical</button>
+            <button data-style="underdamped">Underdamped</button>
+            <button data-style="cobweb" class="beyond" title="Beyond the syllabus: the cobweb model describes agricultural markets with lagged supply response.">Cobweb</button>
+          </div>
+          <span class="small muted" id="return-style-note">Market returns smoothly to equilibrium, no overshoot.</span>
+        </div>
+      </section>
+    </div>
 
     <aside class="narration">
       <h3>What's happening</h3>
       <dl class="live-readout" id="readout">
-        <dt>Market price</dt><dd id="out-price">£0.80</dd>
+        <dt>Market price (P*)</dt><dd id="out-price">£0.80</dd>
+        <dt>Equilibrium quantity (Q*)</dt><dd id="out-qstar">150</dd>
         <dt>Quantity demanded</dt><dd id="out-qd">150</dd>
         <dt>Quantity supplied</dt><dd id="out-qs">150</dd>
         <dt>Gap</dt><dd id="out-gap">In balance</dd>
@@ -69,142 +111,63 @@
 
   </div>
 
-  <section class="controls" aria-label="Shift controls">
-    <div class="control">
-      <label>Shift demand <span class="value" id="demand-shift-val">0%</span></label>
-      <input type="range" id="demand-shift" min="-40" max="40" step="1" value="0" />
-      <span class="small muted">More buyers, higher incomes, tastes changing</span>
-    </div>
-    <div class="control">
-      <label>Shift supply <span class="value" id="supply-shift-val">0%</span></label>
-      <input type="range" id="supply-shift" min="-40" max="40" step="1" value="0" />
-      <span class="small muted">Input costs, technology, number of firms</span>
-    </div>
-    <div class="control">
-      <label>Demand steepness <span class="value" id="demand-pivot-val">normal</span></label>
-      <input type="range" id="demand-pivot" min="-60" max="60" step="1" value="0" />
-      <span class="small muted">Flatter = more elastic; steeper = more inelastic</span>
-    </div>
-    <div class="control">
-      <label class="toggle">
-        <input type="checkbox" id="spring-toggle" checked />
-        <span class="track"></span>
-        <span>Springy return to equilibrium</span>
-      </label>
-      <span class="small muted">Drag the price line and release; watch the market pull itself back.</span>
-    </div>
-  </section>
-
-  <section class="diagram-page" style="padding: 0; margin-top: 2rem;">
-    <h2>How to play</h2>
-    <p class="prose">
-      Drag the black dashed horizontal <strong>price line</strong> up or down to set a price away from equilibrium. Shortages and surpluses appear on the diagram. Let go, and the market snaps back. Drag the round handles at the ends of the <em>demand</em> or <em>supply</em> curves to shift them around, or use the sliders below the graph for shifts and changes in elasticity. The scenario dropdown at the top re-labels everything to a different market without changing the underlying economics.
-    </p>
-  </section>
-
 </main>
 
 <script type="module">
 import {
-  scenarios, createPlot, makeDraggable, spring,
-  formatPrice, formatQuantity, formatMoney,
-  linearCurve, intersect, logEvent, svgEl, defaultCurves, verbs,
+  scenarios, formatPrice, formatQuantity, formatMoney,
+  linearCurve, intersect, logEvent, defaultCurves, verbs,
 } from '../js/common.js';
+import { PQPlot } from '../js/pq-plot.js';
 
 /* -----------------------------------------------------------------------
    State
    ----------------------------------------------------------------------- */
+
 const state = {
   scenarioKey: 'greengrocer',
-  mode: 'explain',
-  // The two curves live in DATA space (price, quantity). They are freely
-  // edited by drag handles and sliders.
   demand: null,
   supply: null,
-  // Current user-set price (used when they drag the horizontal price line).
-  // null = price follows equilibrium automatically.
-  forcedPrice: null,
-  // Spring animation handle when the price is released
-  currentSpring: null,
-  // Elasticity pivot on demand (rotates demand curve about equilibrium)
-  demandPivot: 0,
-  // Shift sliders (percentage of quantity axis)
+  forcedPrice: null,       // set by dragging the price line
   demandShift: 0,
   supplyShift: 0,
-  springEnabled: true,
+  demandPivot: 0,
+  supplyPivot: 0,
+  returnStyle: 'critical',
+};
+
+const returnStyleLabels = {
+  none: 'Market holds at the forced price; nothing pulls it back.',
+  critical: 'Market returns smoothly to equilibrium, no overshoot.',
+  underdamped: 'Visual exaggeration: market overshoots and wobbles. Not a realistic market behaviour, but revealing about the forces at work.',
+  cobweb: 'Cobweb model: producers plan based on last period\u2019s price. Price can oscillate and converge, oscillate without converging, or diverge. Try with Albanian wheat.',
 };
 
 /* -----------------------------------------------------------------------
-   Build plot
+   Plot setup
    ----------------------------------------------------------------------- */
+
 const plotContainer = document.getElementById('plot');
 let plot;
 
-function initCurves() {
-  const { demand, supply } = defaultCurves(state.scenarioKey);
-  state.demand = demand;
-  state.supply = supply;
-  state.forcedPrice = null;
-  state.demandShift = 0;
-  state.supplyShift = 0;
-  state.demandPivot = 0;
-  document.getElementById('demand-shift').value = 0;
-  document.getElementById('supply-shift').value = 0;
-  document.getElementById('demand-pivot').value = 0;
-  document.getElementById('demand-shift-val').textContent = '0%';
-  document.getElementById('supply-shift-val').textContent = '0%';
-  document.getElementById('demand-pivot-val').textContent = 'normal';
-}
-
-function buildPlot() {
-  plot = createPlot({
+function makePlot() {
+  plot = new PQPlot({
     container: plotContainer,
     scenario: state.scenarioKey,
-    width: 640,
-    height: 460,
+    width: 720,
+    height: 420,
   });
-
-  // Containers for dynamic content, layered in a specific order so that
-  // fills are behind lines are behind handles are behind labels.
-  const g = plot.plotGroup;
-
-  // Region group (filled areas: CS, PS, shortage, surplus)
-  const regionsG = svgEl('g', { class: 'regions' });
-  g.appendChild(regionsG);
-
-  // Curve group (demand and supply lines)
-  const curvesG = svgEl('g', { class: 'curves' });
-  g.appendChild(curvesG);
-
-  // Price line group (horizontal draggable line)
-  const priceLineG = svgEl('g', { class: 'price-line-group' });
-  g.appendChild(priceLineG);
-
-  // Handle group (curve endpoints and equilibrium dot)
-  const handlesG = svgEl('g', { class: 'handles' });
-  g.appendChild(handlesG);
-
-  // Labels group
-  const labelsG = svgEl('g', { class: 'labels' });
-  g.appendChild(labelsG);
-
-  plot.regionsG = regionsG;
-  plot.curvesG = curvesG;
-  plot.priceLineG = priceLineG;
-  plot.handlesG = handlesG;
-  plot.labelsG = labelsG;
 }
 
 /* -----------------------------------------------------------------------
-   Derived quantities
+   Curve construction
    ----------------------------------------------------------------------- */
 
-function applyShifts() {
-  // Start from fresh default curves, then apply shifts and pivots.
+function buildCurves() {
   const { demand: dRaw, supply: sRaw } = defaultCurves(state.scenarioKey);
   const s = scenarios[state.scenarioKey];
 
-  // Shift curves horizontally by demandShift / supplyShift (% of qMax)
+  // Apply horizontal shifts
   const dq = (state.demandShift / 100) * s.quantityMax;
   const sq = (state.supplyShift / 100) * s.quantityMax;
 
@@ -212,521 +175,322 @@ function applyShifts() {
     { q: dRaw.p1.q + dq, p: dRaw.p1.p },
     { q: dRaw.p2.q + dq, p: dRaw.p2.p }
   );
-  const supply = linearCurve(
+  let supply = linearCurve(
     { q: sRaw.p1.q + sq, p: sRaw.p1.p },
     { q: sRaw.p2.q + sq, p: sRaw.p2.p }
   );
 
-  // Demand pivot: rotate demand about the current intersection
-  if (state.demandPivot !== 0) {
-    const eq = intersect(demand, supply);
-    if (eq) {
-      // factor > 1 = steeper (more inelastic), < 1 = flatter
-      const factor = 1 + state.demandPivot / 100 * 1.5;
-      // Rebuild demand with same slope * factor
-      const oldSlope = demand.slope;
-      const newSlope = oldSlope * factor;
-      // p - eq.p = newSlope * (q - eq.q) => pick q=0 and q=qMax
-      const p0 = eq.p - newSlope * eq.q;
-      const pMax = eq.p + newSlope * (s.quantityMax - eq.q);
-      demand = linearCurve({ q: 0, p: p0 }, { q: s.quantityMax, p: pMax });
-    }
+  // Pivot each curve around the shared intersection (steepness sliders)
+  const eq0 = intersect(demand, supply);
+  if (eq0 && state.demandPivot !== 0) {
+    const factor = 1 + (state.demandPivot / 100) * 1.5;
+    const newSlope = demand.slope * factor;
+    const p0 = eq0.p - newSlope * eq0.q;
+    const pMax = eq0.p + newSlope * (s.quantityMax - eq0.q);
+    demand = linearCurve({ q: 0, p: p0 }, { q: s.quantityMax, p: pMax });
+  }
+  const eq1 = intersect(demand, supply);
+  if (eq1 && state.supplyPivot !== 0) {
+    const factor = 1 + (state.supplyPivot / 100) * 1.5;
+    const newSlope = supply.slope * factor;
+    const q0 = eq1.q - eq1.p / newSlope;
+    supply = linearCurve(
+      { q: q0, p: 0 },
+      { q: s.quantityMax, p: newSlope * (s.quantityMax - q0) }
+    );
   }
 
   state.demand = demand;
   state.supply = supply;
 }
 
-function equilibriumPoint() {
-  return intersect(state.demand, state.supply);
-}
-
-function effectivePrice() {
+function eq() { return intersect(state.demand, state.supply); }
+function currentPrice() {
   if (state.forcedPrice != null) return state.forcedPrice;
-  const eq = equilibriumPoint();
-  return eq ? eq.p : 0;
+  const e = eq();
+  return e ? e.p : 0;
 }
-
-function qDemandedAt(p) { return state.demand.quantityAt(p); }
-function qSuppliedAt(p) { return state.supply.quantityAt(p); }
 
 /* -----------------------------------------------------------------------
-   Rendering
+   Regions
    ----------------------------------------------------------------------- */
 
-function clearGroup(g) { while (g.firstChild) g.removeChild(g.firstChild); }
-
-function drawCurves() {
-  const { curvesG, xScale, yScale } = plot;
+function computeRegions() {
+  const regions = [];
+  const e = eq();
+  if (!e) return regions;
   const s = scenarios[state.scenarioKey];
-  clearGroup(curvesG);
-
-  // Demand: clamp to visible axes
-  const dCurve = state.demand;
-  const sCurve = state.supply;
-
-  // Pick two visible endpoints per curve
-  function visibleEndpoints(curve, kind) {
-    const pMax = s.priceMax, qMax = s.quantityMax;
-    // For each boundary (p=0, p=pMax, q=0, q=qMax) find where curve crosses
-    const candidates = [];
-    // q bounds
-    [0, qMax].forEach(q => {
-      const p = curve.priceAt(q);
-      if (p >= 0 && p <= pMax) candidates.push({ q, p });
-    });
-    // p bounds
-    [0, pMax].forEach(p => {
-      const q = curve.quantityAt(p);
-      if (q >= 0 && q <= qMax) candidates.push({ q, p });
-    });
-    // Deduplicate by rounded coords, then take min-q and max-q
-    const uniq = [];
-    for (const c of candidates) {
-      if (!uniq.some(u => Math.abs(u.q - c.q) < 0.01 && Math.abs(u.p - c.p) < 0.01)) uniq.push(c);
-    }
-    uniq.sort((a, b) => a.q - b.q);
-    return uniq.length >= 2 ? [uniq[0], uniq[uniq.length - 1]] : null;
-  }
-
-  const dEnds = visibleEndpoints(dCurve, 'demand');
-  const sEnds = visibleEndpoints(sCurve, 'supply');
-
-  if (dEnds) {
-    const line = svgEl('line', {
-      class: 'curve demand',
-      x1: xScale(dEnds[0].q), y1: yScale(dEnds[0].p),
-      x2: xScale(dEnds[1].q), y2: yScale(dEnds[1].p),
-    });
-    curvesG.appendChild(line);
-
-    // Demand label near upper-left endpoint
-    const upper = dEnds[0].p > dEnds[1].p ? dEnds[0] : dEnds[1];
-    const lab = svgEl('text', {
-      class: 'curve-label',
-      x: xScale(upper.q) + 8,
-      y: yScale(upper.p) + 4,
-      fill: 'var(--demand)',
-    });
-    lab.textContent = 'D';
-    curvesG.appendChild(lab);
-  }
-
-  if (sEnds) {
-    const line = svgEl('line', {
-      class: 'curve supply',
-      x1: xScale(sEnds[0].q), y1: yScale(sEnds[0].p),
-      x2: xScale(sEnds[1].q), y2: yScale(sEnds[1].p),
-    });
-    curvesG.appendChild(line);
-    const upper = sEnds[0].p > sEnds[1].p ? sEnds[0] : sEnds[1];
-    const lab = svgEl('text', {
-      class: 'curve-label',
-      x: xScale(upper.q) - 18,
-      y: yScale(upper.p) + 4,
-      fill: 'var(--supply)',
-    });
-    lab.textContent = 'S';
-    curvesG.appendChild(lab);
-  }
-}
-
-function drawHandles() {
-  const { handlesG, xScale, yScale } = plot;
-  const s = scenarios[state.scenarioKey];
-  clearGroup(handlesG);
-
-  const eq = equilibriumPoint();
-
-  // Demand handle (upper-left end of demand curve in visible area)
-  // Place at q = 0.1 * qMax to avoid collision with y-axis labels
-  const dHandleQ = s.quantityMax * 0.15;
-  const dHandleP = state.demand.priceAt(dHandleQ);
-  const dh = svgEl('circle', {
-    class: 'handle demand',
-    cx: xScale(dHandleQ),
-    cy: yScale(dHandleP),
-    r: 7,
-  });
-  dh.addEventListener('pointerdown', ev => startShiftDemand(ev));
-  handlesG.appendChild(dh);
-
-  // Supply handle
-  const sHandleQ = s.quantityMax * 0.8;
-  const sHandleP = state.supply.priceAt(sHandleQ);
-  const sh = svgEl('circle', {
-    class: 'handle supply',
-    cx: xScale(sHandleQ),
-    cy: yScale(sHandleP),
-    r: 7,
-  });
-  sh.addEventListener('pointerdown', ev => startShiftSupply(ev));
-  handlesG.appendChild(sh);
-
-  // Equilibrium dot (non-interactive indicator)
-  if (eq && eq.p >= 0 && eq.p <= s.priceMax && eq.q >= 0 && eq.q <= s.quantityMax) {
-    const dot = svgEl('circle', {
-      class: 'eq-dot',
-      cx: xScale(eq.q), cy: yScale(eq.p),
-      r: 6,
-    });
-    handlesG.appendChild(dot);
-  }
-}
-
-function drawPriceLine() {
-  const { priceLineG, xScale, yScale, margin, plotW } = plot;
-  clearGroup(priceLineG);
-  const p = effectivePrice();
-  const y = yScale(p);
-  const line = svgEl('line', {
-    class: 'price-line',
-    x1: margin.left, x2: margin.left + plotW,
-    y1: y, y2: y,
-  });
-  priceLineG.appendChild(line);
-  // Handle at far right for easier grab
-  const h = svgEl('circle', {
-    class: 'price-line-handle',
-    cx: margin.left + plotW - 8,
-    cy: y,
-    r: 6,
-  });
-  priceLineG.appendChild(h);
-
-  // Make the whole line draggable
-  makeDraggable(line, {
-    svg: plot.svg,
-    axis: 'y',
-    bounds: {
-      minX: 0, maxX: 9999,
-      minY: plot.margin.top, maxY: plot.margin.top + plot.plotH,
-    },
-    onMove: (_, svgY) => {
-      if (state.currentSpring) { state.currentSpring.stop(); state.currentSpring = null; }
-      const newP = plot.yInv(svgY);
-      state.forcedPrice = newP;
-      renderAll();
-    },
-    onEnd: () => {
-      logEvent({ diagram: 'market-equilibrium', action: 'price-released', price: state.forcedPrice });
-      if (state.springEnabled) springBackToEquilibrium();
-      else { state.forcedPrice = null; renderAll(); }
-    },
-  });
-  makeDraggable(h, {
-    svg: plot.svg,
-    axis: 'y',
-    bounds: {
-      minX: 0, maxX: 9999,
-      minY: plot.margin.top, maxY: plot.margin.top + plot.plotH,
-    },
-    onMove: (_, svgY) => {
-      if (state.currentSpring) { state.currentSpring.stop(); state.currentSpring = null; }
-      const newP = plot.yInv(svgY);
-      state.forcedPrice = newP;
-      renderAll();
-    },
-    onEnd: () => {
-      logEvent({ diagram: 'market-equilibrium', action: 'price-released', price: state.forcedPrice });
-      if (state.springEnabled) springBackToEquilibrium();
-      else { state.forcedPrice = null; renderAll(); }
-    },
-  });
-}
-
-function springBackToEquilibrium() {
-  const eq = equilibriumPoint();
-  if (!eq) { state.forcedPrice = null; renderAll(); return; }
-  const from = state.forcedPrice;
-  if (from == null) return;
-  state.currentSpring = spring({
-    from,
-    to: eq.p,
-    stiffness: 120,
-    damping: 10,
-    mass: 1,
-    precision: 0.005,
-    onUpdate: (val) => {
-      state.forcedPrice = val;
-      renderAll(true);
-    },
-    onComplete: () => {
-      state.forcedPrice = null;
-      state.currentSpring = null;
-      renderAll();
-    },
-  });
-}
-
-function drawRegions() {
-  const { regionsG, xScale, yScale } = plot;
-  const s = scenarios[state.scenarioKey];
-  clearGroup(regionsG);
-
-  const eq = equilibriumPoint();
-  if (!eq) return;
-
-  const p = effectivePrice();
-  const qD = qDemandedAt(p);
-  const qS = qSuppliedAt(p);
+  const p = currentPrice();
+  const qD = state.demand.quantityAt(p);
+  const qS = state.supply.quantityAt(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
 
-  // Consumer surplus: area above price, below demand, up to qTraded
-  // Producer surplus: area below price, above supply, up to qTraded
-  // (Both are triangles in this linear case as long as we have straight lines)
-
-  // Consumer surplus polygon
-  if (qTraded > 0) {
-    const demandAtZero = state.demand.priceAt(0);
-    const demandAtQ = state.demand.priceAt(qTraded);
-    if (demandAtZero > p) {
-      const cs = svgEl('polygon', {
-        class: 'region consumer-surplus',
-        'data-region': 'consumer-surplus',
-        points: [
-          [0, demandAtZero],
-          [qTraded, Math.max(demandAtQ, p)],
-          [qTraded, p],
-          [0, p],
-        ].map(([q, pr]) => `${xScale(q)},${yScale(pr)}`).join(' '),
+  // Consumer surplus: triangle above price, below demand, up to qTraded,
+  // but clipped at the top of the plot so it never extends infinitely.
+  const pTop = s.priceMax;
+  const demandAtZero = state.demand.priceAt(0);
+  if (qTraded > 0 && demandAtZero > p) {
+    const cappedTop = Math.min(demandAtZero, pTop);
+    if (cappedTop > p) {
+      const pts = [
+        [0, p],
+        [0, cappedTop],
+      ];
+      // If demand hits the top of the plot before q=0, we need to include
+      // the intersection with the top edge
+      if (demandAtZero > pTop) {
+        const qAtTop = state.demand.quantityAt(pTop);
+        pts.push([qAtTop, pTop]);
+      }
+      // Then follow demand down to qTraded
+      const demandAtQTraded = state.demand.priceAt(qTraded);
+      pts.push([qTraded, Math.min(Math.max(demandAtQTraded, p), pTop)]);
+      regions.push({
+        id: 'consumer-surplus',
+        className: 'consumer-surplus',
+        points: pts,
       });
-      cs.addEventListener('mouseenter', () => showRegionTip('consumer-surplus'));
-      cs.addEventListener('mouseleave', hideRegionTip);
-      regionsG.appendChild(cs);
-    }
-
-    // Producer surplus
-    const supplyAtZero = state.supply.priceAt(0); // may be negative
-    const supplyStartQ = supplyAtZero < 0 ? state.supply.quantityAt(0) : 0;
-    const supplyStartP = supplyAtZero < 0 ? 0 : supplyAtZero;
-    if (p > supplyStartP) {
-      const ps = svgEl('polygon', {
-        class: 'region producer-surplus',
-        'data-region': 'producer-surplus',
-        points: [
-          [supplyStartQ, supplyStartP],
-          [qTraded, state.supply.priceAt(qTraded)],
-          [qTraded, p],
-          [supplyStartQ, p],
-        ].map(([q, pr]) => `${xScale(q)},${yScale(pr)}`).join(' '),
-      });
-      ps.addEventListener('mouseenter', () => showRegionTip('producer-surplus'));
-      ps.addEventListener('mouseleave', hideRegionTip);
-      regionsG.appendChild(ps);
     }
   }
 
-  // Disequilibrium regions
-  if (Math.abs(p - eq.p) > 0.001) {
-    if (p < eq.p && qD > qS) {
-      // Shortage: from qS to qD at this price
-      const rect = svgEl('rect', {
-        class: 'region shortage',
-        'data-region': 'shortage',
-        x: xScale(qS),
-        y: yScale(p),
-        width: xScale(qD) - xScale(qS),
-        height: 3,
-      });
-      // But a rect is not expressive enough; use a polygon between the curves.
-      const poly = svgEl('polygon', {
-        class: 'region shortage',
-        'data-region': 'shortage',
+  // Producer surplus: area below price, above supply, from the supply
+  // curve's x-intercept up to qTraded.
+  const supplyAtZero = state.supply.priceAt(0);
+  const qSupplyStart = supplyAtZero < 0 ? state.supply.quantityAt(0) : 0;
+  const pSupplyStart = supplyAtZero < 0 ? 0 : supplyAtZero;
+  if (qTraded > qSupplyStart && p > pSupplyStart) {
+    regions.push({
+      id: 'producer-surplus',
+      className: 'producer-surplus',
+      points: [
+        [qSupplyStart, pSupplyStart],
+        [qSupplyStart, p],
+        [qTraded, p],
+        [qTraded, state.supply.priceAt(qTraded)],
+      ],
+    });
+  }
+
+  // Disequilibrium triangle between curves at the forced price
+  if (Math.abs(p - e.p) > 0.001) {
+    if (p < e.p && qD > qS) {
+      // Shortage
+      regions.push({
+        id: 'shortage',
+        className: 'shortage',
         points: [
           [qS, p],
           [qD, p],
           [qD, state.demand.priceAt(qD)],
           [qS, state.supply.priceAt(qS)],
-        ].map(([q, pr]) => `${xScale(q)},${yScale(pr)}`).join(' '),
+        ],
       });
-      regionsG.appendChild(poly);
-
-      // Also a thin horizontal bracket on the price line indicating the gap
-      const bracket = svgEl('line', {
-        class: 'region shortage',
-        x1: xScale(qS), x2: xScale(qD),
-        y1: yScale(p), y2: yScale(p),
-        stroke: 'var(--demand)', 'stroke-width': 3,
-      });
-      regionsG.appendChild(bracket);
-    } else if (p > eq.p && qS > qD) {
-      // Surplus: from qD to qS at this price
-      const poly = svgEl('polygon', {
-        class: 'region surplus',
-        'data-region': 'surplus',
+    } else if (p > e.p && qS > qD) {
+      // Surplus
+      regions.push({
+        id: 'surplus',
+        className: 'surplus',
         points: [
           [qD, p],
           [qS, p],
           [qS, state.supply.priceAt(qS)],
           [qD, state.demand.priceAt(qD)],
-        ].map(([q, pr]) => `${xScale(q)},${yScale(pr)}`).join(' '),
+        ],
       });
-      regionsG.appendChild(poly);
-      const bracket = svgEl('line', {
-        class: 'region surplus',
-        x1: xScale(qD), x2: xScale(qS),
-        y1: yScale(p), y2: yScale(p),
-        stroke: 'var(--supply)', 'stroke-width': 3,
-      });
-      regionsG.appendChild(bracket);
     }
   }
-}
 
-function drawLabels() {
-  const { labelsG, xScale, yScale, margin, plotW } = plot;
-  clearGroup(labelsG);
-
-  const eq = equilibriumPoint();
-  const s = scenarios[state.scenarioKey];
-  if (!eq) return;
-
-  // Price label on y-axis at effective price
-  const p = effectivePrice();
-  const priceTick = svgEl('text', {
-    class: 'point-label',
-    x: margin.left - 8,
-    y: yScale(p) + 4,
-    'text-anchor': 'end',
-    fill: 'var(--ink)',
-  });
-  priceTick.textContent = formatPrice(state.scenarioKey, p);
-  labelsG.appendChild(priceTick);
-
-  // Small dashed drop-line from equilibrium dot to axes (only when at eq)
-  if (state.forcedPrice == null) {
-    const drop = svgEl('line', {
-      class: 'annotation dashed',
-      x1: xScale(eq.q), y1: yScale(eq.p),
-      x2: xScale(eq.q), y2: margin.top + plot.plotH,
-    });
-    labelsG.appendChild(drop);
-    const across = svgEl('line', {
-      class: 'annotation dashed',
-      x1: margin.left, y1: yScale(eq.p),
-      x2: xScale(eq.q), y2: yScale(eq.p),
-    });
-    labelsG.appendChild(across);
-    // Q-star callout: placed up-and-to-the-right of the equilibrium dot so
-    // it never collides with either axis label. Uses a tiny leader line.
-    const qLabX = xScale(eq.q) + 14;
-    const qLabY = yScale(eq.p) - 14;
-    const leader = svgEl('line', {
-      class: 'annotation dashed',
-      x1: xScale(eq.q) + 3, y1: yScale(eq.p) - 3,
-      x2: qLabX - 2, y2: qLabY + 4,
-    });
-    labelsG.appendChild(leader);
-    const qLab = svgEl('text', {
-      class: 'point-label',
-      x: qLabX,
-      y: qLabY + 4,
-      'text-anchor': 'start',
-      fill: 'var(--ink)',
-    });
-    qLab.textContent = `Q* = ${formatQuantity(state.scenarioKey, eq.q)}`;
-    labelsG.appendChild(qLab);
-  }
+  return regions;
 }
 
 /* -----------------------------------------------------------------------
-   Shift-by-handle: when the user drags a curve handle, shift the curve
-   horizontally so it passes through the new handle position.
+   Render
    ----------------------------------------------------------------------- */
 
-function startShiftDemand(ev) {
-  ev.preventDefault();
-  const { xInv, yInv, svg } = plot;
-  const s = scenarios[state.scenarioKey];
-  const rect = svg.getBoundingClientRect();
-  const vb = svg.viewBox.baseVal;
-  // Baseline demand curve (without shift-slider offset, so we can compute
-  // the required shift to make it pass through the new point)
-  const baseDemand = defaultCurves(state.scenarioKey).demand;
+function renderAll() {
+  if (!plot) return;
+  const e = eq();
+  const p = currentPrice();
 
-  function toSvg(ev) {
-    return {
-      x: ((ev.clientX - rect.left) / rect.width) * vb.width,
-      y: ((ev.clientY - rect.top) / rect.height) * vb.height,
-    };
-  }
-  function move(ev) {
-    const { x, y } = toSvg(ev);
-    const q = plot.xInv(x);
-    const p = plot.yInv(y);
-    // Find the horizontal shift (in quantity) such that base demand passes
-    // through (q, p). base: p = m*q + a, new shifted: p = m*(q - shift) + a
-    // => shift = q - (p - a)/m
-    const m = baseDemand.slope;
-    const a = baseDemand.p1.p - m * baseDemand.p1.q;
-    const shiftQ = q - (p - a) / m;
-    // Convert to percentage-of-qMax and store
-    state.demandShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
-    document.getElementById('demand-shift').value = state.demandShift;
-    document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
-    applyShifts();
-    renderAll();
-  }
-  function up() {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
-    logEvent({ diagram: 'market-equilibrium', action: 'shift-demand-by-handle', shift: state.demandShift });
-  }
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
-}
+  // Curves — both draggable
+  plot.setCurves([
+    {
+      curve: state.demand,
+      kind: 'demand',
+      label: 'D',
+      draggable: true,
+      onDrag: (newCurve) => {
+        state.demand = newCurve;
+        state.forcedPrice = null;   // moving curves rescales equilibrium
+        // Update the shift slider to reflect the drag
+        const s = scenarios[state.scenarioKey];
+        const orig = defaultCurves(state.scenarioKey).demand;
+        const shiftQ = newCurve.p1.q - orig.p1.q;
+        state.demandShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
+        document.getElementById('demand-shift').value = state.demandShift;
+        document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
+        renderAll();
+      },
+    },
+    {
+      curve: state.supply,
+      kind: 'supply',
+      label: 'S',
+      draggable: true,
+      onDrag: (newCurve) => {
+        state.supply = newCurve;
+        state.forcedPrice = null;
+        const s = scenarios[state.scenarioKey];
+        const orig = defaultCurves(state.scenarioKey).supply;
+        const shiftQ = newCurve.p1.q - orig.p1.q;
+        state.supplyShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
+        document.getElementById('supply-shift').value = state.supplyShift;
+        document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+        renderAll();
+      },
+    },
+  ]);
 
-function startShiftSupply(ev) {
-  ev.preventDefault();
-  const { xInv, yInv, svg } = plot;
-  const s = scenarios[state.scenarioKey];
-  const rect = svg.getBoundingClientRect();
-  const vb = svg.viewBox.baseVal;
-  const baseSupply = defaultCurves(state.scenarioKey).supply;
+  // Regions
+  plot.setRegions(computeRegions());
 
-  function toSvg(ev) {
-    return {
-      x: ((ev.clientX - rect.left) / rect.width) * vb.width,
-      y: ((ev.clientY - rect.top) / rect.height) * vb.height,
-    };
+  // Equilibrium marker (non-grabby ring)
+  if (e) plot.setEquilibriumMarker({ q: e.q, p: e.p });
+
+  // Price line — draggable, spring target is the equilibrium
+  plot.setPriceLine({
+    price: p,
+    draggable: true,
+    onMove: (newP) => {
+      state.forcedPrice = newP;
+      renderAll();
+    },
+    onRelease: () => {
+      logEvent({ diagram: 'market-equilibrium', action: 'price-released', price: state.forcedPrice });
+    },
+    springTarget: e ? e.p : null,
+    springStyle: state.returnStyle,
+    onSpringUpdate: (v) => {
+      state.forcedPrice = Math.abs(v - (e?.p ?? v)) < 0.005 ? null : v;
+      renderAll();
+    },
+  });
+
+  // Annotations: drop lines from equilibrium to axes (only when at eq)
+  if (state.forcedPrice == null && e) {
+    plot.setAnnotations([
+      { kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true },
+      { kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true },
+    ]);
+  } else {
+    plot.setAnnotations([]);
   }
-  function move(ev) {
-    const { x, y } = toSvg(ev);
-    const q = plot.xInv(x);
-    const p = plot.yInv(y);
-    const m = baseSupply.slope;
-    const a = baseSupply.p1.p - m * baseSupply.p1.q;
-    const shiftQ = q - (p - a) / m;
-    state.supplyShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
-    document.getElementById('supply-shift').value = state.supplyShift;
-    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
-    applyShifts();
-    renderAll();
+
+  // Gap bar (horizontal bar showing shortage or surplus quantity)
+  if (state.forcedPrice != null && e) {
+    const qD = state.demand.quantityAt(p);
+    const qS = state.supply.quantityAt(p);
+    if (Math.abs(qD - qS) > 0.5) {
+      if (qD > qS) {
+        plot.setGapBar({
+          atPrice: p,
+          qLow: Math.max(0, qS),
+          qHigh: qD,
+          label: `unmet demand: ${formatQuantity(state.scenarioKey, qD - qS)}`,
+          direction: 'shortage',
+        });
+      } else {
+        plot.setGapBar({
+          atPrice: p,
+          qLow: qD,
+          qHigh: qS,
+          label: `unsold stock: ${formatQuantity(state.scenarioKey, qS - qD)}`,
+          direction: 'surplus',
+        });
+      }
+    } else {
+      plot.setGapBar(null);
+    }
+  } else {
+    plot.setGapBar(null);
   }
-  function up() {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
-    logEvent({ diagram: 'market-equilibrium', action: 'shift-supply-by-handle', shift: state.supplyShift });
+
+  // Force arrow (Pass A: visible when off equilibrium; Pass B will animate)
+  if (state.forcedPrice != null && e) {
+    const gap = state.demand.quantityAt(p) - state.supply.quantityAt(p);
+    const s = scenarios[state.scenarioKey];
+    const magnitude = Math.min(1, Math.abs(gap) / (s.quantityMax * 0.5));
+    plot.setForceArrow({
+      atPrice: p,
+      magnitude,
+      direction: gap > 0 ? 'up' : 'down',
+    });
+  } else {
+    plot.setForceArrow(null);
   }
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
+
+  // Labels: P* and Q* near the equilibrium ring (callouts that don't collide
+  // with the y-axis). Current price on the y-axis only when forced off-eq.
+  const labels = [];
+  if (e) {
+    // Combined P*/Q* callout next to the equilibrium marker
+    labels.push({
+      x: e.q,
+      y: e.p,
+      text: `P* = ${formatPrice(state.scenarioKey, e.p)}`,
+      textAnchor: 'start',
+      offset: { x: 12, y: -4 },
+      color: 'var(--ink-soft)',
+      className: 'point-label',
+    });
+    labels.push({
+      x: e.q,
+      y: e.p,
+      text: `Q* = ${formatQuantity(state.scenarioKey, e.q)}`,
+      textAnchor: 'start',
+      offset: { x: 12, y: 12 },
+      color: 'var(--ink-soft)',
+      className: 'point-label',
+    });
+  }
+  // Current price tick on the y-axis — only when forced away from eq
+  if (state.forcedPrice != null && e) {
+    labels.push({
+      x: 0,
+      y: p,
+      rawX: plot.margin.left - 8,
+      text: formatPrice(state.scenarioKey, p),
+      textAnchor: 'end',
+      offset: { y: 4 },
+      color: 'var(--ink)',
+      className: 'point-label',
+    });
+  }
+  plot.setLabels(labels);
+
+  // Cobweb needs curves to iterate
+  plot.setCobwebCurves({ demand: state.demand, supply: state.supply });
+
+  plot.render();
+
+  updateNarration();
 }
 
 /* -----------------------------------------------------------------------
-   Narration panel
+   Narration
    ----------------------------------------------------------------------- */
 
 function updateNarration() {
   const s = scenarios[state.scenarioKey];
-  const eq = equilibriumPoint();
-  const p = effectivePrice();
-  const qD = qDemandedAt(p);
-  const qS = qSuppliedAt(p);
+  const e = eq();
+  const p = currentPrice();
+  const qD = state.demand.quantityAt(p);
+  const qS = state.supply.quantityAt(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
-  const atEq = eq && Math.abs(p - eq.p) < 0.005;
+  const atEq = e && Math.abs(p - e.p) < 0.005 && state.forcedPrice == null;
 
-  document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, p);
+  document.getElementById('out-price').textContent = atEq ? `${formatPrice(state.scenarioKey, p)} (P*)` : formatPrice(state.scenarioKey, p);
+  document.getElementById('out-qstar').textContent = e ? formatQuantity(state.scenarioKey, e.q) : '—';
   document.getElementById('out-qd').textContent = formatQuantity(state.scenarioKey, Math.max(0, qD));
   document.getElementById('out-qs').textContent = formatQuantity(state.scenarioKey, Math.max(0, qS));
   const gap = qD - qS;
@@ -736,95 +500,108 @@ function updateNarration() {
     gapEl.style.color = 'var(--ink)';
   } else if (gap > 0) {
     gapEl.textContent = `Shortage of ${formatQuantity(state.scenarioKey, gap)}`;
-    gapEl.style.color = 'var(--demand)';
-  } else {
+    gapEl.style.color = 'var(--ink-soft)';
+  } else if (gap < 0) {
     gapEl.textContent = `Surplus of ${formatQuantity(state.scenarioKey, -gap)}`;
-    gapEl.style.color = 'var(--supply)';
+    gapEl.style.color = 'var(--ink-soft)';
+  } else {
+    gapEl.textContent = 'In balance';
+    gapEl.style.color = 'var(--ink)';
   }
   document.getElementById('out-expenditure').textContent = formatMoney(state.scenarioKey, qTraded * p);
 
-  // Narration text — uses verb helpers for correct agreement across scenarios
   const nt = document.getElementById('narration-text');
   const sV = verbs(s, 'seller');
   const bV = verbs(s, 'buyer');
   if (atEq) {
     nt.innerHTML = `At <strong>${formatPrice(state.scenarioKey, p)}</strong>, ${s.narrationBuyer} ${bV.want} exactly the quantity ${s.narrationSeller} ${sV.are} willing to sell. Every unit offered gets bought; nobody goes home unsatisfied. This is <strong>equilibrium</strong>.`;
-  } else if (p < eq.p) {
-    nt.innerHTML = `At this low price, <strong>${formatQuantity(state.scenarioKey, qD)}</strong> are wanted but only <strong>${formatQuantity(state.scenarioKey, qS)}</strong> are offered. ${s.flavour.shortage} Frustrated ${s.narrationBuyer} ${bV.will} bid the price up; the market wants to rise back toward <strong>${formatPrice(state.scenarioKey, eq.p)}</strong>.`;
+  } else if (p < e.p) {
+    nt.innerHTML = `At this low price, <strong>${formatQuantity(state.scenarioKey, qD)}</strong> are wanted but only <strong>${formatQuantity(state.scenarioKey, qS)}</strong> are offered. ${s.flavour.shortage} Frustrated ${s.narrationBuyer} ${bV.will} bid the price up; the market wants to rise back toward <strong>${formatPrice(state.scenarioKey, e.p)}</strong>.`;
   } else {
-    nt.innerHTML = `At this high price, ${s.narrationSeller} ${sV.want} to sell <strong>${formatQuantity(state.scenarioKey, qS)}</strong> but only <strong>${formatQuantity(state.scenarioKey, qD)}</strong> find buyers. ${s.flavour.surplus} To clear unsold stock, ${s.narrationSeller} ${sV.will} cut prices back toward <strong>${formatPrice(state.scenarioKey, eq.p)}</strong>.`;
+    nt.innerHTML = `At this high price, ${s.narrationSeller} ${sV.want} to sell <strong>${formatQuantity(state.scenarioKey, qS)}</strong> but only <strong>${formatQuantity(state.scenarioKey, qD)}</strong> find buyers. ${s.flavour.surplus} To clear unsold stock, ${s.narrationSeller} ${sV.will} cut prices back toward <strong>${formatPrice(state.scenarioKey, e.p)}</strong>.`;
   }
 }
 
-function showRegionTip(regionName) {
-  // For v1 we just flash; tooltips can come later
-  document.querySelectorAll(`[data-region="${regionName}"]`).forEach(el => {
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 600);
-  });
-}
-function hideRegionTip() { /* no-op for now */ }
-
 /* -----------------------------------------------------------------------
-   Master render
+   Wiring
    ----------------------------------------------------------------------- */
 
-function renderAll(skipLog = false) {
-  drawRegions();
-  drawCurves();
-  drawPriceLine();
-  drawHandles();
-  drawLabels();
-  updateNarration();
-  if (!skipLog) logEvent({ diagram: 'market-equilibrium', action: 'render' });
+function resetShiftSliders() {
+  state.demandShift = 0; state.supplyShift = 0;
+  state.demandPivot = 0; state.supplyPivot = 0;
+  state.forcedPrice = null;
+  document.getElementById('demand-shift').value = 0;
+  document.getElementById('supply-shift').value = 0;
+  document.getElementById('demand-pivot').value = 0;
+  document.getElementById('supply-pivot').value = 0;
+  document.getElementById('demand-shift-val').textContent = '0%';
+  document.getElementById('supply-shift-val').textContent = '0%';
+  document.getElementById('demand-pivot-val').textContent = 'normal';
+  document.getElementById('supply-pivot-val').textContent = 'normal';
 }
-
-/* -----------------------------------------------------------------------
-   Event wiring
-   ----------------------------------------------------------------------- */
 
 document.getElementById('scenario').addEventListener('change', ev => {
   state.scenarioKey = ev.target.value;
-  initCurves();
-  buildPlot();
+  resetShiftSliders();
+  plot.setScenario(state.scenarioKey);
+  buildCurves();
   renderAll();
-  logEvent({ diagram: 'market-equilibrium', action: 'scenario-changed', scenario: state.scenarioKey });
 });
 
 document.getElementById('demand-shift').addEventListener('input', ev => {
   state.demandShift = Number(ev.target.value);
   document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift}%`;
-  applyShifts();
+  buildCurves();
   renderAll();
 });
 document.getElementById('supply-shift').addEventListener('input', ev => {
   state.supplyShift = Number(ev.target.value);
   document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift}%`;
-  applyShifts();
+  buildCurves();
   renderAll();
 });
 document.getElementById('demand-pivot').addEventListener('input', ev => {
   state.demandPivot = Number(ev.target.value);
   const v = state.demandPivot;
-  document.getElementById('demand-pivot-val').textContent =
-    v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
-  applyShifts();
+  document.getElementById('demand-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
+  buildCurves();
   renderAll();
 });
-document.getElementById('spring-toggle').addEventListener('change', ev => {
-  state.springEnabled = ev.target.checked;
+document.getElementById('supply-pivot').addEventListener('input', ev => {
+  state.supplyPivot = Number(ev.target.value);
+  const v = state.supplyPivot;
+  document.getElementById('supply-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
+  buildCurves();
+  renderAll();
 });
-document.querySelectorAll('.mode-tabs button').forEach(btn => {
+
+// Return-style selector
+document.querySelectorAll('#return-style button').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#return-style button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    state.mode = btn.dataset.mode;
+    state.returnStyle = btn.dataset.style;
+    document.getElementById('return-style-note').textContent = returnStyleLabels[state.returnStyle];
   });
 });
+
+// Legend toggles
 document.querySelectorAll('#legend .item').forEach(it => {
   it.addEventListener('click', () => {
-    showRegionTip(it.dataset.region);
+    const regionId = it.dataset.region;
+    const nowVisible = plot.isRegionVisible(regionId);
+    plot.setRegionVisibility(regionId, !nowVisible);
+    it.classList.toggle('off', nowVisible); // we just toggled, so "nowVisible" is the OLD state
+    renderAll();
   });
+});
+
+// Help toggle
+const helpBtn = document.getElementById('help-toggle');
+const helpPanel = document.getElementById('help-panel');
+helpBtn.addEventListener('click', () => helpPanel.classList.toggle('open'));
+document.addEventListener('click', ev => {
+  if (!helpPanel.contains(ev.target) && ev.target !== helpBtn) helpPanel.classList.remove('open');
 });
 
 /* -----------------------------------------------------------------------
@@ -832,9 +609,8 @@ document.querySelectorAll('#legend .item').forEach(it => {
    ----------------------------------------------------------------------- */
 
 window.__IBECON_DEBUG__ = true;
-initCurves();
-buildPlot();
-applyShifts();
+makePlot();
+buildCurves();
 renderAll();
 </script>
 
