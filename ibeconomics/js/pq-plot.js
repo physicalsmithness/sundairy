@@ -13,6 +13,64 @@ import {
   createPlot, spring, scenarios, svgEl, logEvent, linearCurve,
 } from './common.js';
 
+/* Small figure drawing helpers. Each figure is a 20x28 cluster of SVG shapes
+   drawn relative to (cx, yBase) where yBase is the y-coordinate of the
+   figure's feet. Stylistically deliberately minimal: head circle, triangle
+   body, single raised arm holding a prop.
+*/
+function drawBuyerFigure(group, cx, yBase) {
+  const headY = yBase - 20;
+  const head = svgEl('circle', { cx, cy: headY, r: 4.5, fill: 'var(--ink-soft)' });
+  const body = svgEl('path', {
+    d: `M ${cx-5} ${yBase} L ${cx+5} ${yBase} L ${cx} ${headY + 4} Z`,
+    fill: 'var(--ink-soft)', opacity: 0.9,
+  });
+  const arm = svgEl('line', {
+    x1: cx, y1: headY + 4,
+    x2: cx + 12, y2: headY - 8,
+    stroke: 'var(--ink-soft)', 'stroke-width': 1.8, 'stroke-linecap': 'round',
+  });
+  // Banknote
+  const note = svgEl('rect', {
+    x: cx + 10, y: headY - 15, width: 14, height: 9,
+    fill: 'var(--demand)', stroke: 'var(--demand-shift)', 'stroke-width': 0.6, rx: 1.5,
+  });
+  group.appendChild(body);
+  group.appendChild(head);
+  group.appendChild(arm);
+  group.appendChild(note);
+}
+
+function drawSellerFigure(group, cx, yBase) {
+  const headY = yBase - 20;
+  const head = svgEl('circle', { cx, cy: headY, r: 4.5, fill: 'var(--ink-soft)' });
+  const body = svgEl('path', {
+    d: `M ${cx-5} ${yBase} L ${cx+5} ${yBase} L ${cx} ${headY + 4} Z`,
+    fill: 'var(--ink-soft)', opacity: 0.9,
+  });
+  // Holding up a SALE sticker
+  const arm = svgEl('line', {
+    x1: cx, y1: headY + 4,
+    x2: cx + 10, y2: headY - 6,
+    stroke: 'var(--ink-soft)', 'stroke-width': 1.8, 'stroke-linecap': 'round',
+  });
+  const tag = svgEl('rect', {
+    x: cx + 6, y: headY - 13, width: 22, height: 12,
+    fill: 'var(--welfare-loss-fill)', stroke: 'var(--welfare-loss)', 'stroke-width': 0.8, rx: 2,
+  });
+  const tagText = svgEl('text', {
+    x: cx + 17, y: headY - 4,
+    'text-anchor': 'middle', 'font-size': 8.5,
+    fill: 'var(--welfare-loss)', 'font-weight': 600,
+  });
+  tagText.textContent = 'SALE';
+  group.appendChild(body);
+  group.appendChild(head);
+  group.appendChild(arm);
+  group.appendChild(tag);
+  group.appendChild(tagText);
+}
+
 export class PQPlot {
   constructor({ container, scenario = 'generic', width = 720, height = 420, margin } = {}) {
     this.container = container;
@@ -60,11 +118,11 @@ export class PQPlot {
     this.labelsG      = svgEl('g', { class: 'labels' });
     g.appendChild(this.regionsG);
     g.appendChild(this.annotationsG);
-    g.appendChild(this.hitG);
     g.appendChild(this.curvesG);
     g.appendChild(this.gapG);
     g.appendChild(this.forceG);
     g.appendChild(this.priceLineG);
+    g.appendChild(this.hitG);       // curve hit-lines above price-line-hit so grabs on curves win
     g.appendChild(this.handlesG);
     g.appendChild(this.labelsG);
 
@@ -145,6 +203,9 @@ export class PQPlot {
     // Clear persistent element caches before rebuild, otherwise next render
     // will try to update elements that have been orphaned.
     this._priceLineElems = null;
+    this._hitElems = null;
+    this._offGraphG = null;
+    this._returnAnnotG = null;
     this._build();
     this.regionVisibility = preserved;
   }
@@ -217,6 +278,108 @@ export class PQPlot {
 
   setCobwebCurves(curves) { this._cobwebCurves = curves; }
 
+  /**
+   * Dynamic 2: transition to a new equilibrium after a curve shifts.
+   *
+   * When demand or supply genuinely shifts, the market cannot teleport to
+   * the new intersection. In the immediate period, the slow-adjusting side
+   * is still at its old output. The price first jumps to P' (the price at
+   * which the fast side's new curve crosses the slow side's current
+   * quantity), then slides along the fast side's curve as the slow side
+   * catches up, arriving at the true new equilibrium P*, Q*.
+   *
+   * Params:
+   *   oldCurves:    { demand, supply } from before the shift
+   *   newCurves:    { demand, supply } after the shift (these are what the
+   *                 diagram is now using, reflected in state.demand/supply)
+   *   changedSide:  'demand' or 'supply' — which side was shifted by the
+   *                 user or the event
+   *   demandSpeed:  0..1, fraction of adjustment speed (1 = instant)
+   *   supplySpeed:  0..1, fraction of adjustment speed (1 = instant)
+   *   onUpdate:     callback({ p, q, pPrime, qOld, pOld, progress, phase })
+   *                 called ~60 times/second during the animation
+   *   onDone:       callback() when settled
+   *
+   * The transition uses a cubic ease-out with duration inversely related
+   * to the slow-side speed. If both speeds are equal, it's a straight glide.
+   */
+  runTransition({ oldCurves, newCurves, changedSide, demandSpeed = 1.0, supplySpeed = 0.15, onUpdate, onDone }) {
+    // Cancel any prior transition
+    if (this._transitionAnim) { this._transitionAnim.cancel = true; }
+
+    // Work in data space. Old eq and new eq.
+    const intersectLocal = (d, s) => {
+      if (!d || !s) return null;
+      if (d.slope === s.slope) return null;
+      const a = d.p1.p - d.slope * d.p1.q;
+      const b = s.p1.p - s.slope * s.p1.q;
+      const q = (b - a) / (d.slope - s.slope);
+      const p = d.slope * q + a;
+      return { q, p };
+    };
+    const oldEq = intersectLocal(oldCurves.demand, oldCurves.supply);
+    const newEq = intersectLocal(newCurves.demand, newCurves.supply);
+    if (!oldEq || !newEq) { if (onDone) onDone(); return; }
+
+    // If change is too small, skip
+    const tinyShift = Math.abs(newEq.q - oldEq.q) < 0.5 && Math.abs(newEq.p - oldEq.p) < 0.005;
+    if (tinyShift) { if (onDone) onDone(); return; }
+
+    // Compute the intermediate (overshoot) point. When demand shifts:
+    //   the slow side is supply; it stays at Q_old. The fast side is demand;
+    //   its new curve at Q_old gives P' (the immediate-period clearing price).
+    // When supply shifts:
+    //   the slow side is demand (in its fast default it's not, but we honour
+    //   the sliders); supply's new curve at Q_old gives P'.
+    // More generally: P' is the NEW curve of the CHANGED side at Q_old.
+    const slowCurve = changedSide === 'demand' ? newCurves.supply : newCurves.demand;
+    const fastCurveNew = changedSide === 'demand' ? newCurves.demand : newCurves.supply;
+    // In reality we should check which side is faster by the speed sliders,
+    // not only by which was shifted. For now: the side that wasn't shifted
+    // is assumed slow; use demandSpeed and supplySpeed to modulate.
+    const slowSpeed = changedSide === 'demand' ? supplySpeed : demandSpeed;
+    // Primary intermediate price: fast side's new curve at old quantity
+    const pPrime = fastCurveNew.priceAt(oldEq.q);
+
+    // Duration scales inversely with slow-side speed. At speed=1 (instant),
+    // very short; at speed=0.15 (default slow), longer. Cap at 2.5s.
+    const baseDur = 1600;
+    const duration = Math.min(2500, Math.max(350, baseDur * (1 - Math.min(0.85, slowSpeed))));
+
+    const t0 = performance.now();
+    const anim = { cancel: false };
+    this._transitionAnim = anim;
+
+    const step = (now) => {
+      if (anim.cancel) return;
+      const t = Math.min(1, (now - t0) / duration);
+      const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+      // Price ride: pPrime at t=0 to newEq.p at t=1
+      // Quantity ride: oldEq.q at t=0 to newEq.q at t=1
+      const p = pPrime + (newEq.p - pPrime) * e;
+      const q = oldEq.q + (newEq.q - oldEq.q) * e;
+
+      if (onUpdate) onUpdate({
+        p, q,
+        pPrime,
+        qOld: oldEq.q,
+        pOld: oldEq.p,
+        newEq,
+        progress: t,
+        phase: t < 0.05 ? 'overshoot' : (t < 0.95 ? 'glide' : 'settle'),
+      });
+
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        this._transitionAnim = null;
+        if (onDone) onDone();
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
   render() {
     this._renderRegions();
     this._renderAnnotations();
@@ -276,12 +439,19 @@ export class PQPlot {
       this.curvesG.appendChild(line);
 
       if (label) {
-        const upper = ends[0].p > ends[1].p ? ends[0] : ends[1];
-        const offsetX = kind === 'demand' ? -18 : 8;
+        // Supply: label at the upper (high-p) end, on the right side of the line.
+        // Demand: label at the lower (high-q) end, on the right side of the line,
+        // so it doesn't sit next to the y-axis and look like a price tick.
+        let anchor;
+        if (kind === 'demand') {
+          anchor = ends[0].q > ends[1].q ? ends[0] : ends[1]; // rightmost (high q)
+        } else {
+          anchor = ends[0].p > ends[1].p ? ends[0] : ends[1]; // top (high p)
+        }
         const txt = svgEl('text', {
           class: 'curve-label',
-          x: this.xScale(upper.q) + offsetX,
-          y: this.yScale(upper.p) + 4,
+          x: this.xScale(anchor.q) + 8,
+          y: this.yScale(anchor.p) + (kind === 'demand' ? -4 : 4),
           fill: variant === 'ghost' ? 'var(--ghost)' : (kind === 'demand' ? 'var(--demand)' : 'var(--supply)'),
         });
         txt.textContent = label;
@@ -291,56 +461,102 @@ export class PQPlot {
   }
 
   _renderHitAreas() {
-    this._clear(this.hitG);
+    // Initialise persistent storage for hit-lines (keyed by curve kind)
+    if (!this._hitElems) this._hitElems = {};
+
+    // Hide the hover handle on every render unless a drag is actively
+    // running. This prevents the handle being stranded when curves move
+    // automatically (springs, event animations, etc.) and the cursor isn't
+    // tracking them.
+    const anyDragging = Object.values(this._hitElems).some(h => h.classList.contains('dragging'));
+    if (!anyDragging && this.hoverHandle) {
+      this.hoverHandle.setAttribute('class', 'hover-handle hidden');
+    }
+
+    // Determine which curves should have hit-lines this frame
+    const activeKinds = new Set();
     for (const cfg of this.curves) {
       if (!cfg.draggable) continue;
       const ends = this._visibleEndpoints(cfg.curve);
       if (!ends) continue;
-      const hit = svgEl('line', {
-        class: `curve-hit ${cfg.kind}-hit`,
-        x1: this.xScale(ends[0].q), y1: this.yScale(ends[0].p),
-        x2: this.xScale(ends[1].q), y2: this.yScale(ends[1].p),
-        'data-kind': cfg.kind,
-      });
-      this._attachCurveDrag(hit, cfg);
-      this.hitG.appendChild(hit);
+      activeKinds.add(cfg.kind);
+
+      let hit = this._hitElems[cfg.kind];
+      if (!hit) {
+        // Create it once, attach listeners once
+        hit = svgEl('line', {
+          class: `curve-hit ${cfg.kind}-hit`,
+          'data-kind': cfg.kind,
+        });
+        this.hitG.appendChild(hit);
+        this._hitElems[cfg.kind] = hit;
+        this._attachCurveDrag(hit, cfg);
+      } else {
+        // Update the config reference so the drag handlers see the latest
+        // curve and onDrag callback each render
+        hit.__cfg = cfg;
+      }
+      // Always update geometry
+      hit.setAttribute('x1', this.xScale(ends[0].q));
+      hit.setAttribute('y1', this.yScale(ends[0].p));
+      hit.setAttribute('x2', this.xScale(ends[1].q));
+      hit.setAttribute('y2', this.yScale(ends[1].p));
+    }
+
+    // Remove any hit-lines that no longer have a corresponding active curve
+    for (const kind of Object.keys(this._hitElems)) {
+      if (!activeKinds.has(kind)) {
+        this._hitElems[kind].remove();
+        delete this._hitElems[kind];
+      }
     }
   }
 
   _attachCurveDrag(hitLine, cfg) {
     const self = this;
-    let dragging = false;
+    // Store cfg on the element so handlers read the latest reference even
+    // after _renderHitAreas is called again with a new config.
+    hitLine.__cfg = cfg;
+    const dragState = { dragging: false };
 
     const showHover = (ev) => {
-      if (dragging) return;
+      if (dragState.dragging) return;
       const pt = self._pointerData(ev);
-      const pOnCurve = cfg.curve.priceAt(pt.q);
-      self.hoverHandle.setAttribute('class', `hover-handle ${cfg.kind}`);
+      const c = hitLine.__cfg;
+      if (!c) return;
+      const pOnCurve = c.curve.priceAt(pt.q);
+      self.hoverHandle.setAttribute('class', `hover-handle ${c.kind}`);
       self.hoverHandle.setAttribute('cx', self.xScale(pt.q));
       self.hoverHandle.setAttribute('cy', self.yScale(pOnCurve));
     };
     const hideHover = () => {
-      if (dragging) return;
-      self.hoverHandle.setAttribute('class', `hover-handle ${cfg.kind || ''} hidden`);
+      if (dragState.dragging) return;
+      const c = hitLine.__cfg;
+      self.hoverHandle.setAttribute('class', `hover-handle ${c?.kind || ''} hidden`);
     };
 
     hitLine.addEventListener('pointerenter', showHover);
-    hitLine.addEventListener('pointermove', showHover);
     hitLine.addEventListener('pointerleave', hideHover);
 
     hitLine.addEventListener('pointerdown', ev => {
       ev.preventDefault();
-      dragging = true;
+      dragState.dragging = true;
       hitLine.classList.add('dragging');
       hitLine.setPointerCapture?.(ev.pointerId);
+      const c = hitLine.__cfg;
+      if (c?.onDragStart) c.onDragStart();
     });
 
     hitLine.addEventListener('pointermove', ev => {
-      if (!dragging) return;
+      if (!dragState.dragging) {
+        showHover(ev);
+        return;
+      }
+      const c = hitLine.__cfg;
+      if (!c) return;
       const pt = self._pointerData(ev);
-      // Translate-only: build a new curve shifted horizontally so it passes
-      // through the pointer's (q, p).
-      const orig = cfg.curve;
+      // Translate-only: shift the curve so it passes through the cursor
+      const orig = c.curve;
       const slope = orig.slope;
       const a = orig.p1.p - slope * orig.p1.q;
       const shift = pt.q - (pt.p - a) / slope;
@@ -348,17 +564,18 @@ export class PQPlot {
         { q: orig.p1.q + shift, p: orig.p1.p },
         { q: orig.p2.q + shift, p: orig.p2.p }
       );
-      if (cfg.onDrag) cfg.onDrag(newCurve, shift);
-      // Also update hover handle position to follow the pointer
+      if (c.onDrag) c.onDrag(newCurve, shift);
       self.hoverHandle.setAttribute('cx', self.xScale(pt.q));
       self.hoverHandle.setAttribute('cy', self.yScale(newCurve.priceAt(pt.q)));
     });
 
-    const endDrag = () => {
-      if (!dragging) return;
-      dragging = false;
+    const endDrag = (ev) => {
+      if (!dragState.dragging) return;
+      dragState.dragging = false;
       hitLine.classList.remove('dragging');
-      if (cfg.onDragEnd) cfg.onDragEnd();
+      hitLine.releasePointerCapture?.(ev.pointerId);
+      const c = hitLine.__cfg;
+      if (c?.onDragEnd) c.onDragEnd();
     };
     hitLine.addEventListener('pointerup', endDrag);
     hitLine.addEventListener('pointercancel', endDrag);
@@ -452,13 +669,24 @@ export class PQPlot {
   _renderForceArrow() {
     this._clear(this.forceG);
     if (!this.forceArrow) return;
-    const { atPrice, magnitude, direction } = this.forceArrow;
+    const { atPrice, targetPrice, eqQ, magnitude, direction } = this.forceArrow;
     if (magnitude < 0.02) return;
-    const len = Math.min(70, 15 + magnitude * 90);
-    const x = this.margin.left - 22;
-    const yAt = this.yScale(atPrice);
-    const y1 = direction === 'up' ? yAt + len * 0.2 : yAt - len * 0.2;
-    const y2 = direction === 'up' ? yAt - len * 0.8 : yAt + len * 0.8;
+    if (targetPrice == null || eqQ == null) return;
+
+    // Place the arrow on the equilibrium's x-coordinate, running from the
+    // current-price height to the equilibrium-price height. This tells the
+    // student: "the price is here, it wants to be there". Tail starts a
+    // few px from the forced-price line so it doesn't overlap the gap bar.
+    const x = this.xScale(eqQ);
+    const yFrom = this.yScale(atPrice);
+    const yTo = this.yScale(targetPrice);
+    const dy = yTo - yFrom;
+    if (Math.abs(dy) < 10) return; // too short to be useful
+    // Start the arrow 6px offset from the forced-price line (so arrow tail
+    // doesn't overlap with gap bar), end 4px before the eq height.
+    const offset = 6;
+    const y1 = yFrom + Math.sign(dy) * offset;
+    const y2 = yTo - Math.sign(dy) * 4;
     const arrow = svgEl('line', {
       class: `force-arrow ${direction}`,
       x1: x, y1, x2: x, y2,
@@ -476,7 +704,6 @@ export class PQPlot {
   setOffGraph(config) { this.offGraphConfig = config; return this; }
 
   _renderOffGraph() {
-    // Use a dedicated group so it doesn't interfere with force arrows
     if (!this._offGraphG) {
       this._offGraphG = svgEl('g', { class: 'off-graph-layer' });
       this.plot.plotGroup.appendChild(this._offGraphG);
@@ -486,91 +713,53 @@ export class PQPlot {
     const { direction, atPrice } = this.offGraphConfig;
     if (!direction || atPrice == null) return;
 
-    const x = this.margin.left + this.plotW + 24;
+    const group = svgEl('g', { class: 'off-graph' });
     const yAt = this.yScale(atPrice);
 
-    const group = svgEl('g', { class: 'off-graph' });
+    // Characters sit INSIDE the plot area, spread horizontally, in the
+    // "direction the price wants to move". So for a shortage (price wants
+    // to go UP), buyers appear above the forced-price line. For a surplus
+    // (price wants to go DOWN), sellers appear below it.
+    //
+    // Position them in the middle horizontal third of the plot, spaced
+    // evenly, so they're visible without clashing with curves or the
+    // equilibrium marker at the centre.
+    const leftEdge = this.margin.left + this.plotW * 0.55;
+    const rightEdge = this.margin.left + this.plotW * 0.92;
+    const count = 4;
+    const stepX = (rightEdge - leftEdge) / (count - 1);
 
     if (direction === 'shortage') {
-      // Three small buyer figures, waving banknotes. Stacked vertically.
+      // Buyers waving banknotes, above the price line
+      const labelY = yAt - 72;
       const label = svgEl('text', {
         class: 'off-graph-label',
-        x: x + 12, y: yAt - 4,
+        x: (leftEdge + rightEdge) / 2,
+        y: labelY - 4,
         'text-anchor': 'middle',
       });
       label.textContent = 'buyers bid up';
       group.appendChild(label);
-      for (let i = 0; i < 3; i++) {
-        const yBase = yAt + 12 + i * 26;
-        const head = svgEl('circle', {
-          cx: x + 6, cy: yBase, r: 4,
-          fill: 'var(--ink-soft)',
-        });
-        const body = svgEl('path', {
-          d: `M ${x+2} ${yBase+14} L ${x+10} ${yBase+14} L ${x+6} ${yBase+4} Z`,
-          fill: 'var(--ink-soft)',
-          opacity: 0.85,
-        });
-        const arm = svgEl('line', {
-          x1: x + 6, y1: yBase + 4,
-          x2: x + 16, y2: yBase - 6,
-          stroke: 'var(--ink-soft)',
-          'stroke-width': 1.5,
-          'stroke-linecap': 'round',
-        });
-        const note = svgEl('rect', {
-          x: x + 15, y: yBase - 12,
-          width: 10, height: 7,
-          fill: 'var(--demand)',
-          stroke: 'var(--demand-shift)',
-          'stroke-width': 0.5,
-          rx: 1,
-        });
-        group.appendChild(body);
-        group.appendChild(head);
-        group.appendChild(arm);
-        group.appendChild(note);
+      for (let i = 0; i < count; i++) {
+        const cx = leftEdge + i * stepX;
+        const yBase = yAt - 48;
+        drawBuyerFigure(group, cx, yBase);
       }
     } else if (direction === 'surplus') {
-      // Two sellers with reduced stickers, below the price line
+      // Sellers with SALE stickers, below the price line
+      const labelY = yAt + 68;
       const label = svgEl('text', {
         class: 'off-graph-label',
-        x: x + 18, y: yAt + 8,
+        x: (leftEdge + rightEdge) / 2,
+        y: labelY,
         'text-anchor': 'middle',
       });
       label.textContent = 'sellers cut prices';
       group.appendChild(label);
-      for (let i = 0; i < 2; i++) {
-        const yBase = yAt + 22 + i * 28;
-        const head = svgEl('circle', {
-          cx: x + 6, cy: yBase, r: 4,
-          fill: 'var(--ink-soft)',
-        });
-        const body = svgEl('path', {
-          d: `M ${x+2} ${yBase+14} L ${x+10} ${yBase+14} L ${x+6} ${yBase+4} Z`,
-          fill: 'var(--ink-soft)',
-          opacity: 0.85,
-        });
-        const tag = svgEl('rect', {
-          x: x + 14, y: yBase - 2,
-          width: 22, height: 10,
-          fill: 'var(--welfare-loss-fill)',
-          stroke: 'var(--welfare-loss)',
-          'stroke-width': 0.5,
-          rx: 2,
-        });
-        const tagText = svgEl('text', {
-          x: x + 25, y: yBase + 6,
-          'text-anchor': 'middle',
-          'font-size': 8,
-          fill: 'var(--welfare-loss)',
-          'font-weight': 500,
-        });
-        tagText.textContent = 'SALE';
-        group.appendChild(body);
-        group.appendChild(head);
-        group.appendChild(tag);
-        group.appendChild(tagText);
+      for (let i = 0; i < count; i++) {
+        const cx = leftEdge + i * stepX;
+        const yBase = yAt + 20;
+        drawSellerFigure(group, cx, yBase);
       }
     }
 

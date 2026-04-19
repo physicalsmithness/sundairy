@@ -96,25 +96,52 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
 /* ---- Page layout -------------------------------------------------------- */
 
 .diagram-page {
-  max-width: 1280px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem 2rem;
+  padding: 0 1.25rem 2rem;
 }
 
 .diagram-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.8rem;
-  padding-bottom: 0.6rem;
+  gap: 0.8rem;
+  padding: 0.55rem 0.2rem;
   border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  margin-bottom: 0.7rem;
+}
+.diagram-header.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(31,42,55,0.04);
 }
 
+.back-link {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.back-link:hover { background: var(--paper-deep); color: var(--ink); }
+
+.diagram-header .title-block {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 1rem;
+}
 .diagram-header .title-block h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
+  line-height: 1.2;
+  display: inline-block;
+  margin-right: 0.8rem;
 }
 .diagram-header .title-block .syllabus-tag {
   display: inline-block;
@@ -122,7 +149,7 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.2em;
+  vertical-align: middle;
 }
 
 /* Main grid: graph on the left, narration on the right, sliders below
@@ -465,12 +492,15 @@ input[type="range"]::-moz-range-thumb {
   cursor: grabbing;
 }
 /* A wider invisible hit-line sits behind each curve so users don't have to
-   hit a 2px-wide target. The visible curve rides on top. */
+   hit a 2px-wide target. The visible curve rides on top. We use
+   pointer-events: stroke so the invisible transparent stroke still
+   registers events (visibleStroke would reject transparent strokes). */
 .graph-area svg .curve-hit {
   fill: none;
   stroke: transparent;
   stroke-width: 16;
   cursor: grab;
+  pointer-events: stroke;
 }
 .graph-area svg .curve-hit.dragging {
   cursor: grabbing;
@@ -804,20 +834,55 @@ input[type="range"]::-moz-range-thumb {
   cursor: not-allowed;
 }
 
-/* Event-narration banner below the chips (shows while an event is active) */
+/* Event-narration banner below the chips (shows while an event is active).
+   Reserves vertical space even on baseline so the graph doesn't reflow
+   when an event is applied — we just fade the text in/out. */
 .event-narration {
   font-family: 'Source Serif 4', serif;
   font-style: italic;
   font-size: 13px;
   color: var(--ink-soft);
   padding: 0.3rem 0.8rem;
-  background: var(--paper-deep);
+  background: transparent;
   border-radius: var(--radius-md);
   margin-bottom: 0.6rem;
-  display: none;
+  min-height: 1.6em;
+  opacity: 0;
+  transition: opacity 0.25s, background 0.25s, font-size 0.25s, color 0.25s;
 }
 .event-narration.visible {
-  display: block;
+  opacity: 1;
+  background: var(--paper-deep);
+}
+/* When a shock is running, make the narration visually prominent — bigger,
+   darker text, with a left border indicating it's active "live". */
+.event-narration.shock-active {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 0.75rem 1rem 0.75rem 1.1rem;
+  border-left: 3px solid var(--welfare-loss);
+  min-height: 2.6em;
+}
+
+.shock-clock {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--welfare-loss);
+  background: rgba(184, 80, 47, 0.08);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-left: auto;
+}
+.shock-skip {
+  margin-left: 0 !important;
+  background: var(--paper-deep) !important;
+  border-color: var(--ink-soft) !important;
+}
+.shock-skip:hover {
+  background: var(--ink) !important;
+  color: #fff !important;
 }
 
 /* ---- Explainer arrows (for the Explain mode) ---------------------------- */

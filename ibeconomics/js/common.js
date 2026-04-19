@@ -391,7 +391,7 @@ export function createPlot({
   scenario = 'generic',
   width = 640,
   height = 460,
-  margin = { top: 30, right: 30, bottom: 56, left: 64 },
+  margin = { top: 30, right: 30, bottom: 56, left: 78 },
 } = {}) {
   const s = scenarios[scenario] || scenarios.generic;
   const plotW = width - margin.left - margin.right;

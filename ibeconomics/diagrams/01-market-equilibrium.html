@@ -14,7 +14,8 @@
 
 <main class="diagram-page">
 
-  <header class="diagram-header">
+  <header class="diagram-header sticky">
+    <a class="back-link" href="../index.html" aria-label="Back to diagrams">← Diagrams</a>
     <div class="title-block">
       <span class="syllabus-tag">2.3 Competitive market equilibrium · Both SL &amp; HL</span>
       <h1>Market equilibrium</h1>
@@ -30,7 +31,7 @@
           <option value="danny">Danny's lemonade stand</option>
         </select>
       </div>
-      <button class="help-toggle" id="help-toggle">How to play</button>
+      <button class="help-toggle" id="help-toggle">Instructions</button>
     </div>
   </header>
 
@@ -41,24 +42,30 @@
         <span class="events-label">Try an event</span>
         <!-- Event chips injected by JS -->
       </div>
-      <div class="event-narration" id="event-narration"></div>
+      <div class="events-row" id="shocks-row">
+        <span class="events-label">Or a longer shock</span>
+        <button class="event-chip shock-btn" id="shock-cap" title="Impose a maximum price below equilibrium for six weeks.">Price cap <span class="term-badge">maximum price</span></button>
+        <button class="event-chip shock-btn" id="shock-floor" title="Impose a minimum price above equilibrium for six weeks.">Price floor <span class="term-badge">minimum price</span></button>
+        <button class="event-chip shock-btn" id="shock-supply" title="A sudden drop in supply (e.g. a drought) for six weeks.">Sudden supply cut <span class="term-badge">negative supply shock</span></button>
+        <span class="shock-clock" id="shock-clock" style="display: none;"></span>
+        <button class="event-chip shock-skip" id="shock-skip" style="display: none;" title="Skip to the end of the shock.">Skip ▸</button>
+      </div>
+      <div class="event-narration" id="event-narration">Click an event or shock above to see the market react.</div>
       <section class="graph-area">
         <div id="help-panel" class="help-panel">
-          <h4>How to play</h4>
+          <h4>Instructions</h4>
           <ul>
             <li>Drag the <strong>dashed price line</strong> up or down. Release to see the market return.</li>
             <li>Hover the demand or supply line, grab anywhere, drag to shift it.</li>
             <li>Use the sliders for shifts and to change the steepness of each curve.</li>
             <li>Click legend items to hide or show regions.</li>
-            <li>Try the four <strong>Return style</strong> options for different dynamics.</li>
+            <li>Try the four <strong>Price return style</strong> options for different dynamics.</li>
           </ul>
         </div>
         <div id="plot" aria-label="Interactive supply and demand diagram"></div>
         <div class="legend" id="legend">
           <span class="item" data-region="consumer-surplus"><span class="swatch" style="background: var(--demand-fill); border-color: var(--demand);"></span> Consumer surplus</span>
           <span class="item" data-region="producer-surplus"><span class="swatch" style="background: var(--supply-fill); border-color: var(--supply);"></span> Producer surplus</span>
-          <span class="item" data-region="shortage"><span class="swatch hatched-shortage"></span> Shortage</span>
-          <span class="item" data-region="surplus"><span class="swatch hatched-surplus"></span> Surplus of goods</span>
         </div>
       </section>
 
@@ -84,7 +91,7 @@
           <span class="small muted">Flatter = more elastic; steeper = more inelastic</span>
         </div>
         <div class="control" style="grid-column: span 2;">
-          <label>Return style</label>
+          <label>Price return style</label>
           <div class="return-style" id="return-style">
             <button data-style="none">None</button>
             <button data-style="critical" class="active">Critical</button>
@@ -105,11 +112,20 @@
             <span>Show buyers &amp; sellers reacting</span>
           </label>
         </div>
-        <div class="control" style="grid-column: span 2; flex-direction: row; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <span class="events-label" style="margin-right: 0.4rem;">Price shock</span>
-          <button class="event-chip shock-btn" id="shock-cap" title="Impose a maximum price below equilibrium for six weeks.">Impose price cap <span class="term-badge">maximum price</span></button>
-          <button class="event-chip shock-btn" id="shock-supply" title="A sudden drop in supply (e.g. a drought) for six weeks.">Sudden supply cut <span class="term-badge">negative supply shock</span></button>
-          <span class="shock-clock" id="shock-clock" style="display: none; margin-left: auto; font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink-soft);"></span>
+        <div class="control" style="grid-column: span 2;">
+          <label style="margin-bottom: 0.3rem;">Adjustment speeds <span class="small muted" style="text-transform: none; letter-spacing: 0; font-weight: 400;">(when a curve shifts, how fast does each side respond?)</span></label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+            <div>
+              <label style="font-size: 11px;">Demand speed <span class="value" id="demand-speed-val">fast</span></label>
+              <input type="range" id="demand-speed" min="5" max="100" step="1" value="85" />
+              <span class="small muted" id="demand-speed-note">Consumers typically respond to price changes quickly.</span>
+            </div>
+            <div>
+              <label style="font-size: 11px;">Supply speed <span class="value" id="supply-speed-val">slow</span></label>
+              <input type="range" id="supply-speed" min="5" max="100" step="1" value="15" />
+              <span class="small muted" id="supply-speed-note">Firms take time to change their output (new workers, new capacity).</span>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -161,7 +177,12 @@ const state = {
   offGraphEnabled: false,
   activeEventId: null,
   eventAnim: null,
-  activeShock: null,  // { type, startTime, duration, totalWeeks, currentWeek, rafId }
+  activeShock: null,
+  // Transition dynamics (Dynamic 2)
+  demandSpeed: 0.85,     // fast-adjusting demand by default
+  supplySpeed: 0.15,     // slow-adjusting supply by default
+  transition: null,      // { pPrime, qOld, pOld, oldCurves, newEqQ, newEqP, phase }
+  lastSettledCurves: null,  // copy of demand/supply at last-known settled state
 };
 
 const returnStyleLabels = {
@@ -170,6 +191,143 @@ const returnStyleLabels = {
   underdamped: 'Visual exaggeration: market overshoots and wobbles. Not a realistic market behaviour, but revealing about the forces at work.',
   cobweb: 'Cobweb model: producers plan based on last period\u2019s price. Price can oscillate and converge, oscillate without converging, or diverge. Try with Albanian wheat.',
 };
+
+/* Per-scenario notes about why adjustment speeds vary. The notes change
+   depending on slider position: fast, moderate, slow. */
+const adjustmentSpeedNotes = {
+  greengrocer: {
+    demand: {
+      fast: 'Customers walk past, notice the price, decide quickly.',
+      moderate: 'Most customers respond within a day or two.',
+      slow: 'Hard to imagine: apples are routine, customers can switch their bread spread any day.',
+    },
+    supply: {
+      fast: 'The greengrocer can reorder overnight.',
+      moderate: 'A week or so to adjust standing orders with wholesalers.',
+      slow: 'Realistic at harvest time: supply is locked in for weeks.',
+    },
+  },
+  smartphones: {
+    demand: {
+      fast: 'Consumers compare prices online and decide within days.',
+      moderate: 'Contract lock-ins slow down some buyers.',
+      slow: 'Most buyers tied into multi-year contracts; takes time for demand to respond.',
+    },
+    supply: {
+      fast: 'Existing inventory can be shipped rapidly.',
+      moderate: 'Production lines can be re-scheduled in weeks.',
+      slow: 'Realistic: retooling factories or adding capacity takes 12-18 months.',
+    },
+  },
+  albania_wheat: {
+    demand: {
+      fast: 'Bakers reprice loaves weekly based on flour cost.',
+      moderate: 'Long-term bakery contracts take a season to renegotiate.',
+      slow: 'Not typical: flour is a necessity and buyers adapt quickly.',
+    },
+    supply: {
+      fast: 'Not realistic: wheat is planted in autumn, harvested in summer.',
+      moderate: 'Farmers adjust planting decisions between seasons.',
+      slow: 'Once the crop is in the ground, this year\u2019s supply is locked. This is the classic cobweb setup.',
+    },
+  },
+  danny: {
+    demand: {
+      fast: 'Passers-by respond to price on the spot.',
+      moderate: 'Word gets around the neighbourhood by afternoon.',
+      slow: 'Hard to imagine slow demand for lemonade at a pavement stand.',
+    },
+    supply: {
+      fast: 'Danny can mix more lemonade in ten minutes.',
+      moderate: 'Running low on lemons means a shop trip.',
+      slow: 'Hard to imagine: Danny\u2019s not running a factory.',
+    },
+  },
+  generic: {
+    demand: {
+      fast: 'Typical: consumers respond to price quickly.',
+      moderate: 'Some friction in the market.',
+      slow: 'Unusual. Examples: specialised fuels, licensed goods, network-effect products with lock-in.',
+    },
+    supply: {
+      fast: 'Idle inventory or spare capacity can be released quickly.',
+      moderate: 'Some adjustment time for production.',
+      slow: 'Typical for farming, housing, long-cycle manufacturing.',
+    },
+  },
+};
+
+function speedCategory(value) {
+  // value is 5..100
+  if (value >= 70) return 'fast';
+  if (value >= 35) return 'moderate';
+  return 'slow';
+}
+function updateSpeedNotes() {
+  const notes = adjustmentSpeedNotes[state.scenarioKey] || adjustmentSpeedNotes.generic;
+  const dCat = speedCategory(state.demandSpeed * 100);
+  const sCat = speedCategory(state.supplySpeed * 100);
+  document.getElementById('demand-speed-val').textContent = dCat;
+  document.getElementById('supply-speed-val').textContent = sCat;
+  document.getElementById('demand-speed-note').textContent = notes.demand[dCat];
+  document.getElementById('supply-speed-note').textContent = notes.supply[sCat];
+}
+
+/* Scenario-specific text that appears under the shift and pivot sliders.
+   Keeps the UI grounded in the current scenario — so instead of "Input
+   costs, technology, number of firms", the greengrocer sees "Wholesale
+   prices, harvest size, how many greengrocers in town". */
+const sliderHelperText = {
+  generic: {
+    demandShift: 'More buyers, higher incomes, changing tastes',
+    supplyShift: 'Input costs, technology, number of firms',
+    demandPivot: 'Are there substitutes? Is this a necessity?',
+    supplyPivot: 'Spare capacity, flexibility of production',
+  },
+  greengrocer: {
+    demandShift: 'Footfall in town, health fads, shopping habits',
+    supplyShift: 'Wholesale prices, local harvest, competing shops',
+    demandPivot: 'Other fruits available? Tea-time snack traditions?',
+    supplyPivot: 'Can the greengrocer quickly reorder?',
+  },
+  smartphones: {
+    demandShift: 'New killer apps, incomes, upgrade cycles',
+    supplyShift: 'Chip costs, manufacturing capacity, tariffs',
+    demandPivot: 'Are there alternative devices? Contract lock-ins?',
+    supplyPivot: 'Factory flexibility, long lead-times?',
+  },
+  albania_wheat: {
+    demandShift: 'Bread consumption, bakery numbers, export demand',
+    supplyShift: 'Weather, farm technology, area planted',
+    demandPivot: 'Substitutes (rice, corn), local tastes',
+    supplyPivot: 'Planted area is fixed within a year',
+  },
+  danny: {
+    demandShift: 'Weather, footfall, rival sellers, word of mouth',
+    supplyShift: 'Sugar and lemon costs, Danny\u2019s energy, his supplies',
+    demandPivot: 'Is Danny\u2019s stand the only option? Hot day?',
+    supplyPivot: 'Danny\u2019s mixing speed, available lemons',
+  },
+};
+
+function updateSliderHelpers() {
+  const t = sliderHelperText[state.scenarioKey] || sliderHelperText.generic;
+  // Each slider helper is the <span class="small muted"> directly beneath the
+  // <input> within its .control block. We locate by slider ID.
+  const findHelper = (sliderId) => {
+    const slider = document.getElementById(sliderId);
+    if (!slider) return null;
+    return slider.parentElement.querySelector('.small.muted');
+  };
+  const dShift = findHelper('demand-shift');
+  const sShift = findHelper('supply-shift');
+  const dPivot = findHelper('demand-pivot');
+  const sPivot = findHelper('supply-pivot');
+  if (dShift) dShift.textContent = t.demandShift;
+  if (sShift) sShift.textContent = t.supplyShift;
+  if (dPivot) dPivot.textContent = t.demandPivot;
+  if (sPivot) sPivot.textContent = t.supplyPivot;
+}
 
 /* -----------------------------------------------------------------------
    Plot setup
@@ -253,80 +411,80 @@ function computeRegions() {
   const qS = state.supply.quantityAt(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
 
-  // Consumer surplus: triangle above price, below demand, up to qTraded,
-  // but clipped at the top of the plot so it never extends infinitely.
+  // Consumer surplus: region above market price, below demand curve,
+  // between q = 0 and q = qTraded. Walk the perimeter:
+  //   1. start at (0, p)
+  //   2. up the y-axis to where demand hits: (0, demandAtZero), clipped to pTop
+  //   3. if demand exited the plot top, add the corner (qAtTop, pTop)
+  //   4. follow demand down to (qTraded, demand.priceAt(qTraded))
+  //   5. back to (qTraded, p) — but this equals step 4 when p is the market price
+  //      so we only add step 5 if we're showing CS at a forced price where
+  //      demand > p at qTraded.
   const pTop = s.priceMax;
-  const demandAtZero = state.demand.priceAt(0);
-  if (qTraded > 0 && demandAtZero > p) {
-    const cappedTop = Math.min(demandAtZero, pTop);
-    if (cappedTop > p) {
-      const pts = [
-        [0, p],
-        [0, cappedTop],
-      ];
-      // If demand hits the top of the plot before q=0, we need to include
-      // the intersection with the top edge
-      if (demandAtZero > pTop) {
-        const qAtTop = state.demand.quantityAt(pTop);
-        pts.push([qAtTop, pTop]);
-      }
-      // Then follow demand down to qTraded
-      const demandAtQTraded = state.demand.priceAt(qTraded);
-      pts.push([qTraded, Math.min(Math.max(demandAtQTraded, p), pTop)]);
-      regions.push({
-        id: 'consumer-surplus',
-        className: 'consumer-surplus',
-        points: pts,
-      });
+  const dAtZero = state.demand.priceAt(0);
+  if (qTraded > 0 && dAtZero > p) {
+    const dTopY = Math.min(dAtZero, pTop);
+    const pts = [[0, p], [0, dTopY]];
+    if (dAtZero > pTop) {
+      // demand exits the top of the plot at some q before reaching q=0
+      const qAtTop = state.demand.quantityAt(pTop);
+      pts.push([qAtTop, pTop]);
     }
-  }
-
-  // Producer surplus: area below price, above supply, from the supply
-  // curve's x-intercept up to qTraded.
-  const supplyAtZero = state.supply.priceAt(0);
-  const qSupplyStart = supplyAtZero < 0 ? state.supply.quantityAt(0) : 0;
-  const pSupplyStart = supplyAtZero < 0 ? 0 : supplyAtZero;
-  if (qTraded > qSupplyStart && p > pSupplyStart) {
+    // Follow demand to qTraded; demand.priceAt(qTraded) may be >= p (always,
+    // for a sensible market) so we close the polygon with that point and p.
+    pts.push([qTraded, state.demand.priceAt(qTraded)]);
+    if (state.demand.priceAt(qTraded) > p + 0.001) {
+      pts.push([qTraded, p]);
+    }
     regions.push({
-      id: 'producer-surplus',
-      className: 'producer-surplus',
-      points: [
-        [qSupplyStart, pSupplyStart],
-        [qSupplyStart, p],
-        [qTraded, p],
-        [qTraded, state.supply.priceAt(qTraded)],
-      ],
+      id: 'consumer-surplus',
+      className: 'consumer-surplus',
+      points: pts,
     });
   }
 
-  // Disequilibrium triangle between curves at the forced price
-  if (Math.abs(p - e.p) > 0.001) {
-    if (p < e.p && qD > qS) {
-      // Shortage
-      regions.push({
-        id: 'shortage',
-        className: 'shortage',
-        points: [
-          [qS, p],
-          [qD, p],
-          [qD, state.demand.priceAt(qD)],
-          [qS, state.supply.priceAt(qS)],
-        ],
-      });
-    } else if (p > e.p && qS > qD) {
-      // Surplus
-      regions.push({
-        id: 'surplus',
-        className: 'surplus',
-        points: [
-          [qD, p],
-          [qS, p],
-          [qS, state.supply.priceAt(qS)],
-          [qD, state.demand.priceAt(qD)],
-        ],
-      });
+  // Producer surplus: region below market price, above supply curve,
+  // between q=0 and qTraded.
+  // KEY: if supply has a positive x-intercept (i.e. some units would be
+  // offered at zero price), those "free" units still sell at market price p.
+  // Producers' surplus on those units is the full p × qSStart rectangle.
+  // The triangle above the supply curve adds to that.
+  // So the polygon walks:
+  //   - (0, 0)                         bottom-left
+  //   - (0, p)                         up the y-axis to market price
+  //   - (qTraded, p)                   across the top at market price
+  //   - (qTraded, supply.priceAt(qTraded))  down to supply curve
+  //   - follow supply back along its path to its left edge
+  //   - close to (0, 0)
+  // The "left edge" of supply is (qSStart, pSStart) = either on the y-axis
+  // (if supply's y-intercept is >= 0) or on the x-axis (if supply's
+  // y-intercept is negative, meaning supply crosses the x-axis at qSStart).
+  const sAtZero = state.supply.priceAt(0);
+  const qSStart = sAtZero < 0 ? state.supply.quantityAt(0) : 0;
+  const pSStart = sAtZero < 0 ? 0 : Math.max(0, sAtZero);
+  if (qTraded > qSStart && p > pSStart) {
+    const pts = [
+      [0, 0],
+      [0, p],
+      [qTraded, p],
+      [qTraded, state.supply.priceAt(qTraded)],
+    ];
+    // Only include the "bend point" at the supply curve's left edge if
+    // that point is to the right of (0,0). Otherwise we're already closing
+    // through (0,0) directly.
+    if (qSStart > 0.01) {
+      pts.push([qSStart, pSStart]);
     }
+    regions.push({
+      id: 'producer-surplus',
+      className: 'producer-surplus',
+      points: pts,
+    });
   }
+
+  // The quantity gap at the forced price is shown as a bracket bar on the
+  // price line (see setGapBar below), not as an area polygon, because the
+  // thing being communicated is a quantity (apples), not an area (£ × apples).
 
   return regions;
 }
@@ -340,13 +498,16 @@ function renderAll() {
   const e = eq();
   const p = currentPrice();
 
-  // Curves — both draggable
-  plot.setCurves([
+  // Curves — both draggable. During a transition, render the old curves
+  // as ghosts alongside. Curve-drag end triggers a transition animation
+  // if the equilibrium has moved meaningfully.
+  const curveSpecs = [
     {
       curve: state.demand,
       kind: 'demand',
       label: 'D',
       draggable: true,
+      onDragStart: () => captureSettledCurves('demand'),
       onDrag: (newCurve) => {
         state.demand = newCurve;
         state.forcedPrice = null;
@@ -359,12 +520,14 @@ function renderAll() {
         manualSliderChange();
         renderAll();
       },
+      onDragEnd: () => triggerTransitionIfChanged('demand'),
     },
     {
       curve: state.supply,
       kind: 'supply',
       label: 'S',
       draggable: true,
+      onDragStart: () => captureSettledCurves('supply'),
       onDrag: (newCurve) => {
         state.supply = newCurve;
         state.forcedPrice = null;
@@ -377,8 +540,29 @@ function renderAll() {
         manualSliderChange();
         renderAll();
       },
+      onDragEnd: () => triggerTransitionIfChanged('supply'),
     },
-  ]);
+  ];
+
+  // If a transition is in progress, also render the pre-shift curves as ghosts
+  if (state.transition) {
+    curveSpecs.push({
+      curve: state.transition.oldCurves.demand,
+      kind: 'demand',
+      variant: 'ghost',
+      label: null,
+      draggable: false,
+    });
+    curveSpecs.push({
+      curve: state.transition.oldCurves.supply,
+      kind: 'supply',
+      variant: 'ghost',
+      label: null,
+      draggable: false,
+    });
+  }
+
+  plot.setCurves(curveSpecs);
 
   // Regions
   plot.setRegions(computeRegions());
@@ -406,8 +590,9 @@ function renderAll() {
     },
   });
 
-  // Annotations: drop lines from equilibrium to axes (only when at eq)
-  if (state.forcedPrice == null && e) {
+  // Dotted leader lines from the equilibrium marker to each axis — always on
+  // when there is an equilibrium, textbook convention.
+  if (e) {
     plot.setAnnotations([
       { kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true },
       { kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true },
@@ -445,13 +630,16 @@ function renderAll() {
     plot.setGapBar(null);
   }
 
-  // Force arrow (Pass A: visible when off equilibrium; Pass B animates pulse)
+  // Force arrow: sits on equilibrium's x-coord, running from current price
+  // to equilibrium price. Pulses via CSS.
   if (state.forcedPrice != null && e) {
     const gap = state.demand.quantityAt(p) - state.supply.quantityAt(p);
     const s = scenarios[state.scenarioKey];
     const magnitude = Math.min(1, Math.abs(gap) / (s.quantityMax * 0.5));
     plot.setForceArrow({
       atPrice: p,
+      targetPrice: e.p,
+      eqQ: e.q,
       magnitude,
       direction: gap > 0 ? 'up' : 'down',
     });
@@ -465,40 +653,46 @@ function renderAll() {
     plot.setOffGraph({ enabled: false });
   }
 
-  // Labels: P* and Q* near the equilibrium ring (callouts that don't collide
-  // with the y-axis). Current price on the y-axis only when forced off-eq.
+  // Labels: P* on the y-axis, Q* on the x-axis, with dotted leader lines
+  // from the equilibrium marker to each axis. Convention matches textbook
+  // diagrams.
   const labels = [];
   if (e) {
-    // Combined P*/Q* callout next to the equilibrium marker
+    // P* label just inside the y-axis, at the equilibrium price level.
+    // Placed inside (not in the left margin) to avoid colliding with the
+    // rotated y-axis title.
     labels.push({
-      x: e.q,
+      x: 0,
       y: e.p,
+      rawX: plot.margin.left + 6,
       text: `P* = ${formatPrice(state.scenarioKey, e.p)}`,
       textAnchor: 'start',
-      offset: { x: 12, y: -4 },
-      color: 'var(--ink-soft)',
-      className: 'point-label',
+      offset: { y: -4 },
+      color: 'var(--ink)',
+      className: 'point-label axis-callout',
     });
+    // Q* label on the x-axis — placed below the axis tick numbers
     labels.push({
       x: e.q,
-      y: e.p,
+      y: 0,
+      rawY: plot.margin.top + plot.plotH + 48,
       text: `Q* = ${formatQuantity(state.scenarioKey, e.q)}`,
-      textAnchor: 'start',
-      offset: { x: 12, y: 12 },
-      color: 'var(--ink-soft)',
-      className: 'point-label',
+      textAnchor: 'middle',
+      color: 'var(--ink)',
+      className: 'point-label axis-callout',
     });
   }
-  // Current price tick on the y-axis — only when forced away from eq
+  // Current price tick — when forced away from eq. Also just inside the axis.
   if (state.forcedPrice != null && e) {
     labels.push({
       x: 0,
       y: p,
-      rawX: plot.margin.left - 8,
+      rawX: plot.margin.left + 6,
       text: formatPrice(state.scenarioKey, p),
-      textAnchor: 'end',
-      offset: { y: 4 },
-      color: 'var(--ink)',
+      textAnchor: 'start',
+      offset: { y: -4 },
+      color: 'var(--ink-soft)',
+      italic: true,
       className: 'point-label',
     });
   }
@@ -643,62 +837,172 @@ function applyEvent(eventId) {
     demandPivot: ev.demandPivot || 0,
     supplyPivot: ev.supplyPivot || 0,
   };
-  const start = {
+  const startNow = {
     demandShift: state.demandShift,
     supplyShift: state.supplyShift,
     demandPivot: state.demandPivot,
     supplyPivot: state.supplyPivot,
   };
 
+  // Detect "off baseline" — if any sliders are non-zero, we should first
+  // return to baseline, pause briefly, then apply the new event. The visual
+  // story reads as: the old event subsides, then the new one hits. Without
+  // this, interpolating directly from one non-zero state to another produces
+  // an economically meaningless intermediate state.
+  const offBaseline =
+    Math.abs(startNow.demandShift) > 0.5 || Math.abs(startNow.supplyShift) > 0.5 ||
+    Math.abs(startNow.demandPivot) > 0.5 || Math.abs(startNow.supplyPivot) > 0.5;
+
   // Show event narration banner
   const narrBanner = document.getElementById('event-narration');
-  narrBanner.textContent = ev.narration;
   narrBanner.classList.add('visible');
 
   // Release any forced price; event will play out at natural equilibrium
   state.forcedPrice = null;
 
-  // Animate slider values from start to target over ~600ms
-  const duration = 600;
-  const t0 = performance.now();
-  const anim = { cancel: false };
-  state.eventAnim = anim;
-  function step(now) {
-    if (anim.cancel) return;
-    const t = Math.min(1, (now - t0) / duration);
-    const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
-    state.demandShift = start.demandShift + (target.demandShift - start.demandShift) * e;
-    state.supplyShift = start.supplyShift + (target.supplyShift - start.supplyShift) * e;
-    state.demandPivot = start.demandPivot + (target.demandPivot - start.demandPivot) * e;
-    state.supplyPivot = start.supplyPivot + (target.supplyPivot - start.supplyPivot) * e;
-    // Reflect in the slider UI
-    document.getElementById('demand-shift').value = state.demandShift;
-    document.getElementById('supply-shift').value = state.supplyShift;
-    document.getElementById('demand-pivot').value = state.demandPivot;
-    document.getElementById('supply-pivot').value = state.supplyPivot;
-    document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
-    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
-    document.getElementById('demand-pivot-val').textContent = state.demandPivot > 20 ? 'inelastic' : state.demandPivot < -20 ? 'elastic' : 'normal';
-    document.getElementById('supply-pivot-val').textContent = state.supplyPivot > 20 ? 'inelastic' : state.supplyPivot < -20 ? 'elastic' : 'normal';
-    buildCurves();
-    renderAll();
-    if (t < 1) requestAnimationFrame(step);
-    else {
+  // Helper: animate between two slider-state snapshots over `duration` ms.
+  // Returns a promise that resolves when complete or the animation is cancelled.
+  const animTokens = { cancel: false };
+  state.eventAnim = animTokens;
+  function animateSliders(from, to, duration) {
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      function step(now) {
+        if (animTokens.cancel) { resolve(); return; }
+        const t = Math.min(1, (now - t0) / duration);
+        const e = 1 - Math.pow(1 - t, 3);
+        state.demandShift = from.demandShift + (to.demandShift - from.demandShift) * e;
+        state.supplyShift = from.supplyShift + (to.supplyShift - from.supplyShift) * e;
+        state.demandPivot = from.demandPivot + (to.demandPivot - from.demandPivot) * e;
+        state.supplyPivot = from.supplyPivot + (to.supplyPivot - from.supplyPivot) * e;
+        document.getElementById('demand-shift').value = state.demandShift;
+        document.getElementById('supply-shift').value = state.supplyShift;
+        document.getElementById('demand-pivot').value = state.demandPivot;
+        document.getElementById('supply-pivot').value = state.supplyPivot;
+        document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
+        document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+        document.getElementById('demand-pivot-val').textContent = state.demandPivot > 20 ? 'inelastic' : state.demandPivot < -20 ? 'elastic' : 'normal';
+        document.getElementById('supply-pivot-val').textContent = state.supplyPivot > 20 ? 'inelastic' : state.supplyPivot < -20 ? 'elastic' : 'normal';
+        buildCurves();
+        renderAll();
+        if (t < 1) requestAnimationFrame(step);
+        else resolve();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  const zero = { demandShift: 0, supplyShift: 0, demandPivot: 0, supplyPivot: 0 };
+
+  // If we're off baseline, chain: current → baseline → new event
+  (async () => {
+    if (offBaseline) {
+      // Fade banner briefly during return-to-baseline, show new text when new event applies
+      narrBanner.textContent = 'The previous event subsides…';
+      await animateSliders(startNow, zero, 380);
+      if (animTokens.cancel) return;
+      await new Promise(r => setTimeout(r, 150));
+      if (animTokens.cancel) return;
+      narrBanner.textContent = ev.narration;
+      await animateSliders(zero, target, 560);
+    } else {
+      narrBanner.textContent = ev.narration;
+      await animateSliders(zero, target, 600);
+    }
+    if (!animTokens.cancel) {
       state.eventAnim = null;
       updateResetDisabled();
     }
-  }
-  requestAnimationFrame(step);
+  })();
   updateResetDisabled();
 
   logEvent({ diagram: 'market-equilibrium', action: 'event-applied', event: eventId });
+}
+
+/* -----------------------------------------------------------------------
+   Transition dynamics (Dynamic 2): when a curve shifts, the market doesn't
+   teleport to the new equilibrium. The slow side takes time to adjust,
+   so the price overshoots (or undershoots) along the fast side's curve,
+   then slides to the true new equilibrium.
+   ----------------------------------------------------------------------- */
+
+function captureSettledCurves(changedSide) {
+  // Called when the user starts dragging a curve. Remember the pre-drag
+  // curves so we can play the transition from there.
+  state.lastSettledCurves = {
+    demand: state.demand,
+    supply: state.supply,
+  };
+  state.lastSettledChangedSide = changedSide;
+}
+
+function triggerTransitionIfChanged(changedSide) {
+  const settled = state.lastSettledCurves;
+  if (!settled) return;
+  // If both speed sliders are high, transition is essentially instant;
+  // skip the animation.
+  const effectiveSlowness = Math.max(
+    changedSide === 'demand' ? (1 - state.supplySpeed) : (1 - state.demandSpeed),
+    0
+  );
+  if (effectiveSlowness < 0.1) {
+    // Fast both sides: no overshoot worth showing
+    state.lastSettledCurves = null;
+    return;
+  }
+
+  const oldCurves = settled;
+  const newCurves = { demand: state.demand, supply: state.supply };
+
+  // Set up transition state; renderAll reads it to show ghosts, P' marker, etc.
+  state.transition = {
+    oldCurves,
+    changedSide,
+    pPrime: null,
+    qOld: null,
+    pOld: null,
+    newEqQ: null,
+    newEqP: null,
+    phase: 'overshoot',
+    progress: 0,
+  };
+
+  plot.runTransition({
+    oldCurves,
+    newCurves,
+    changedSide,
+    demandSpeed: state.demandSpeed,
+    supplySpeed: state.supplySpeed,
+    onUpdate: ({ p, q, pPrime, qOld, pOld, newEq, progress, phase }) => {
+      state.transition.pPrime = pPrime;
+      state.transition.qOld = qOld;
+      state.transition.pOld = pOld;
+      state.transition.newEqQ = newEq.q;
+      state.transition.newEqP = newEq.p;
+      state.transition.phase = phase;
+      state.transition.progress = progress;
+      // The "current transacted price" during the transition is p,
+      // so we represent it as a forced price (visualised as the price line).
+      state.forcedPrice = p;
+      renderAll();
+    },
+    onDone: () => {
+      state.transition = null;
+      state.lastSettledCurves = null;
+      state.forcedPrice = null;
+      renderAll();
+    },
+  });
+  logEvent({ diagram: 'market-equilibrium', action: 'transition-started', changedSide });
 }
 
 function resetEvent() {
   if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
   state.activeEventId = null;
   document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
-  document.getElementById('event-narration').classList.remove('visible');
+  const narrBannerReset = document.getElementById('event-narration');
+  narrBannerReset.classList.remove('visible');
+  narrBannerReset.textContent = 'Click an event above to see the market react.';
 
   // Animate sliders back to 0
   const start = {
@@ -758,6 +1062,14 @@ const shockNarrations = {
     'Week 5. Stories circulate of apples being bartered for. Local politicians are asked to intervene.',
     'Week 6. The price cap is lifted. The market begins to rebalance.',
   ],
+  floor: [
+    'Week 1. The guaranteed price is above what most buyers will pay. Sales drop sharply.',
+    'Week 2. Unsold stock piles up; the government must buy the surplus to defend the floor.',
+    'Week 3. Producers expand output to capture the guaranteed price, worsening the glut.',
+    'Week 4. Storage costs mount. Critics question whether the floor is sustainable.',
+    'Week 5. Some producers quietly sell below the floor to offload stock.',
+    'Week 6. The price floor is lifted. The market begins to rebalance.',
+  ],
   supply: [
     'Week 1. The first shortfall is noticeable; prices tick up.',
     'Week 2. Buyers scramble to secure stock; queues lengthen.',
@@ -775,54 +1087,57 @@ function startShock(type) {
     cancelAnimationFrame(state.activeShock.rafId);
     state.activeShock = null;
   }
-  // Clear any forced price the user set
   state.forcedPrice = null;
-  // Reset shift/pivot sliders (but NOT via animation — shocks start instantly)
   resetShiftSliders();
-  // Unhighlight events
   state.activeEventId = null;
   document.querySelectorAll('.event-chip:not(.shock-btn)').forEach(c => c.classList.remove('active'));
 
-  // Highlight the active shock button
   document.querySelectorAll('.shock-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(type === 'cap' ? 'shock-cap' : 'shock-supply').classList.add('active');
+  const buttonId = { cap: 'shock-cap', floor: 'shock-floor', supply: 'shock-supply' }[type];
+  if (buttonId) document.getElementById(buttonId).classList.add('active');
 
   const e = eq();
   if (!e) return;
 
   const totalWeeks = 6;
-  const durationMs = 9000;
+  const durationMs = 24000;  // 4 seconds per week — gives time to read
   const shock = {
     type,
     startTime: performance.now(),
     duration: durationMs,
     totalWeeks,
-    currentWeek: 1,
+    currentWeek: 0,  // will become 1 on first tick
     rafId: null,
-    // Remember baseline equilibrium for recovery
     baselineEq: { q: e.q, p: e.p },
+    // Automatically force off-graph display on during shocks
+    offGraphWasOn: state.offGraphEnabled,
   };
   state.activeShock = shock;
+  // Turn on off-graph automatically during shock so the visible queue grows
+  state.offGraphEnabled = true;
+  document.getElementById('off-graph-toggle').checked = true;
 
-  // Apply the shock effect
   if (type === 'cap') {
-    // Price cap: lock the forced price at ~0.7 * equilibrium (below eq)
     state.forcedPrice = e.p * 0.6;
+  } else if (type === 'floor') {
+    const sc = scenarios[state.scenarioKey];
+    state.forcedPrice = Math.min(sc.priceMax * 0.95, e.p * 1.4);
   } else if (type === 'supply') {
-    // Supply shock: shift supply left 35% until it releases
     state.supplyShift = -35;
     document.getElementById('supply-shift').value = state.supplyShift;
     document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
     buildCurves();
   }
 
-  // Show clock
+  // Show the clock and skip button
   const clock = document.getElementById('shock-clock');
-  clock.style.display = 'inline';
+  const skipBtn = document.getElementById('shock-skip');
+  clock.style.display = 'inline-block';
+  skipBtn.style.display = 'inline-block';
 
-  // Use event-narration banner to show shock narration
+  // Promote narration visually: add shock-active class
   const narrBanner = document.getElementById('event-narration');
-  narrBanner.classList.add('visible');
+  narrBanner.classList.add('visible', 'shock-active');
   narrBanner.textContent = shockNarrations[type][0];
 
   function tick(now) {
@@ -832,9 +1147,19 @@ function startShock(type) {
     const week = Math.min(totalWeeks, 1 + Math.floor(progress * totalWeeks));
     if (week !== shock.currentWeek) {
       shock.currentWeek = week;
-      narrBanner.textContent = shockNarrations[type][Math.min(week - 1, shockNarrations[type].length - 1)];
+      const line = shockNarrations[type][Math.min(week - 1, shockNarrations[type].length - 1)];
+      // Brief fade-out then fade-in on week change so the eye notices
+      narrBanner.style.opacity = '0.4';
+      setTimeout(() => {
+        narrBanner.textContent = line;
+        narrBanner.style.opacity = '';
+      }, 200);
     }
     clock.textContent = `Week ${week} of ${totalWeeks}`;
+
+    // Per-week visual changes: grow the effect that's happening
+    applyShockWeeklyEvolution(type, week, shock);
+
     renderAll();
     if (progress < 1) {
       shock.rafId = requestAnimationFrame(tick);
@@ -848,23 +1173,67 @@ function startShock(type) {
   logEvent({ diagram: 'market-equilibrium', action: 'shock-started', type });
 }
 
+/* Per-week visual evolution during a shock. Small, cumulative changes so
+   there's something visible happening beyond the narration text. */
+function applyShockWeeklyEvolution(type, week, shock) {
+  if (type === 'cap') {
+    // Price cap: over weeks 3-5, suppliers pull out — supply shifts slightly
+    // left. This worsens the shortage.
+    const weekPullback = Math.max(0, week - 2);   // 0 at week 1-2, 3 at week 5-6
+    const targetSupplyShift = -weekPullback * 5;   // 0, 0, -5, -10, -15, -15
+    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
+      state.supplyShift = targetSupplyShift;
+      document.getElementById('supply-shift').value = state.supplyShift;
+      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
+      buildCurves();
+    }
+  } else if (type === 'floor') {
+    // Price floor: over weeks 3-5, producers ramp up — supply shifts right.
+    const weekRampup = Math.max(0, week - 2);
+    const targetSupplyShift = weekRampup * 5;
+    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
+      state.supplyShift = targetSupplyShift;
+      document.getElementById('supply-shift').value = state.supplyShift;
+      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
+      buildCurves();
+    }
+  } else if (type === 'supply') {
+    // Supply cut: over weeks 4-6, recovery begins — supply shifts back
+    const targetSupplyShift = week >= 4 ? -35 + (week - 3) * 10 : -35;
+    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
+      state.supplyShift = targetSupplyShift;
+      document.getElementById('supply-shift').value = state.supplyShift;
+      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
+      buildCurves();
+    }
+  }
+}
+
 function endShock(shock) {
-  // Unlock whatever the shock was holding
+  // Clean up UI bits
   const clock = document.getElementById('shock-clock');
   clock.style.display = 'none';
+  document.getElementById('shock-skip').style.display = 'none';
   document.querySelectorAll('.shock-btn').forEach(b => b.classList.remove('active'));
   const narrBanner = document.getElementById('event-narration');
+  narrBanner.classList.remove('shock-active');
   // Leave the final narration line visible briefly before fading
-  setTimeout(() => { narrBanner.classList.remove('visible'); }, 2500);
+  setTimeout(() => {
+    narrBanner.classList.remove('visible');
+    narrBanner.textContent = 'Click an event or shock above to see the market react.';
+  }, 2500);
 
-  if (shock.type === 'cap') {
-    // Price was forced; release it via the standard spring
+  // Restore the user's off-graph preference
+  state.offGraphEnabled = shock.offGraphWasOn;
+  document.getElementById('off-graph-toggle').checked = shock.offGraphWasOn;
+
+  const needsPriceSpring = (shock.type === 'cap' || shock.type === 'floor');
+
+  if (needsPriceSpring) {
+    // Release forced price through a spring
     const currentForced = state.forcedPrice;
-    state.forcedPrice = null;
     const e = eq();
     if (e && currentForced != null && state.returnStyle !== 'none') {
-      // Restore the forced state briefly and let the spring run
-      state.forcedPrice = currentForced;
       if (plot._runSpring) {
         plot._cobwebCurves = { demand: state.demand, supply: state.supply };
         plot._runSpring(currentForced, e.p, state.returnStyle, (v) => {
@@ -876,36 +1245,46 @@ function endShock(shock) {
         renderAll();
       }
     } else {
+      state.forcedPrice = null;
       renderAll();
+    }
+    // Also need to unwind any supply shift added by weekly evolution
+    if (Math.abs(state.supplyShift) > 0.5) {
+      animateSupplyShiftToZero();
     }
   } else if (shock.type === 'supply') {
-    // Animate the supply shift back to 0
-    const start = state.supplyShift;
-    const duration = 1400;
-    const t0 = performance.now();
-    const anim = { cancel: false };
-    state.eventAnim = anim;
-    function step(now) {
-      if (anim.cancel) return;
-      const t = Math.min(1, (now - t0) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      state.supplyShift = start * (1 - eased);
-      document.getElementById('supply-shift').value = state.supplyShift;
-      document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
-      buildCurves();
-      renderAll();
-      if (t < 1) requestAnimationFrame(step);
-      else {
-        state.supplyShift = 0;
-        state.eventAnim = null;
-      }
-    }
-    requestAnimationFrame(step);
+    // Animate supply shift back to 0
+    animateSupplyShiftToZero();
   }
 
   state.activeShock = null;
   updateResetDisabled();
   logEvent({ diagram: 'market-equilibrium', action: 'shock-ended' });
+}
+
+function animateSupplyShiftToZero() {
+  const start = state.supplyShift;
+  if (Math.abs(start) < 0.5) return;
+  const duration = 1400;
+  const t0 = performance.now();
+  const anim = { cancel: false };
+  state.eventAnim = anim;
+  function step(now) {
+    if (anim.cancel) return;
+    const t = Math.min(1, (now - t0) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    state.supplyShift = start * (1 - eased);
+    document.getElementById('supply-shift').value = state.supplyShift;
+    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+    buildCurves();
+    renderAll();
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      state.supplyShift = 0;
+      state.eventAnim = null;
+    }
+  }
+  requestAnimationFrame(step);
 }
 
 document.getElementById('scenario').addEventListener('change', ev => {
@@ -916,6 +1295,7 @@ document.getElementById('scenario').addEventListener('change', ev => {
   plot.setScenario(state.scenarioKey);
   buildEventRow();
   buildCurves();
+  updateSpeedNotes();
   renderAll();
 });
 
@@ -992,7 +1372,25 @@ document.getElementById('off-graph-toggle').addEventListener('change', ev => {
 
 // Shock buttons
 document.getElementById('shock-cap').addEventListener('click', () => startShock('cap'));
+document.getElementById('shock-floor').addEventListener('click', () => startShock('floor'));
 document.getElementById('shock-supply').addEventListener('click', () => startShock('supply'));
+document.getElementById('shock-skip').addEventListener('click', () => {
+  if (state.activeShock) {
+    const shock = state.activeShock;
+    cancelAnimationFrame(shock.rafId);
+    endShock(shock);
+  }
+});
+
+// Adjustment-speed sliders
+document.getElementById('demand-speed').addEventListener('input', ev => {
+  state.demandSpeed = Number(ev.target.value) / 100;
+  updateSpeedNotes();
+});
+document.getElementById('supply-speed').addEventListener('input', ev => {
+  state.supplySpeed = Number(ev.target.value) / 100;
+  updateSpeedNotes();
+});
 
 // Legend toggles
 document.querySelectorAll('#legend .item').forEach(it => {
@@ -1021,6 +1419,8 @@ window.__IBECON_DEBUG__ = true;
 makePlot();
 buildEventRow();
 buildCurves();
+updateSpeedNotes();
+updateSliderHelpers();
 renderAll();
 </script>
 
