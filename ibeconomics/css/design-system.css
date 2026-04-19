@@ -718,7 +718,7 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 2px rgba(31,42,55,0.08);
 }
 .return-style button.beyond::after {
-  content: '✦';
+  content: '\2726';
   font-size: 9px;
   color: var(--demand);
   margin-left: 3px;
@@ -733,6 +733,91 @@ input[type="range"]::-moz-range-thumb {
   padding: 2px 8px;
   border-radius: 999px;
   margin-left: 6px;
+}
+
+/* ---- Events row --------------------------------------------------------- */
+
+.events-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.6rem;
+  align-items: center;
+}
+.events-row .events-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  margin-right: 0.4rem;
+}
+.event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 10px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+.event-chip:hover {
+  background: var(--paper-deep);
+  border-color: var(--ink-soft);
+}
+.event-chip.active {
+  background: var(--paper-deep);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.event-chip .term-badge {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: lowercase;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+}
+.event-chip.active .term-badge {
+  background: #fff;
+  color: var(--ink);
+}
+.event-chip.reset {
+  margin-left: auto;
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+.event-chip.reset:disabled,
+.event-chip.reset.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Event-narration banner below the chips (shows while an event is active) */
+.event-narration {
+  font-family: 'Source Serif 4', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 0.3rem 0.8rem;
+  background: var(--paper-deep);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.6rem;
+  display: none;
+}
+.event-narration.visible {
+  display: block;
 }
 
 /* ---- Explainer arrows (for the Explain mode) ---------------------------- */

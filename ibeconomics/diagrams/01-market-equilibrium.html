@@ -37,6 +37,11 @@
   <div class="diagram-main">
 
     <div class="left-col">
+      <div class="events-row" id="events-row">
+        <span class="events-label">Try an event</span>
+        <!-- Event chips injected by JS -->
+      </div>
+      <div class="event-narration" id="event-narration"></div>
       <section class="graph-area">
         <div id="help-panel" class="help-panel">
           <h4>How to play</h4>
@@ -100,6 +105,12 @@
             <span>Show buyers &amp; sellers reacting</span>
           </label>
         </div>
+        <div class="control" style="grid-column: span 2; flex-direction: row; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+          <span class="events-label" style="margin-right: 0.4rem;">Price shock</span>
+          <button class="event-chip shock-btn" id="shock-cap" title="Impose a maximum price below equilibrium for six weeks.">Impose price cap <span class="term-badge">maximum price</span></button>
+          <button class="event-chip shock-btn" id="shock-supply" title="A sudden drop in supply (e.g. a drought) for six weeks.">Sudden supply cut <span class="term-badge">negative supply shock</span></button>
+          <span class="shock-clock" id="shock-clock" style="display: none; margin-left: auto; font-family: 'Inter', sans-serif; font-size: 12px; color: var(--ink-soft);"></span>
+        </div>
       </section>
     </div>
 
@@ -148,6 +159,9 @@ const state = {
   returnStyle: 'critical',
   resistEnabled: true,
   offGraphEnabled: false,
+  activeEventId: null,
+  eventAnim: null,
+  activeShock: null,  // { type, startTime, duration, totalWeeks, currentWeek, rafId }
 };
 
 const returnStyleLabels = {
@@ -335,14 +349,14 @@ function renderAll() {
       draggable: true,
       onDrag: (newCurve) => {
         state.demand = newCurve;
-        state.forcedPrice = null;   // moving curves rescales equilibrium
-        // Update the shift slider to reflect the drag
+        state.forcedPrice = null;
         const s = scenarios[state.scenarioKey];
         const orig = defaultCurves(state.scenarioKey).demand;
         const shiftQ = newCurve.p1.q - orig.p1.q;
         state.demandShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
         document.getElementById('demand-shift').value = state.demandShift;
         document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
+        manualSliderChange();
         renderAll();
       },
     },
@@ -360,6 +374,7 @@ function renderAll() {
         state.supplyShift = Math.max(-40, Math.min(40, (shiftQ / s.quantityMax) * 100));
         document.getElementById('supply-shift').value = state.supplyShift;
         document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+        manualSliderChange();
         renderAll();
       },
     },
@@ -561,23 +576,378 @@ function resetShiftSliders() {
   document.getElementById('supply-pivot-val').textContent = 'normal';
 }
 
+/* -----------------------------------------------------------------------
+   Events
+   ----------------------------------------------------------------------- */
+
+function buildEventRow() {
+  const row = document.getElementById('events-row');
+  // Remove old chips (but keep the label)
+  row.querySelectorAll('.event-chip').forEach(el => el.remove());
+  const events = scenarios[state.scenarioKey].events || [];
+  for (const ev of events) {
+    const chip = document.createElement('button');
+    chip.className = 'event-chip';
+    chip.dataset.eventId = ev.id;
+    chip.title = ev.description;
+    chip.innerHTML = `<span>${ev.name}</span><span class="term-badge">${ev.textbookTerm}</span>`;
+    chip.addEventListener('click', () => applyEvent(ev.id));
+    row.appendChild(chip);
+  }
+  // Reset chip, always at the end
+  const reset = document.createElement('button');
+  reset.className = 'event-chip reset';
+  reset.id = 'event-reset';
+  reset.textContent = 'Reset to baseline';
+  reset.addEventListener('click', resetEvent);
+  row.appendChild(reset);
+  updateResetDisabled();
+}
+
+function updateResetDisabled() {
+  const reset = document.getElementById('event-reset');
+  if (!reset) return;
+  const isAtBaseline =
+    state.activeEventId == null
+    && state.demandShift === 0 && state.supplyShift === 0
+    && state.demandPivot === 0 && state.supplyPivot === 0
+    && state.forcedPrice == null;
+  reset.classList.toggle('disabled', isAtBaseline);
+  reset.disabled = isAtBaseline;
+}
+
+function applyEvent(eventId) {
+  const ev = (scenarios[state.scenarioKey].events || []).find(e => e.id === eventId);
+  if (!ev) return;
+
+  // Cancel any existing event-transition animation
+  if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
+
+  // If the same event is clicked again, toggle it off (reset)
+  if (state.activeEventId === eventId) {
+    resetEvent();
+    return;
+  }
+
+  state.activeEventId = eventId;
+
+  // Highlight the active chip
+  document.querySelectorAll('.event-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.eventId === eventId);
+  });
+
+  // Target slider values (events set these as their deltas from baseline)
+  const target = {
+    demandShift: ev.demandShift || 0,
+    supplyShift: ev.supplyShift || 0,
+    demandPivot: ev.demandPivot || 0,
+    supplyPivot: ev.supplyPivot || 0,
+  };
+  const start = {
+    demandShift: state.demandShift,
+    supplyShift: state.supplyShift,
+    demandPivot: state.demandPivot,
+    supplyPivot: state.supplyPivot,
+  };
+
+  // Show event narration banner
+  const narrBanner = document.getElementById('event-narration');
+  narrBanner.textContent = ev.narration;
+  narrBanner.classList.add('visible');
+
+  // Release any forced price; event will play out at natural equilibrium
+  state.forcedPrice = null;
+
+  // Animate slider values from start to target over ~600ms
+  const duration = 600;
+  const t0 = performance.now();
+  const anim = { cancel: false };
+  state.eventAnim = anim;
+  function step(now) {
+    if (anim.cancel) return;
+    const t = Math.min(1, (now - t0) / duration);
+    const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    state.demandShift = start.demandShift + (target.demandShift - start.demandShift) * e;
+    state.supplyShift = start.supplyShift + (target.supplyShift - start.supplyShift) * e;
+    state.demandPivot = start.demandPivot + (target.demandPivot - start.demandPivot) * e;
+    state.supplyPivot = start.supplyPivot + (target.supplyPivot - start.supplyPivot) * e;
+    // Reflect in the slider UI
+    document.getElementById('demand-shift').value = state.demandShift;
+    document.getElementById('supply-shift').value = state.supplyShift;
+    document.getElementById('demand-pivot').value = state.demandPivot;
+    document.getElementById('supply-pivot').value = state.supplyPivot;
+    document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
+    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+    document.getElementById('demand-pivot-val').textContent = state.demandPivot > 20 ? 'inelastic' : state.demandPivot < -20 ? 'elastic' : 'normal';
+    document.getElementById('supply-pivot-val').textContent = state.supplyPivot > 20 ? 'inelastic' : state.supplyPivot < -20 ? 'elastic' : 'normal';
+    buildCurves();
+    renderAll();
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      state.eventAnim = null;
+      updateResetDisabled();
+    }
+  }
+  requestAnimationFrame(step);
+  updateResetDisabled();
+
+  logEvent({ diagram: 'market-equilibrium', action: 'event-applied', event: eventId });
+}
+
+function resetEvent() {
+  if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
+  state.activeEventId = null;
+  document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('event-narration').classList.remove('visible');
+
+  // Animate sliders back to 0
+  const start = {
+    demandShift: state.demandShift,
+    supplyShift: state.supplyShift,
+    demandPivot: state.demandPivot,
+    supplyPivot: state.supplyPivot,
+  };
+  state.forcedPrice = null;
+  const duration = 450;
+  const t0 = performance.now();
+  const anim = { cancel: false };
+  state.eventAnim = anim;
+  function step(now) {
+    if (anim.cancel) return;
+    const t = Math.min(1, (now - t0) / duration);
+    const e = 1 - Math.pow(1 - t, 3);
+    state.demandShift = start.demandShift * (1 - e);
+    state.supplyShift = start.supplyShift * (1 - e);
+    state.demandPivot = start.demandPivot * (1 - e);
+    state.supplyPivot = start.supplyPivot * (1 - e);
+    document.getElementById('demand-shift').value = state.demandShift;
+    document.getElementById('supply-shift').value = state.supplyShift;
+    document.getElementById('demand-pivot').value = state.demandPivot;
+    document.getElementById('supply-pivot').value = state.supplyPivot;
+    document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
+    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+    document.getElementById('demand-pivot-val').textContent = Math.abs(state.demandPivot) > 20 ? (state.demandPivot > 0 ? 'inelastic' : 'elastic') : 'normal';
+    document.getElementById('supply-pivot-val').textContent = Math.abs(state.supplyPivot) > 20 ? (state.supplyPivot > 0 ? 'inelastic' : 'elastic') : 'normal';
+    buildCurves();
+    renderAll();
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      state.demandShift = 0; state.supplyShift = 0;
+      state.demandPivot = 0; state.supplyPivot = 0;
+      state.eventAnim = null;
+      updateResetDisabled();
+    }
+  }
+  requestAnimationFrame(step);
+  updateResetDisabled();
+
+  logEvent({ diagram: 'market-equilibrium', action: 'event-reset' });
+}
+
+/* -----------------------------------------------------------------------
+   Price shocks (time-evolved simulations)
+   ----------------------------------------------------------------------- */
+
+// Per-week narration templates for each shock type.
+const shockNarrations = {
+  cap: [
+    'Week 1. The queue starts forming outside the shop by 9am; some customers go home empty-handed.',
+    'Week 2. Regulars start reserving their apples in advance. Fights break out at the till.',
+    'Week 3. Some apples are now traded informally at higher prices in the car park behind the shop.',
+    'Week 4. The greengrocer stocks only one variety; the rest isn\u2019t worth ordering at the capped price.',
+    'Week 5. Stories circulate of apples being bartered for. Local politicians are asked to intervene.',
+    'Week 6. The price cap is lifted. The market begins to rebalance.',
+  ],
+  supply: [
+    'Week 1. The first shortfall is noticeable; prices tick up.',
+    'Week 2. Buyers scramble to secure stock; queues lengthen.',
+    'Week 3. Some substitutes appear. Prices are now well above normal.',
+    'Week 4. Long-term contracts are renegotiated. Everyone is uncomfortable.',
+    'Week 5. Early recovery signs: new suppliers appear, old ones ramp back up.',
+    'Week 6. The supply disruption ends. Normal conditions return.',
+  ],
+};
+
+function startShock(type) {
+  // Cancel any in-progress event or shock
+  if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
+  if (state.activeShock) {
+    cancelAnimationFrame(state.activeShock.rafId);
+    state.activeShock = null;
+  }
+  // Clear any forced price the user set
+  state.forcedPrice = null;
+  // Reset shift/pivot sliders (but NOT via animation — shocks start instantly)
+  resetShiftSliders();
+  // Unhighlight events
+  state.activeEventId = null;
+  document.querySelectorAll('.event-chip:not(.shock-btn)').forEach(c => c.classList.remove('active'));
+
+  // Highlight the active shock button
+  document.querySelectorAll('.shock-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(type === 'cap' ? 'shock-cap' : 'shock-supply').classList.add('active');
+
+  const e = eq();
+  if (!e) return;
+
+  const totalWeeks = 6;
+  const durationMs = 9000;
+  const shock = {
+    type,
+    startTime: performance.now(),
+    duration: durationMs,
+    totalWeeks,
+    currentWeek: 1,
+    rafId: null,
+    // Remember baseline equilibrium for recovery
+    baselineEq: { q: e.q, p: e.p },
+  };
+  state.activeShock = shock;
+
+  // Apply the shock effect
+  if (type === 'cap') {
+    // Price cap: lock the forced price at ~0.7 * equilibrium (below eq)
+    state.forcedPrice = e.p * 0.6;
+  } else if (type === 'supply') {
+    // Supply shock: shift supply left 35% until it releases
+    state.supplyShift = -35;
+    document.getElementById('supply-shift').value = state.supplyShift;
+    document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
+    buildCurves();
+  }
+
+  // Show clock
+  const clock = document.getElementById('shock-clock');
+  clock.style.display = 'inline';
+
+  // Use event-narration banner to show shock narration
+  const narrBanner = document.getElementById('event-narration');
+  narrBanner.classList.add('visible');
+  narrBanner.textContent = shockNarrations[type][0];
+
+  function tick(now) {
+    if (!state.activeShock || state.activeShock !== shock) return;
+    const elapsed = now - shock.startTime;
+    const progress = Math.min(1, elapsed / shock.duration);
+    const week = Math.min(totalWeeks, 1 + Math.floor(progress * totalWeeks));
+    if (week !== shock.currentWeek) {
+      shock.currentWeek = week;
+      narrBanner.textContent = shockNarrations[type][Math.min(week - 1, shockNarrations[type].length - 1)];
+    }
+    clock.textContent = `Week ${week} of ${totalWeeks}`;
+    renderAll();
+    if (progress < 1) {
+      shock.rafId = requestAnimationFrame(tick);
+    } else {
+      endShock(shock);
+    }
+  }
+  shock.rafId = requestAnimationFrame(tick);
+  renderAll();
+
+  logEvent({ diagram: 'market-equilibrium', action: 'shock-started', type });
+}
+
+function endShock(shock) {
+  // Unlock whatever the shock was holding
+  const clock = document.getElementById('shock-clock');
+  clock.style.display = 'none';
+  document.querySelectorAll('.shock-btn').forEach(b => b.classList.remove('active'));
+  const narrBanner = document.getElementById('event-narration');
+  // Leave the final narration line visible briefly before fading
+  setTimeout(() => { narrBanner.classList.remove('visible'); }, 2500);
+
+  if (shock.type === 'cap') {
+    // Price was forced; release it via the standard spring
+    const currentForced = state.forcedPrice;
+    state.forcedPrice = null;
+    const e = eq();
+    if (e && currentForced != null && state.returnStyle !== 'none') {
+      // Restore the forced state briefly and let the spring run
+      state.forcedPrice = currentForced;
+      if (plot._runSpring) {
+        plot._cobwebCurves = { demand: state.demand, supply: state.supply };
+        plot._runSpring(currentForced, e.p, state.returnStyle, (v) => {
+          state.forcedPrice = Math.abs(v - e.p) < 0.005 ? null : v;
+          renderAll();
+        });
+      } else {
+        state.forcedPrice = null;
+        renderAll();
+      }
+    } else {
+      renderAll();
+    }
+  } else if (shock.type === 'supply') {
+    // Animate the supply shift back to 0
+    const start = state.supplyShift;
+    const duration = 1400;
+    const t0 = performance.now();
+    const anim = { cancel: false };
+    state.eventAnim = anim;
+    function step(now) {
+      if (anim.cancel) return;
+      const t = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      state.supplyShift = start * (1 - eased);
+      document.getElementById('supply-shift').value = state.supplyShift;
+      document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+      buildCurves();
+      renderAll();
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        state.supplyShift = 0;
+        state.eventAnim = null;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  state.activeShock = null;
+  updateResetDisabled();
+  logEvent({ diagram: 'market-equilibrium', action: 'shock-ended' });
+}
+
 document.getElementById('scenario').addEventListener('change', ev => {
   state.scenarioKey = ev.target.value;
+  state.activeEventId = null;
   resetShiftSliders();
+  document.getElementById('event-narration').classList.remove('visible');
   plot.setScenario(state.scenarioKey);
+  buildEventRow();
   buildCurves();
   renderAll();
 });
 
+// When the user moves a slider manually, they've diverged from any preset
+// event; unhighlight the active chip (but leave the narration banner, it's
+// still roughly relevant) and update the reset chip. Also cancels any
+// active shock.
+function manualSliderChange() {
+  if (state.activeShock) {
+    cancelAnimationFrame(state.activeShock.rafId);
+    const shock = state.activeShock;
+    state.activeShock = null;
+    endShock(shock);
+  }
+  if (state.activeEventId) {
+    state.activeEventId = null;
+    document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
+  }
+  updateResetDisabled();
+}
+
 document.getElementById('demand-shift').addEventListener('input', ev => {
   state.demandShift = Number(ev.target.value);
   document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift}%`;
+  manualSliderChange();
   buildCurves();
   renderAll();
 });
 document.getElementById('supply-shift').addEventListener('input', ev => {
   state.supplyShift = Number(ev.target.value);
   document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift}%`;
+  manualSliderChange();
   buildCurves();
   renderAll();
 });
@@ -585,6 +955,7 @@ document.getElementById('demand-pivot').addEventListener('input', ev => {
   state.demandPivot = Number(ev.target.value);
   const v = state.demandPivot;
   document.getElementById('demand-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
+  manualSliderChange();
   buildCurves();
   renderAll();
 });
@@ -592,6 +963,7 @@ document.getElementById('supply-pivot').addEventListener('input', ev => {
   state.supplyPivot = Number(ev.target.value);
   const v = state.supplyPivot;
   document.getElementById('supply-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
+  manualSliderChange();
   buildCurves();
   renderAll();
 });
@@ -618,6 +990,10 @@ document.getElementById('off-graph-toggle').addEventListener('change', ev => {
   renderAll();
 });
 
+// Shock buttons
+document.getElementById('shock-cap').addEventListener('click', () => startShock('cap'));
+document.getElementById('shock-supply').addEventListener('click', () => startShock('supply'));
+
 // Legend toggles
 document.querySelectorAll('#legend .item').forEach(it => {
   it.addEventListener('click', () => {
@@ -643,6 +1019,7 @@ document.addEventListener('click', ev => {
 
 window.__IBECON_DEBUG__ = true;
 makePlot();
+buildEventRow();
 buildCurves();
 renderAll();
 </script>
