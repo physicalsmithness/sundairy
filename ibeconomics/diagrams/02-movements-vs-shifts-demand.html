@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movements along and shifts of the demand curve · IB Economics</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+</head>
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header sticky-header">
+    <div class="title-block">
+      <a href="../index.html" class="back-link">← Diagrams</a>
+      <span class="syllabus-tag">2.4 · DEMAND</span>
+      <h1>Movements along vs. shifts of the demand curve</h1>
+    </div>
+    <div class="scenario-picker">
+      <label for="scenario" class="small muted">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer">St Andrews greengrocer</option>
+        <option value="smartphones">Global smartphone market</option>
+        <option value="albania_wheat">Albanian wheat market</option>
+        <option value="danny">Danny's lemonade stand</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="mode-row">
+        <span class="events-label">What changed?</span>
+        <button class="event-chip active" data-mode="price">A price change <span class="term-badge">movement along D</span></button>
+        <button class="event-chip" data-mode="income">Buyers got richer <span class="term-badge">shift right</span></button>
+        <button class="event-chip" data-mode="income-down">Buyers got poorer <span class="term-badge">shift left</span></button>
+        <button class="event-chip" data-mode="tastes-up">Tastes: more popular <span class="term-badge">shift right</span></button>
+        <button class="event-chip" data-mode="substitutes">Substitute got cheaper <span class="term-badge">shift left</span></button>
+        <button class="event-chip reset" id="mode-reset">Reset</button>
+      </div>
+      <div class="event-narration baseline visible" id="mode-narration">Click a cause above to see what happens to the demand curve.</div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+      <dl class="live-readout">
+        <dt>Price</dt><dd id="out-price">£0.80</dd>
+        <dt>Quantity demanded</dt><dd id="out-qty">150 apples</dd>
+        <dt>Change type</dt><dd id="out-change">—</dd>
+      </dl>
+
+      <p class="prose" id="explanation" style="margin-top: 0.8rem;">
+        Click a button above to see what happens. The difference between a price change and a non-price change is one of the most commonly confused ideas in economics.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The key distinction.</strong> A change in <strong>price</strong> of the good itself causes a <strong>movement along</strong> the demand curve — the curve doesn't move. A change in any <strong>other</strong> factor (income, tastes, price of related goods, number of buyers, expectations) causes the entire demand curve to <strong>shift</strong>.</p>
+      </div>
+    </aside>
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatPrice, formatQuantity } from '../js/common.js';
+
+let plot;
+let state = {
+  scenarioKey: 'greengrocer',
+  mode: 'price',           // 'price' | 'income' | 'income-down' | 'tastes-up' | 'substitutes'
+  pricePoint: null,        // for 'price' mode: where along the demand curve the user is
+  demandShift: 0,          // percentage shift applied for non-price modes
+  demand: null,
+  supply: null,
+};
+
+/* Build the baseline demand curve, and the shifted curve if the mode is
+   a non-price change. We also compute a "previous" demand curve (same as
+   current if not in a non-price mode) for optional ghost rendering. */
+function buildCurves() {
+  const s = scenarios[state.scenarioKey];
+  // Baseline demand: passes through (defaultQuantity, defaultPrice) with
+  // a negative slope such that at q=0, price = 1.67 * defaultPrice.
+  const q0 = s.defaultQuantity;
+  const p0 = s.defaultPrice;
+  const pAtZero = p0 * 1.67;
+  const base = linearCurve({ q: 0, p: pAtZero }, { q: q0, p: p0 });
+  state.baseDemand = base;
+
+  // Shifted curve: multiply the x-coordinate by shift factor
+  const shiftPct = shiftForMode(state.mode);
+  state.demandShift = shiftPct;
+  const factor = 1 + shiftPct / 100;
+  const shifted = linearCurve(
+    { q: 0, p: pAtZero },
+    { q: q0 * factor, p: p0 }
+  );
+  state.demand = shifted;
+
+  // Supply: fixed at baseline, single intersection for context
+  state.supply = linearCurve(
+    { q: 30, p: 0 },
+    { q: q0, p: p0 }
+  );
+}
+
+function shiftForMode(mode) {
+  switch (mode) {
+    case 'income':       return 25;
+    case 'income-down':  return -25;
+    case 'tastes-up':    return 30;
+    case 'substitutes':  return -20;
+    default:             return 0;
+  }
+}
+
+/* Narration per mode. */
+const modeNarration = {
+  price: 'A price change is a MOVEMENT along the existing demand curve. The curve itself hasn\'t changed — what\'s changed is which point on it the market is at.',
+  income: 'Higher income means buyers can afford more at every price. The whole demand curve SHIFTS right: at any given price, quantity demanded is higher.',
+  'income-down': 'Lower income means buyers can afford less at every price. The whole demand curve SHIFTS left: at any given price, quantity demanded is lower.',
+  'tastes-up': 'The good has become more popular. Even without a price change, more people want it, at every price. Demand SHIFTS right.',
+  substitutes: 'A substitute has become cheaper, so some buyers switch to it. At every price, fewer people want THIS good. Demand SHIFTS left.',
+};
+
+const modeChangeLabel = {
+  price: 'Movement along D',
+  income: 'Shift right (ΔD)',
+  'income-down': 'Shift left (ΔD)',
+  'tastes-up': 'Shift right (ΔD)',
+  substitutes: 'Shift left (ΔD)',
+};
+
+/* For 'price' mode, the user can drag a point along the demand curve. For
+   other modes, we just render baseline (ghost) and shifted curves. */
+function renderAll() {
+  if (!plot) return;
+  buildCurves();
+
+  const s = scenarios[state.scenarioKey];
+  const curveSpecs = [];
+
+  if (state.mode === 'price') {
+    // Single demand curve; show it with a draggable point
+    curveSpecs.push({
+      curve: state.demand,
+      kind: 'demand',
+      label: 'D',
+      draggable: false,
+    });
+  } else {
+    // Baseline demand as ghost + new demand
+    curveSpecs.push({
+      curve: state.baseDemand,
+      kind: 'demand',
+      variant: 'ghost',
+      label: 'D₀',
+      draggable: false,
+    });
+    curveSpecs.push({
+      curve: state.demand,
+      kind: 'demand',
+      label: state.demandShift > 0 ? 'D₁' : 'D₁',
+      draggable: false,
+    });
+  }
+
+  // Supply shown as context
+  curveSpecs.push({
+    curve: state.supply,
+    kind: 'supply',
+    label: 'S',
+    draggable: false,
+  });
+
+  plot.setCurves(curveSpecs);
+
+  // Equilibrium marker for context
+  const e = intersectCurves(state.demand, state.supply);
+  if (e) plot.setEquilibriumMarker({ q: e.q, p: e.p });
+
+  // Labels + annotations
+  const labels = [];
+  let annots = [];
+  if (state.mode === 'price') {
+    // Draggable price point slides along demand
+    const pp = state.pricePoint || { q: s.defaultQuantity, p: s.defaultPrice };
+    state.pricePoint = pp;
+    // Two reference points on the curve — show a dotted cross to both axes
+    // at the current chosen price point.
+    annots.push({ kind: 'dropLine', q: pp.q, pFrom: pp.p, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: pp.p, qFrom: 0, qTo: pp.q, fromAxis: true, dashed: true });
+    // Price value inside plot near y-axis
+    labels.push({
+      x: 0, y: pp.p, rawX: plot.margin.left + 6,
+      text: formatPrice(state.scenarioKey, pp.p),
+      textAnchor: 'start', offset: { y: -4 },
+      color: 'var(--ink)', className: 'point-label axis-callout',
+    });
+    // Quantity value inside plot near x-axis
+    labels.push({
+      x: pp.q, y: 0,
+      rawY: plot.margin.top + plot.plotH - 6,
+      text: formatQuantity(state.scenarioKey, pp.q),
+      textAnchor: 'start', offset: { x: 5 },
+      color: 'var(--ink)', className: 'point-label axis-callout',
+    });
+    // The big visible marker — a draggable dot on the demand curve
+    plot.setTransitionCircle({
+      curQ: pp.q, curP: pp.p, showCurrent: true, fadeAlpha: 1,
+      oldQ: null, oldP: null,
+    });
+  } else {
+    plot.setTransitionCircle(null);
+    // Equilibrium axis labels
+    if (e) {
+      labels.push({
+        x: 0, y: e.p, rawX: plot.margin.left + 6,
+        text: formatPrice(state.scenarioKey, e.p),
+        textAnchor: 'start', offset: { y: -4 },
+        color: 'var(--ink)', className: 'point-label axis-callout',
+      });
+      labels.push({
+        x: e.q, y: 0,
+        rawY: plot.margin.top + plot.plotH - 6,
+        text: formatQuantity(state.scenarioKey, e.q),
+        textAnchor: 'start', offset: { x: 5 },
+        color: 'var(--ink)', className: 'point-label axis-callout',
+      });
+      annots.push({ kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true });
+      annots.push({ kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true });
+    }
+  }
+  plot.setAnnotations(annots);
+  plot.setLabels(labels);
+  plot.render();
+
+  // Right-panel readout
+  if (state.mode === 'price') {
+    const pp = state.pricePoint;
+    document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, pp.p);
+    document.getElementById('out-qty').textContent = formatQuantity(state.scenarioKey, pp.q);
+  } else if (e) {
+    document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, e.p);
+    document.getElementById('out-qty').textContent = formatQuantity(state.scenarioKey, e.q);
+  }
+  document.getElementById('out-change').textContent = modeChangeLabel[state.mode];
+  document.getElementById('explanation').textContent = modeNarration[state.mode];
+
+  const narr = document.getElementById('mode-narration');
+  narr.classList.remove('baseline');
+  narr.classList.add('visible');
+  narr.textContent = modeNarration[state.mode];
+}
+
+/* Curve intersection helper (since we're not using eq() from the diagram) */
+function intersectCurves(d, s) {
+  const dA = d.p1.p - d.slope * d.p1.q;
+  const sA = s.p1.p - s.slope * s.p1.q;
+  const q = (sA - dA) / (d.slope - s.slope);
+  const p = dA + d.slope * q;
+  return { q, p };
+}
+
+/* Price-point drag: in 'price' mode the user can click/drag the plot area
+   to move the chosen point along the demand curve. Simpler than dragging
+   a handle — click anywhere and we project onto the curve. */
+function setupPricePointDrag() {
+  const svg = plot.svg;
+  let dragging = false;
+  const onMove = (ev) => {
+    if (state.mode !== 'price') return;
+    if (!dragging) return;
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const x = ((ev.clientX - rect.left) / rect.width) * vb.width;
+    const y = ((ev.clientY - rect.top) / rect.height) * vb.height;
+    const q = plot.xInv(x);
+    if (!isFinite(q)) return;
+    const p = state.demand.priceAt(q);
+    const sc = scenarios[state.scenarioKey];
+    const qClamped = Math.max(5, Math.min(sc.quantityMax * 0.95, q));
+    const pAtQ = state.demand.priceAt(qClamped);
+    state.pricePoint = { q: qClamped, p: Math.max(0, Math.min(sc.priceMax * 0.95, pAtQ)) };
+    renderAll();
+  };
+  svg.addEventListener('pointerdown', (ev) => {
+    if (state.mode !== 'price') return;
+    dragging = true;
+    svg.setPointerCapture(ev.pointerId);
+    onMove(ev);
+  });
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', (ev) => {
+    dragging = false;
+    svg.releasePointerCapture?.(ev.pointerId);
+  });
+}
+
+/* Event wiring */
+document.querySelectorAll('#mode-row .event-chip[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('#mode-row .event-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (state.mode === 'price') {
+      const s = scenarios[state.scenarioKey];
+      state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+    }
+    renderAll();
+  });
+});
+document.getElementById('mode-reset').addEventListener('click', () => {
+  state.mode = 'price';
+  document.querySelectorAll('#mode-row .event-chip').forEach(b => b.classList.remove('active'));
+  document.querySelector('#mode-row .event-chip[data-mode="price"]').classList.add('active');
+  const s = scenarios[state.scenarioKey];
+  state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+  renderAll();
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  const s = scenarios[state.scenarioKey];
+  state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+setupPricePointDrag();
+const s0 = scenarios[state.scenarioKey];
+state.pricePoint = { q: s0.defaultQuantity, p: s0.defaultPrice };
+renderAll();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Production possibilities curve · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* PPC-specific visuals. The PQ design-system covers most of the look;
+       these rules are for the curve fill, the draggable production point,
+       and the category-indicator pill. */
+    .ppc-curve {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 2.5;
+    }
+    .ppc-curve.ghost {
+      stroke: var(--ink-soft);
+      stroke-width: 1.5;
+      stroke-dasharray: 3 3;
+      opacity: 0.6;
+    }
+    .ppc-fill-attainable {
+      fill: var(--supply-fill);
+      opacity: 0.35;
+      stroke: none;
+    }
+    .ppc-fill-unattainable {
+      fill: url(#hatch-shortage);
+      opacity: 0.3;
+      stroke: none;
+    }
+    .ppc-point {
+      fill: var(--demand-shift);
+      stroke: #fff;
+      stroke-width: 2;
+      cursor: grab;
+      transition: r 0.1s;
+    }
+    .ppc-point.dragging { cursor: grabbing; r: 9; }
+    .ppc-point-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      fill: var(--ink);
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-width: 3;
+      stroke-linejoin: round;
+    }
+    /* Category pill — shows "efficient", "unemployment", or "unattainable" */
+    .category-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      letter-spacing: 0.01em;
+    }
+    .category-pill.efficient {
+      background: #dff0e3;
+      color: #2d6b46;
+    }
+    .category-pill.unemployment {
+      background: #fde8c6;
+      color: var(--demand-shift);
+    }
+    .category-pill.unattainable {
+      background: #f6d9d4;
+      color: var(--welfare-loss);
+    }
+
+    /* Opportunity-cost readout */
+    .opp-cost-box {
+      background: var(--paper-deep);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.7rem;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .opp-cost-box strong { color: var(--ink); }
+
+    /* Tangent line (showing local slope = opportunity cost) */
+    .ppc-tangent {
+      stroke: var(--demand-shift);
+      stroke-width: 1;
+      stroke-dasharray: 4 3;
+      opacity: 0.85;
+      fill: none;
+    }
+
+    /* Shift arrow for growth/decline */
+    .ppc-shift-arrow {
+      stroke: var(--welfare-gain);
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrow-growth);
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">1.1 The production possibilities curve · Required</span>
+      <h1>Production possibilities</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="pizza_robots" selected>Pizzas &amp; robots</option>
+        <option value="guns_butter">Guns &amp; butter</option>
+        <option value="consumer_capital">Consumer &amp; capital goods</option>
+        <option value="wheat_clothing">Wheat &amp; clothing</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+
+    <div class="left-col">
+      <section class="graph-area">
+        <div id="plot" aria-label="Interactive production possibilities curve"></div>
+      </section>
+
+      <section class="controls" aria-label="PPC controls">
+
+        <div class="control">
+          <label>Curve shape <span class="value" id="shape-val">increasing OC</span></label>
+          <div class="return-style" id="shape-toggle" role="group" aria-label="Curve shape">
+            <button data-shape="concave" class="active">Increasing OC (concave)</button>
+            <button data-shape="linear">Constant OC (linear)</button>
+          </div>
+          <span class="small muted" id="shape-note">Resources aren't equally suited to both goods, so switching costs more as you specialise.</span>
+        </div>
+
+        <div class="control">
+          <label>Capacity <span class="value" id="capacity-val">baseline</span></label>
+          <input type="range" id="capacity" min="-30" max="30" step="1" value="0" />
+          <span class="small muted" id="capacity-note">Shift the whole frontier: growth outward, disaster inward.</span>
+        </div>
+
+        <div class="control">
+          <label class="toggle">
+            <input type="checkbox" id="show-tangent" />
+            <span>Show opportunity cost at the chosen point</span>
+          </label>
+        </div>
+
+        <div class="control">
+          <label>Show a growth event</label>
+          <div class="return-style" role="group" aria-label="Growth events">
+            <button data-event="tech" class="event-btn">Tech breakthrough</button>
+            <button data-event="workforce" class="event-btn">Workforce grows</button>
+            <button data-event="disaster" class="event-btn">Natural disaster</button>
+            <button data-event="reset" class="event-btn">Reset</button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+      <div class="live-readout" style="margin-bottom: 0.6rem;">
+        <div style="margin-bottom: 0.3rem;">
+          <span class="category-pill" id="category">efficient</span>
+        </div>
+      </div>
+      <p class="prose" id="narration-text" style="margin-top: 0.4rem;">
+        The chosen production point sits on the PPC. Every resource is used fully and efficiently.
+      </p>
+      <div class="opp-cost-box" id="opp-cost-panel" style="display: none;">
+        <div style="font-family: 'Inter', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin-bottom: 0.3rem;">Opportunity cost at this point</div>
+        <div id="opp-cost-text"><em>Enable the tangent toggle to see.</em></div>
+      </div>
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> The PPC shows the trade-off between two goods when all resources are fully used. Moving along it means giving up some of one to get more of the other; moving outward means the economy has grown.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl, logEvent } from '../js/common.js';
+
+/* -------------------------------------------------------------------------
+   Scenarios — each defines the two goods, the default curve extent, and
+   some default starter values. Setting-specific narration sits here too.
+   ------------------------------------------------------------------------- */
+
+const scenarios = {
+  pizza_robots: {
+    label: 'Pizzas & robots',
+    xLabel: 'Pizzas per day',
+    yLabel: 'Robots per day',
+    xName: 'pizzas',
+    yName: 'robots',
+    xMax: 100,
+    yMax: 100,
+    // Default point sits ON the curve: with Xm=Ym=75 and a=2, pick x=45
+    // so y = 75 * sqrt(1 - (45/75)^2) = 75 * 0.8 = 60.
+    defaultX: 45,
+    defaultY: 60,
+  },
+  guns_butter: {
+    label: 'Guns & butter',
+    xLabel: 'Tonnes of butter per week',
+    yLabel: 'Guns per week',
+    xName: 'butter',
+    yName: 'guns',
+    xMax: 200,
+    yMax: 150,
+    // Xm=150, Ym=112.5; pick x=90 so y=112.5 * sqrt(1-(90/150)^2) = 112.5*0.8 = 90
+    defaultX: 90,
+    defaultY: 90,
+  },
+  consumer_capital: {
+    label: 'Consumer & capital goods',
+    xLabel: 'Consumer goods per year',
+    yLabel: 'Capital goods per year',
+    xName: 'consumer goods',
+    yName: 'capital goods',
+    xMax: 500,
+    yMax: 300,
+    // Xm=375, Ym=225; pick x=225 so y=225*sqrt(1-(225/375)^2) = 225*0.8 = 180
+    defaultX: 225,
+    defaultY: 180,
+  },
+  wheat_clothing: {
+    label: 'Wheat & clothing',
+    xLabel: 'Wheat (tonnes per year)',
+    yLabel: 'Clothing (tonnes per year)',
+    xName: 'wheat',
+    yName: 'clothing',
+    xMax: 600,
+    yMax: 400,
+    // Xm=450, Ym=300; pick x=270 so y=300*sqrt(1-(270/450)^2) = 300*0.8 = 240
+    defaultX: 270,
+    defaultY: 240,
+  },
+};
+
+const events = {
+  tech: {
+    name: 'Tech breakthrough',
+    narration: 'A new technology makes production more efficient across the board, pushing the frontier outward.',
+    capacityDelta: 20,
+  },
+  workforce: {
+    name: 'Workforce grows',
+    narration: 'More workers (immigration, population growth, retraining) expand what the economy can produce.',
+    capacityDelta: 15,
+  },
+  disaster: {
+    name: 'Natural disaster',
+    narration: 'Productive capacity is destroyed — the frontier shrinks inward until the economy rebuilds.',
+    capacityDelta: -20,
+  },
+  reset: { name: 'Reset', narration: '', capacityDelta: 0 },
+};
+
+/* -------------------------------------------------------------------------
+   State
+   ------------------------------------------------------------------------- */
+
+const state = {
+  scenarioKey: 'pizza_robots',
+  shape: 'concave',       // 'concave' or 'linear'
+  capacity: 0,            // -30..+30% shift of the whole curve
+  activeEvent: null,
+  showTangent: false,
+  // Production point — user-chosen location in (x, y) data space.
+  // Initialized from scenario defaults at init time.
+  pointX: 45,
+  pointY: 60,
+  // Plot plumbing (filled in by makePlot)
+  plot: null,
+  svg: null,
+};
+
+/* -------------------------------------------------------------------------
+   PPC equation
+   -------------------------------------------------------------------------
+   We parameterize the PPC as an ellipse-quadrant-style curve:
+     (x / Xmax)^a + (y / Ymax)^a = 1
+   where
+     a = 2 gives a classic concave bow-out curve
+     a → 1 flattens toward a straight line (constant opportunity cost)
+     a = 2 is the default "increasing OC" look
+   Capacity shifting scales both Xmax and Ymax by (1 + capacity/100).
+   ------------------------------------------------------------------------- */
+
+function curveParams() {
+  const s = scenarios[state.scenarioKey];
+  const scale = 1 + state.capacity / 100;
+  const Xm = s.xMax * 0.75 * scale;  // curve sits inside the plot box
+  const Ym = s.yMax * 0.75 * scale;
+  const a = state.shape === 'linear' ? 1 : 2;
+  return { Xm, Ym, a };
+}
+
+// y as a function of x (for x in [0, Xm]): y = Ym * (1 - (x/Xm)^a)^(1/a)
+function yOfX(x, params) {
+  const { Xm, Ym, a } = params || curveParams();
+  if (x <= 0) return Ym;
+  if (x >= Xm) return 0;
+  const frac = x / Xm;
+  const inner = 1 - Math.pow(frac, a);
+  return Ym * Math.pow(Math.max(0, inner), 1 / a);
+}
+function xOfY(y, params) {
+  const { Xm, Ym, a } = params || curveParams();
+  if (y <= 0) return Xm;
+  if (y >= Ym) return 0;
+  const frac = y / Ym;
+  const inner = 1 - Math.pow(frac, a);
+  return Xm * Math.pow(Math.max(0, inner), 1 / a);
+}
+
+// Classify the chosen (x, y):
+//   'on'  if within tolerance of the curve
+//   'in'  if strictly inside
+//   'out' if strictly outside (unattainable)
+function classifyPoint(x, y, params) {
+  params = params || curveParams();
+  const { Xm, Ym, a } = params;
+  if (x < 0 || y < 0) return 'in';
+  const lhs = Math.pow(x / Xm, a) + Math.pow(y / Ym, a);
+  const tol = 0.04;  // 4% tolerance — feels right for draggability
+  if (Math.abs(lhs - 1) < tol) return 'on';
+  return lhs < 1 ? 'in' : 'out';
+}
+
+// Local slope dy/dx at (x, y) on the curve — the opportunity cost of one
+// more unit of x in terms of y lost.
+function slopeAt(x, params) {
+  params = params || curveParams();
+  const { Xm, Ym, a } = params;
+  if (x <= 0.01) return Infinity;  // vertical tangent at the y-intercept
+  if (x >= Xm - 0.01) return 0;
+  const frac = x / Xm;
+  // y = Ym * (1 - frac^a)^(1/a)
+  // dy/dx = Ym * (1/a) * (1 - frac^a)^((1-a)/a) * (-a * frac^(a-1) / Xm)
+  //       = -Ym/Xm * frac^(a-1) * (1 - frac^a)^((1-a)/a)
+  const inner = 1 - Math.pow(frac, a);
+  if (inner <= 0) return 0;
+  return -(Ym / Xm) * Math.pow(frac, a - 1) * Math.pow(inner, (1 - a) / a);
+}
+
+/* -------------------------------------------------------------------------
+   Build the plot
+   ------------------------------------------------------------------------- */
+
+function makePlot() {
+  const container = document.getElementById('plot');
+  const s = scenarios[state.scenarioKey];
+  state.plot = createAxes({
+    container,
+    width: 680,
+    height: 460,
+    xLabel: s.xLabel,
+    yLabel: s.yLabel,
+    xMax: s.xMax,
+    yMax: s.yMax,
+    nxTicks: 10,
+    nyTicks: 10,
+    tickEvery: 2,
+  });
+  state.svg = state.plot.svg;
+
+  // Hatch pattern for the unattainable region — reuse the same look as
+  // the pq-plot shortage hatching for cohesion. Add it as a <defs>.
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  state.svg.insertBefore(defs, state.svg.firstChild);
+  const hatch = svgEl('pattern', {
+    id: 'hatch-shortage',
+    patternUnits: 'userSpaceOnUse',
+    width: 6, height: 6, patternTransform: 'rotate(45)',
+  });
+  hatch.appendChild(svgEl('line', {
+    x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'var(--welfare-loss)', 'stroke-width': 1.2, opacity: 0.55,
+  }));
+  defs.appendChild(hatch);
+
+  // Arrowhead marker for the growth arrow
+  const marker = svgEl('marker', {
+    id: 'arrow-growth',
+    viewBox: '0 0 10 10',
+    refX: 8, refY: 5,
+    markerWidth: 7, markerHeight: 7,
+    orient: 'auto-start-reverse',
+  });
+  marker.appendChild(svgEl('path', {
+    d: 'M 0 0 L 10 5 L 0 10 z',
+    fill: 'var(--welfare-gain)',
+  }));
+  defs.appendChild(marker);
+}
+
+/* -------------------------------------------------------------------------
+   Render
+   ------------------------------------------------------------------------- */
+
+function renderAll() {
+  const { plotGroup, xScale, yScale, margin, plotW, plotH } = state.plot;
+  // Clear previous content in the plot group
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const params = curveParams();
+  const s = scenarios[state.scenarioKey];
+
+  // Build the curve path as a polyline of many samples in x
+  const samples = 80;
+  const pts = [];
+  for (let i = 0; i <= samples; i++) {
+    const x = (i / samples) * params.Xm;
+    const y = yOfX(x, params);
+    pts.push([x, y]);
+  }
+  const pathD = pts.map(([x, y], i) => {
+    return (i === 0 ? 'M' : 'L') + ' ' + xScale(x) + ' ' + yScale(y);
+  }).join(' ');
+
+  // Attainable region polygon: from (0,0) along x-axis to (Xm, 0), up the
+  // curve back to (0, Ym), and close.
+  const attainPts = [[0, 0]];
+  for (let i = samples; i >= 0; i--) {
+    attainPts.push(pts[i]);
+  }
+  const attainD = 'M ' + attainPts.map(([x, y]) => xScale(x) + ' ' + yScale(y)).join(' L ') + ' Z';
+  const attainPoly = svgEl('path', {
+    class: 'ppc-fill-attainable',
+    d: attainD,
+  });
+  plotGroup.appendChild(attainPoly);
+
+  // Unattainable region: everything outside the curve within the plot box.
+  // Walk: (Xm, 0) along curve to (0, Ym), then up to (0, ymax plot edge),
+  // across to (xmax plot edge, ymax), down to (xmax plot edge, 0), back to (Xm, 0).
+  const unattain = [];
+  for (let i = 0; i <= samples; i++) unattain.push(pts[i]);
+  unattain.push([s.xMax, 0]);
+  unattain.push([s.xMax, s.yMax]);
+  unattain.push([0, s.yMax]);
+  unattain.push([0, pts[0][1]]);
+  // Only the bit beyond the curve is unattainable — use path with move
+  const unattainD = 'M ' + unattain.map(([x, y]) => xScale(x) + ' ' + yScale(y)).join(' L ') + ' Z';
+  const unattainPoly = svgEl('path', {
+    class: 'ppc-fill-unattainable',
+    d: unattainD,
+  });
+  plotGroup.appendChild(unattainPoly);
+
+  // The PPC curve itself
+  const curve = svgEl('path', {
+    class: 'ppc-curve',
+    d: pathD,
+  });
+  plotGroup.appendChild(curve);
+
+  // Tangent line through the current point (if enabled and point is on curve)
+  if (state.showTangent) {
+    const cat = classifyPoint(state.pointX, state.pointY, params);
+    let tangentX, tangentY;
+    if (cat === 'on') {
+      tangentX = state.pointX;
+      tangentY = state.pointY;
+    } else {
+      // Use closest point on the curve at the same x (if x inside plot)
+      tangentX = Math.min(params.Xm * 0.95, Math.max(0.05 * params.Xm, state.pointX));
+      tangentY = yOfX(tangentX, params);
+    }
+    const slope = slopeAt(tangentX, params);
+    if (isFinite(slope)) {
+      // Draw tangent line: extend ±20% of Xm on either side
+      const dx = params.Xm * 0.25;
+      const x1 = Math.max(0, tangentX - dx);
+      const x2 = Math.min(params.Xm, tangentX + dx);
+      const y1 = tangentY + slope * (x1 - tangentX);
+      const y2 = tangentY + slope * (x2 - tangentX);
+      // Clamp to positive y
+      if (y1 >= 0 && y2 >= 0) {
+        const line = svgEl('line', {
+          class: 'ppc-tangent',
+          x1: xScale(x1), y1: yScale(y1),
+          x2: xScale(x2), y2: yScale(y2),
+        });
+        plotGroup.appendChild(line);
+      }
+    }
+  }
+
+  // Draggable production point
+  const pCat = classifyPoint(state.pointX, state.pointY, params);
+  const pointG = svgEl('g', { class: 'ppc-point-group' });
+  const point = svgEl('circle', {
+    class: 'ppc-point',
+    cx: xScale(state.pointX),
+    cy: yScale(state.pointY),
+    r: 7,
+  });
+  pointG.appendChild(point);
+  // Label with (x, y) coordinates
+  const labelText = `(${Math.round(state.pointX)} ${s.xName}, ${Math.round(state.pointY)} ${s.yName})`;
+  const label = svgEl('text', {
+    class: 'ppc-point-label',
+    x: xScale(state.pointX) + 12,
+    y: yScale(state.pointY) - 10,
+    'text-anchor': 'start',
+  });
+  label.textContent = labelText;
+  pointG.appendChild(label);
+  plotGroup.appendChild(pointG);
+
+  // Drag handling
+  setupPointDragging(point, xScale, yScale);
+
+  // Update narration panel
+  updateNarration(pCat, params);
+
+  // Growth arrow overlay when an event has been applied with a delta
+  if (state.activeEvent && state.activeEvent !== 'reset') {
+    const ev = events[state.activeEvent];
+    if (ev && ev.capacityDelta !== 0) {
+      // Arrow from a mid-point on the old curve to the corresponding
+      // mid-point on the new curve, to signal the shift direction.
+      const oldParams = { ...params };
+      oldParams.Xm = params.Xm / (1 + ev.capacityDelta / 100) * 1.0;
+      oldParams.Ym = params.Ym / (1 + ev.capacityDelta / 100) * 1.0;
+      // Skip arrow drawing for now — the ghost curve is clearer
+      // (leaving this hook in place for later polish)
+    }
+  }
+
+  // Ghost curve showing the previous (pre-event) capacity, so shifts are visible
+  if (state.lastCapacity != null && state.lastCapacity !== state.capacity) {
+    const oldScale = 1 + state.lastCapacity / 100;
+    const oldParams = {
+      Xm: s.xMax * 0.75 * oldScale,
+      Ym: s.yMax * 0.75 * oldScale,
+      a: params.a,
+    };
+    const oldPts = [];
+    for (let i = 0; i <= samples; i++) {
+      const x = (i / samples) * oldParams.Xm;
+      oldPts.push([x, yOfX(x, oldParams)]);
+    }
+    const oldD = oldPts.map(([x, y], i) =>
+      (i === 0 ? 'M' : 'L') + ' ' + xScale(x) + ' ' + yScale(y)
+    ).join(' ');
+    const ghost = svgEl('path', {
+      class: 'ppc-curve ghost',
+      d: oldD,
+    });
+    plotGroup.insertBefore(ghost, curve);
+  }
+}
+
+function setupPointDragging(el, xScale, yScale) {
+  const svg = state.svg;
+  let dragging = false;
+
+  function toData(ev) {
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const px = (ev.clientX - rect.left) * (vb.width / rect.width);
+    const py = (ev.clientY - rect.top) * (vb.height / rect.height);
+    return {
+      x: Math.max(0, state.plot.xInv(px)),
+      y: Math.max(0, state.plot.yInv(py)),
+    };
+  }
+  function onMove(ev) {
+    if (!dragging) return;
+    ev.preventDefault();
+    const { x, y } = toData(ev);
+    const s = scenarios[state.scenarioKey];
+    state.pointX = Math.min(s.xMax, x);
+    state.pointY = Math.min(s.yMax, y);
+    renderAll();
+  }
+  function onUp(ev) {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    // On release, snap to curve if close (makes "efficient" easy to hit)
+    const params = curveParams();
+    const cat = classifyPoint(state.pointX, state.pointY, params);
+    if (cat === 'on') {
+      // Snap exactly onto the curve by projecting: nearest point on curve
+      // at the same x (simple approximation).
+      state.pointY = yOfX(state.pointX, params);
+      renderAll();
+    }
+    logEvent({ diagram: 'ppc', action: 'point-placed', cat });
+  }
+  el.addEventListener('pointerdown', ev => {
+    dragging = true;
+    el.classList.add('dragging');
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    ev.preventDefault();
+  });
+
+  // Also let user click anywhere on the plot to move the point there
+  const plotArea = state.plot.svg;
+  plotArea.addEventListener('click', ev => {
+    if (ev.target === el) return;
+    const { x, y } = toData(ev);
+    const s = scenarios[state.scenarioKey];
+    // Only respond if click is inside plot bounds
+    if (x < 0 || y < 0 || x > s.xMax || y > s.yMax) return;
+    state.pointX = x;
+    state.pointY = y;
+    renderAll();
+  });
+}
+
+/* -------------------------------------------------------------------------
+   Narration
+   ------------------------------------------------------------------------- */
+
+function updateNarration(cat, params) {
+  const catEl = document.getElementById('category');
+  const narrEl = document.getElementById('narration-text');
+  const s = scenarios[state.scenarioKey];
+
+  if (cat === 'on') {
+    catEl.className = 'category-pill efficient';
+    catEl.textContent = 'productive efficiency';
+    narrEl.innerHTML = `The economy produces <strong>${Math.round(state.pointX)} ${s.xName}</strong> and <strong>${Math.round(state.pointY)} ${s.yName}</strong>. Every resource is used fully and efficiently — this is on the frontier.`;
+  } else if (cat === 'in') {
+    catEl.className = 'category-pill unemployment';
+    catEl.textContent = 'unemployment of resources';
+    const params = curveParams();
+    const maxY = yOfX(state.pointX, params);
+    const maxX = xOfY(state.pointY, params);
+    const yLost = Math.round(maxY - state.pointY);
+    const xLost = Math.round(maxX - state.pointX);
+    narrEl.innerHTML = `The economy produces <strong>${Math.round(state.pointX)} ${s.xName}</strong> and <strong>${Math.round(state.pointY)} ${s.yName}</strong>, but could produce up to ${Math.round(maxY)} ${s.yName} at this ${s.xName} level (or ${Math.round(maxX)} ${s.xName} at this ${s.yName} level). Resources sit idle — unemployment, underused capital.`;
+  } else {
+    catEl.className = 'category-pill unattainable';
+    catEl.textContent = 'unattainable';
+    narrEl.innerHTML = `<strong>${Math.round(state.pointX)} ${s.xName}</strong> and <strong>${Math.round(state.pointY)} ${s.yName}</strong> together are beyond what current resources and technology allow. Either the frontier must grow, or fewer of one must be accepted to free up resources for the other.`;
+  }
+
+  // Opportunity-cost panel (only relevant when on or near the curve)
+  const occPanel = document.getElementById('opp-cost-panel');
+  const occText = document.getElementById('opp-cost-text');
+  if (state.showTangent) {
+    occPanel.style.display = 'block';
+    const px = (cat === 'on')
+      ? state.pointX
+      : Math.min(params.Xm * 0.95, Math.max(0.05 * params.Xm, state.pointX));
+    const slope = slopeAt(px, params);
+    if (!isFinite(slope)) {
+      occText.innerHTML = 'At this extreme, one more unit of ' + s.xName + ' would cost nothing (or an enormous amount) — the curve is nearly vertical or horizontal here.';
+    } else {
+      const cost = Math.abs(slope);
+      const direction = cat === 'on' ? '' : ' (at the nearest point on the frontier)';
+      if (state.shape === 'linear') {
+        occText.innerHTML = `<strong>Constant:</strong> one more unit of ${s.xName} always costs <strong>${cost.toFixed(2)} ${s.yName}</strong>${direction}. Resources are perfectly interchangeable.`;
+      } else {
+        occText.innerHTML = `One more unit of ${s.xName} costs <strong>${cost.toFixed(2)} ${s.yName}</strong>${direction}. This cost rises as you specialise in ${s.xName} — resources aren't equally suited to both.`;
+      }
+    }
+  } else {
+    occPanel.style.display = 'none';
+  }
+}
+
+/* -------------------------------------------------------------------------
+   UI wiring
+   ------------------------------------------------------------------------- */
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  const s = scenarios[state.scenarioKey];
+  state.pointX = s.defaultX;
+  state.pointY = s.defaultY;
+  state.capacity = 0;
+  state.lastCapacity = null;
+  state.activeEvent = null;
+  document.getElementById('capacity').value = 0;
+  document.getElementById('capacity-val').textContent = 'baseline';
+  makePlot();
+  renderAll();
+  logEvent({ diagram: 'ppc', action: 'scenario-change', scenario: state.scenarioKey });
+});
+
+document.querySelectorAll('#shape-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#shape-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.shape = btn.dataset.shape;
+    document.getElementById('shape-val').textContent = state.shape === 'linear' ? 'constant OC' : 'increasing OC';
+    document.getElementById('shape-note').textContent = state.shape === 'linear'
+      ? 'Resources are perfectly interchangeable, so each unit costs the same to switch.'
+      : "Resources aren't equally suited to both goods, so switching costs more as you specialise.";
+    renderAll();
+  });
+});
+
+document.getElementById('capacity').addEventListener('input', ev => {
+  state.lastCapacity = state.capacity;
+  state.capacity = Number(ev.target.value);
+  const val = state.capacity;
+  document.getElementById('capacity-val').textContent = val === 0 ? 'baseline' : (val > 0 ? `+${val}% capacity` : `${val}% capacity`);
+  document.getElementById('capacity-note').textContent = val > 10
+    ? 'Growth: more/better resources or technology have shifted the frontier outward.'
+    : val < -10
+    ? 'Shrinkage: loss of resources has pulled the frontier inward.'
+    : 'Shift the whole frontier: growth outward, disaster inward.';
+  renderAll();
+});
+
+document.getElementById('show-tangent').addEventListener('change', ev => {
+  state.showTangent = ev.target.checked;
+  renderAll();
+});
+
+document.querySelectorAll('.event-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const eventKey = btn.dataset.event;
+    document.querySelectorAll('.event-btn').forEach(b => b.classList.remove('active'));
+    if (eventKey === 'reset') {
+      state.activeEvent = null;
+      state.lastCapacity = state.capacity;
+      state.capacity = 0;
+      document.getElementById('capacity').value = 0;
+      document.getElementById('capacity-val').textContent = 'baseline';
+    } else {
+      btn.classList.add('active');
+      state.activeEvent = eventKey;
+      const ev = events[eventKey];
+      state.lastCapacity = state.capacity;
+      state.capacity = ev.capacityDelta;
+      document.getElementById('capacity').value = ev.capacityDelta;
+      const v = ev.capacityDelta;
+      document.getElementById('capacity-val').textContent = v === 0 ? 'baseline' : (v > 0 ? `+${v}% capacity` : `${v}% capacity`);
+    }
+    renderAll();
+    logEvent({ diagram: 'ppc', action: 'event-applied', event: eventKey });
+  });
+});
+
+// Init
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

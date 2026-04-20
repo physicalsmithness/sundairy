@@ -770,3 +770,145 @@ export function verbs(scenario, role) {
     bid:      v('bid', 'bids'),
   };
 }
+
+/* =========================================================================
+   createAxes — generic axis scaffold for non-PQ canvases
+   -------------------------------------------------------------------------
+   The core createPlot function is welded to the price/quantity scenarios.
+   For the other canvases (PPC, AD/AS, Phillips, Lorenz, etc.) we want the
+   same visual style but with arbitrary axis labels and units. createAxes
+   sets up the SVG, axes, grid, labels and tick marks, and returns the
+   plumbing (scales, plotGroup, etc.) so the diagram can draw whatever it
+   needs on top. No scenario machinery.
+
+   Args:
+     container     — DOM node to append the SVG into
+     width, height — overall SVG dimensions
+     xLabel, yLabel — axis titles
+     xMax, yMax    — data ranges (0 to xMax, 0 to yMax)
+     xFormat, yFormat — optional tick formatters (default: Math.round)
+     nxTicks, nyTicks — number of grid lines on each axis
+     tickEvery     — show label every Nth tick (default 2)
+     margin        — padding around the plot
+   Returns:
+     { svg, plotGroup, xScale, yScale, xInv, yInv, plotW, plotH, margin,
+       width, height }
+   ========================================================================= */
+
+export function createAxes({
+  container,
+  width = 720,
+  height = 480,
+  margin = { top: 30, right: 40, bottom: 64, left: 75 },
+  xLabel = 'x',
+  yLabel = 'y',
+  xMax = 100,
+  yMax = 100,
+  xFormat = null,
+  yFormat = null,
+  nxTicks = 10,
+  nyTicks = 10,
+  tickEvery = 2,
+} = {}) {
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  container.innerHTML = '';
+  container.appendChild(svg);
+
+  const xScale = x => margin.left + (x / xMax) * plotW;
+  const yScale = y => margin.top + plotH - (y / yMax) * plotH;
+  const xInv   = px => ((px - margin.left) / plotW) * xMax;
+  const yInv   = py => ((margin.top + plotH - py) / plotH) * yMax;
+
+  const fmtX = xFormat || (v => Math.round(v));
+  const fmtY = yFormat || (v => Math.round(v));
+
+  // Grid
+  const gridG = document.createElementNS(svgNS, 'g');
+  gridG.setAttribute('class', 'grid-group');
+  svg.appendChild(gridG);
+  for (let i = 0; i <= nxTicks; i++) {
+    const x = margin.left + (i / nxTicks) * plotW;
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('class', 'grid');
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('y1', margin.top); line.setAttribute('y2', margin.top + plotH);
+    gridG.appendChild(line);
+  }
+  for (let i = 0; i <= nyTicks; i++) {
+    const y = margin.top + plotH - (i / nyTicks) * plotH;
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('class', 'grid');
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('x1', margin.left); line.setAttribute('x2', margin.left + plotW);
+    gridG.appendChild(line);
+  }
+
+  // Axes
+  const axisX = document.createElementNS(svgNS, 'line');
+  axisX.setAttribute('class', 'axis');
+  axisX.setAttribute('x1', margin.left);
+  axisX.setAttribute('y1', margin.top + plotH);
+  axisX.setAttribute('x2', margin.left + plotW);
+  axisX.setAttribute('y2', margin.top + plotH);
+  svg.appendChild(axisX);
+
+  const axisY = document.createElementNS(svgNS, 'line');
+  axisY.setAttribute('class', 'axis');
+  axisY.setAttribute('x1', margin.left);
+  axisY.setAttribute('y1', margin.top);
+  axisY.setAttribute('x2', margin.left);
+  axisY.setAttribute('y2', margin.top + plotH);
+  svg.appendChild(axisY);
+
+  // Axis titles
+  const xLab = document.createElementNS(svgNS, 'text');
+  xLab.setAttribute('class', 'axis-label');
+  xLab.setAttribute('x', margin.left + plotW / 2);
+  xLab.setAttribute('y', height - 18);
+  xLab.setAttribute('text-anchor', 'middle');
+  xLab.textContent = xLabel;
+  svg.appendChild(xLab);
+
+  const yLab = document.createElementNS(svgNS, 'text');
+  yLab.setAttribute('class', 'axis-label');
+  yLab.setAttribute('x', 18);
+  yLab.setAttribute('y', margin.top + plotH / 2);
+  yLab.setAttribute('text-anchor', 'middle');
+  yLab.setAttribute('transform', `rotate(-90 18 ${margin.top + plotH / 2})`);
+  yLab.textContent = yLabel;
+  svg.appendChild(yLab);
+
+  // Tick labels
+  for (let i = 0; i <= nxTicks; i += tickEvery) {
+    const v = (i / nxTicks) * xMax;
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('class', 'axis-tick');
+    t.setAttribute('x', xScale(v));
+    t.setAttribute('y', margin.top + plotH + 16);
+    t.setAttribute('text-anchor', 'middle');
+    t.textContent = fmtX(v);
+    svg.appendChild(t);
+  }
+  for (let i = 0; i <= nyTicks; i += tickEvery) {
+    const v = (i / nyTicks) * yMax;
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('class', 'axis-tick');
+    t.setAttribute('x', margin.left - 8);
+    t.setAttribute('y', yScale(v) + 3);
+    t.setAttribute('text-anchor', 'end');
+    t.textContent = fmtY(v);
+    svg.appendChild(t);
+  }
+
+  const plotGroup = document.createElementNS(svgNS, 'g');
+  plotGroup.setAttribute('class', 'plot-group');
+  svg.appendChild(plotGroup);
+
+  return { svg, plotGroup, xScale, yScale, xInv, yInv, plotW, plotH, margin, width, height };
+}

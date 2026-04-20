@@ -6,61 +6,68 @@
   <title>IB Economics interactive diagrams</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <style>
-    .unit-group { margin-bottom: 2rem; }
+    .unit-group { margin-bottom: 2.5rem; }
     .unit-group h2 {
       border-bottom: 1px solid var(--rule);
       padding-bottom: 0.3rem;
       font-size: 18px;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.8rem;
     }
-    .diagram-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    .canvas-group {
+      font-family: 'Source Serif 4', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-top: 1rem;
+      margin-bottom: 0.3rem;
     }
+    .diagram-list { list-style: none; padding: 0; margin: 0; }
     .diagram-list li {
-      padding: 0.8rem 1rem;
+      padding: 0.55rem 0.9rem;
       border-radius: var(--radius-md);
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.3rem;
       background: #fff;
       border: 1px solid var(--rule);
-      transition: background 0.15s, transform 0.1s;
     }
-    .diagram-list li:hover {
-      background: var(--paper-deep);
-    }
-    .diagram-list a {
-      color: var(--ink);
-      text-decoration: none;
-      font-weight: 500;
-    }
+    .diagram-list li:hover { background: var(--paper-deep); }
+    .diagram-list a { color: var(--ink); text-decoration: none; font-weight: 500; }
     .diagram-list .tag {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--ink-soft);
-      margin-left: 0.5rem;
+      margin-left: 0.4rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     .diagram-list .desc {
       display: block;
-      margin-top: 0.2em;
-      font-size: 14px;
+      margin-top: 0.15em;
+      font-size: 13px;
       color: var(--ink-soft);
       font-weight: 400;
     }
-    .diagram-list li.stub {
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    .diagram-list li.stub { opacity: 0.55; }
     .diagram-list li.stub .tag::after {
       content: ' · not yet built';
+      color: var(--welfare-loss);
     }
+    .diagram-list li.stub a { pointer-events: none; cursor: default; }
     .intro {
       background: var(--paper-deep);
       padding: 1.2rem 1.5rem;
       border-radius: var(--radius-lg);
       border-left: 3px solid var(--ink);
       margin-bottom: 2rem;
+    }
+    .progress-note {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-soft);
+      display: inline-block;
+      background: var(--paper-deep);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 0.5rem;
+      font-weight: 400;
     }
   </style>
 </head>
@@ -77,85 +84,130 @@
 
   <div class="intro">
     <p class="prose" style="margin: 0;">
-      A collection of interactive diagrams covering every required graphical element of the IB Economics syllabus, designed for use after teacher introduction, in class play, and at revision time. Drag things. Release them. Change the setting from a St Andrews greengrocer to Albanian wheat and see how the same logic survives.
+      Every diagram in the IB Economics syllabus, built to be interactive. Drag curves, slide things, watch the dynamics. Change the setting from a St Andrews greengrocer to Albanian wheat to see the same logic survive.
+    </p>
+    <p class="prose" style="margin: 0.5rem 0 0;">
+      Diagrams are grouped by the <em>canvas</em> they share — the underlying plot type and axes. A student who has learned one diagram on a canvas will find the others immediately readable.
     </p>
   </div>
 
   <section class="unit-group">
-    <h2>Unit 2 · Microeconomics</h2>
+    <h2>Unit 1 · Introduction and core concepts <span class="progress-note">1 of 2 built</span></h2>
+    <p class="canvas-group">Production possibilities · good A × good B</p>
     <ul class="diagram-list">
       <li>
-        <a href="diagrams/01-market-equilibrium.html">Market equilibrium <span class="tag">2.3 · Required</span></a>
-        <span class="desc">Demand, supply, equilibrium, shortages and surpluses, with springy return to equilibrium.</span>
+        <a href="diagrams/03-ppc.html">PPC — opportunity cost, growth, unemployment <span class="tag">1.1 · Required</span></a>
+        <span class="desc">Increasing vs constant opportunity cost; points inside/on/outside; actual growth vs capacity growth.</span>
       </li>
-      <li class="stub">
-        <a>Price elasticity of demand <span class="tag">2.5 · Required</span></a>
-        <span class="desc">Constant PED (perfectly elastic/inelastic/unitary) and the linear demand curve.</span>
-      </li>
-      <li class="stub">
-        <a>Indirect tax <span class="tag">2.7 · Required</span></a>
-        <span class="desc">Specific and ad valorem taxes, tax incidence, welfare loss.</span>
-      </li>
-      <li class="stub">
-        <a>Subsidy <span class="tag">2.7 · Required</span></a>
-        <span class="desc">Subsidy incidence, cost to government, welfare effects.</span>
-      </li>
-      <li class="stub">
-        <a>Price ceilings and price floors <span class="tag">2.7 · Required</span></a>
-        <span class="desc">Maximum and minimum prices, with stickiness and black-market pressure.</span>
-      </li>
-      <li class="stub">
-        <a>Negative externalities of production &amp; consumption <span class="tag">2.8 · Required</span></a>
-        <span class="desc">MSC vs MPC, overproduction, welfare loss, Pigouvian tax response.</span>
-      </li>
-      <li class="stub">
-        <a>Positive externalities of production &amp; consumption <span class="tag">2.8 · Required</span></a>
-        <span class="desc">MSB vs MPB, underconsumption, subsidy and provision responses.</span>
-      </li>
+    </ul>
+    <p class="canvas-group">Circular flow · box-and-arrows</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Circular flow of income <span class="tag">1.1 · Required</span></a><span class="desc">Households, firms, government, banks, foreign sector; leakages and injections.</span></li>
     </ul>
   </section>
 
   <section class="unit-group">
-    <h2>Unit 3 · Macroeconomics</h2>
+    <h2>Unit 2 · Microeconomics <span class="progress-note">1 of 20 built</span></h2>
+
+    <p class="canvas-group">Supply and demand · price × quantity</p>
     <ul class="diagram-list">
-      <li class="stub">
-        <a>AD–AS (Keynesian) <span class="tag">3.2 · Required</span></a>
+      <li>
+        <a href="diagrams/01-market-equilibrium.html">Market equilibrium, shortages and surpluses <span class="tag">2.3 · Required</span></a>
+        <span class="desc">The core supply/demand diagram. Shifts, pivots, events, price shocks, transition dynamics, welfare regions.</span>
       </li>
-      <li class="stub">
-        <a>AD–AS (neoclassical/monetarist) <span class="tag">3.2 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>Business cycle <span class="tag">3.1 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>Lorenz curve and Gini <span class="tag">3.5 · Required</span></a>
-      </li>
+      <li class="stub"><a>Demand curve (intro) <span class="tag">2.1 · Required</span></a><span class="desc">A single demand curve, with movements along vs. shifts of.</span></li>
+      <li class="stub"><a>Supply curve (intro) <span class="tag">2.2 · Required</span></a><span class="desc">A single supply curve, with movements along vs. shifts of.</span></li>
+      <li class="stub"><a>Consumer and producer surplus <span class="tag">2.3 · Required</span></a><span class="desc">CS and PS as areas; community surplus; HL surplus calculations.</span></li>
+      <li class="stub"><a>Price elasticity of demand <span class="tag">2.5 · Required</span></a><span class="desc">Constant PED, along a linear demand curve (HL), revenue effects.</span></li>
+      <li class="stub"><a>Income elasticity of demand <span class="tag">2.5 · Required</span></a><span class="desc">Engel curve: normal, inferior and income-elastic goods.</span></li>
+      <li class="stub"><a>Price elasticity of supply <span class="tag">2.6 · Required</span></a><span class="desc">Constant and varying PES along a supply curve.</span></li>
+      <li class="stub"><a>Price ceiling (maximum price) <span class="tag">2.7 · Required</span></a><span class="desc">Welfare, shortage, consequences, possible black market.</span></li>
+      <li class="stub"><a>Price floor (minimum price) <span class="tag">2.7 · Required</span></a><span class="desc">Welfare, surplus, government buying, consequences.</span></li>
+      <li class="stub"><a>Indirect tax <span class="tag">2.7 · Required</span></a><span class="desc">Specific and ad valorem; incidence; welfare loss.</span></li>
+      <li class="stub"><a>Subsidy <span class="tag">2.7 · Required</span></a><span class="desc">Subsidy incidence, cost to government, welfare effects.</span></li>
+      <li class="stub"><a>Negative externalities <span class="tag">2.8 · Required</span></a><span class="desc">MSC vs MPC, MPB vs MSB, welfare loss, policy response.</span></li>
+      <li class="stub"><a>Positive externalities <span class="tag">2.8 · Required</span></a><span class="desc">Under-production/consumption, subsidies, provision.</span></li>
+      <li class="stub"><a>Government responses to externalities <span class="tag">2.8 · Required</span></a><span class="desc">Carbon tax, tradable permits, subsidies, education.</span></li>
+    </ul>
+
+    <p class="canvas-group">Market power (HL) · price × quantity with cost curves</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Perfect competition: firm and industry <span class="tag">2.11 · HL Required</span></a></li>
+      <li class="stub"><a>Monopoly <span class="tag">2.11 · HL Required</span></a></li>
+      <li class="stub"><a>Monopolistic competition <span class="tag">2.11 · HL Required</span></a></li>
+      <li class="stub"><a>Natural monopoly <span class="tag">2.11 · HL Required</span></a></li>
     </ul>
   </section>
 
   <section class="unit-group">
-    <h2>Unit 4 · The global economy</h2>
+    <h2>Unit 3 · Macroeconomics <span class="progress-note">0 of 17 built</span></h2>
+
+    <p class="canvas-group">AD/AS · price level × real output</p>
     <ul class="diagram-list">
-      <li class="stub">
-        <a>Tariff <span class="tag">4.3 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>Quota <span class="tag">4.3 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>Subsidy on an imported good <span class="tag">4.3 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>Floating exchange rate <span class="tag">4.5 · Required</span></a>
-      </li>
-      <li class="stub">
-        <a>J-curve and Marshall–Lerner <span class="tag">4.6 · HL only</span></a>
-      </li>
+      <li class="stub"><a>AD curve and shifts <span class="tag">3.2 · Required</span></a></li>
+      <li class="stub"><a>SRAS curve and shifts <span class="tag">3.2 · Required</span></a></li>
+      <li class="stub"><a>Alternative views of AS (Keynesian vs neoclassical) <span class="tag">3.2 · Required</span></a></li>
+      <li class="stub"><a>Macroeconomic equilibrium (SR and LR) <span class="tag">3.2 · Required</span></a></li>
+      <li class="stub"><a>Economic growth via AD or LRAS <span class="tag">3.3 · Required</span></a></li>
+      <li class="stub"><a>Demand-pull inflation <span class="tag">3.3 · Required</span></a></li>
+      <li class="stub"><a>Cost-push inflation <span class="tag">3.3 · Required</span></a></li>
+      <li class="stub"><a>Deflation <span class="tag">3.3 · Required</span></a></li>
+      <li class="stub"><a>Deflationary gap and cyclical unemployment <span class="tag">3.3 · Required</span></a></li>
+      <li class="stub"><a>Expansionary vs contractionary monetary policy <span class="tag">3.5 · Required</span></a></li>
+      <li class="stub"><a>Expansionary vs contractionary fiscal policy <span class="tag">3.6 · Required</span></a></li>
+      <li class="stub"><a>Supply-side policies <span class="tag">3.7 · Required</span></a></li>
+      <li class="stub"><a>Crowding-out effect <span class="tag">3.6 · HL Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Business cycle · time × real GDP</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Business cycle with trend <span class="tag">3.1 · Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Labour market · wage × quantity of labour</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Minimum wage and unemployment <span class="tag">3.3, 3.7 · Required</span></a></li>
+      <li class="stub"><a>Fall in demand for labour <span class="tag">3.3 · Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Phillips curve · unemployment × inflation</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Phillips curve (SR and LR) <span class="tag">3.3 · HL Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Money market · interest rate × quantity of money</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Equilibrium interest rate <span class="tag">3.5 · HL Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Distribution · cumulative population × cumulative income</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Lorenz curve and Gini coefficient <span class="tag">3.4 · Required</span></a></li>
+    </ul>
+  </section>
+
+  <section class="unit-group">
+    <h2>Unit 4 · The global economy <span class="progress-note">0 of 9 built</span></h2>
+
+    <p class="canvas-group">Trade · price × quantity with world price line</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Free trade with exports/imports <span class="tag">4.1 · Required</span></a></li>
+      <li class="stub"><a>Tariff <span class="tag">4.2 · Required</span></a></li>
+      <li class="stub"><a>Quota <span class="tag">4.2 · Required</span></a></li>
+      <li class="stub"><a>Export subsidy <span class="tag">4.2 · Required</span></a></li>
+      <li class="stub"><a>Comparative advantage PPC <span class="tag">4.1 · HL Required</span></a></li>
+    </ul>
+
+    <p class="canvas-group">Exchange rates · exchange rate × quantity of currency</p>
+    <ul class="diagram-list">
+      <li class="stub"><a>Floating exchange rate <span class="tag">4.5 · Required</span></a></li>
+      <li class="stub"><a>Fixed exchange rate (intervention) <span class="tag">4.5 · Required</span></a></li>
+      <li class="stub"><a>Managed exchange rate <span class="tag">4.5 · Required</span></a></li>
     </ul>
   </section>
 
   <p class="small muted" style="margin-top: 3rem;">
-    This is an evolving project. Stubs link to nothing yet; live diagrams are bold. Built for teaching, revision and exploration of IB Economics.
+    Built for teaching, revision and exploration. Diagrams are grouped by shared canvas so the underlying grammar is consistent. Stubs show the target scope; live links are diagrams that are already playable.
   </p>
 
 </main>
