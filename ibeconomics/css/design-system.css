@@ -307,6 +307,20 @@ h3 { font-size: 16px; margin: 1em 0 0.3em; color: var(--ink-soft); text-transfor
   min-width: 45px;
   text-align: right;
 }
+
+/* A speed-control that is visible but not wired into the simulation. We
+   still let the user slide it so they can read the scenario-specific
+   descriptions, but style it as muted and "inactive". */
+.speed-control.not-wired label,
+.speed-control.not-wired input[type="range"] {
+  opacity: 0.55;
+}
+.speed-control.not-wired input[type="range"]::-webkit-slider-thumb {
+  background: var(--ink-soft);
+}
+.speed-control.not-wired .value {
+  color: var(--ink-soft);
+}
 .key-idea {
   background: #fff;
   border-left: 3px solid var(--ink);
@@ -725,6 +739,13 @@ input[type="range"]::-moz-range-thumb {
 .graph-area svg .annotation.dashed {
   stroke-dasharray: 3 3;
 }
+.graph-area svg .cobweb-trace line.cobweb-segment {
+  stroke: var(--welfare-loss);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
 /* Transition dynamics: older origin lines in muted ink, current transacted
    lines in the demand accent colour so they read as "live". */
 .graph-area svg .annotation.transition-old {

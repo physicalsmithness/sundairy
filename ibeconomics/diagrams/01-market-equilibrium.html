@@ -112,12 +112,13 @@
         <div class="control" style="grid-column: span 2;">
           <label style="margin-bottom: 0.3rem;">Adjustment speeds <span class="small muted" style="text-transform: none; letter-spacing: 0; font-weight: 400;">(when a curve shifts, how fast does each side respond?)</span></label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
-            <div>
+            <div class="speed-control not-wired">
               <label style="font-size: 11px;">Demand speed <span class="value" id="demand-speed-val">fast</span></label>
               <input type="range" id="demand-speed" min="5" max="100" step="1" value="85" />
               <span class="small muted" id="demand-speed-note">Consumers typically respond to price changes quickly.</span>
+              <span class="small muted" style="display: block; font-style: italic; color: var(--welfare-loss); margin-top: 0.15rem;">Not yet wired into the simulation; slide for the descriptions only.</span>
             </div>
-            <div>
+            <div class="speed-control">
               <label style="font-size: 11px;">Supply speed <span class="value" id="supply-speed-val">slow</span></label>
               <input type="range" id="supply-speed" min="5" max="100" step="1" value="15" />
               <span class="small muted" id="supply-speed-note">Firms take time to change their output (new workers, new capacity).</span>
@@ -275,6 +276,7 @@ const adjustmentSpeedNotes = {
 
 function speedCategory(value) {
   // value is 5..100
+  if (value >= 95) return 'instant';
   if (value >= 70) return 'fast';
   if (value >= 35) return 'moderate';
   return 'slow';
@@ -283,10 +285,19 @@ function updateSpeedNotes() {
   const notes = adjustmentSpeedNotes[state.scenarioKey] || adjustmentSpeedNotes.generic;
   const dCat = speedCategory(state.demandSpeed * 100);
   const sCat = speedCategory(state.supplySpeed * 100);
-  document.getElementById('demand-speed-val').textContent = dCat;
+  // Demand stays in the three usual buckets — there's no "instant" bucket
+  // for demand because the demand-speed slider is not yet wired anyway.
+  const dCatShown = dCat === 'instant' ? 'fast' : dCat;
+  document.getElementById('demand-speed-val').textContent = dCatShown;
   document.getElementById('supply-speed-val').textContent = sCat;
-  document.getElementById('demand-speed-note').textContent = notes.demand[dCat];
-  document.getElementById('supply-speed-note').textContent = notes.supply[sCat];
+  document.getElementById('demand-speed-note').textContent = notes.demand[dCatShown];
+  // Supply at 'instant' needs its own note (scenario-specific is nice but a
+  // generic one is fine for now).
+  if (sCat === 'instant') {
+    document.getElementById('supply-speed-note').textContent = 'Supply reacts the instant prices move. Unusual in real markets, but useful for comparing to the slow case.';
+  } else {
+    document.getElementById('supply-speed-note').textContent = notes.supply[sCat];
+  }
 }
 
 /* Scenario-specific text that appears under the shift and pivot sliders.
@@ -1765,6 +1776,17 @@ function beginSettle() {
   const qTol = s.quantityMax * 0.005;
   const pTol = s.priceMax * 0.005;
   if (Math.abs(dQ) < qTol && Math.abs(dP) < pTol) {
+    beginFade();
+    return;
+  }
+
+  // Supply speed at the very top of the slider (≥ 0.95) means "instant".
+  // Snap the current state to the new equilibrium and fade the old markers
+  // out straight away, skipping the slide animation entirely.
+  if (state.supplySpeed >= 0.95) {
+    state.transition.currentQ = state.transition.newEqQ;
+    state.transition.currentP = state.transition.newEqP;
+    renderAll();
     beginFade();
     return;
   }

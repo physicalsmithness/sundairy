@@ -1140,34 +1140,112 @@ export class PQPlot {
   _runCobweb(fromPrice, onUpdate) {
     const { demand, supply } = this._cobwebCurves || {};
     if (!demand || !supply) { if (onUpdate) onUpdate(fromPrice); return; }
+
+    // Build the iconic cobweb trace: starting at the forced price P₀,
+    // bounce between the supply curve and the demand curve. Each pair of
+    // segments (horizontal then vertical) is one "period" of the cobweb.
+    //
+    // Segment 1: horizontal from (0, P₀) to (Q₀ = S(P₀), P₀) — the starting
+    //             quantity suppliers offer at the initial price.
+    // Then alternating:
+    //   Vertical from (Q, P) to (Q, D(Q))   — consumers set new price
+    //   Horizontal from (Q, P) to (S(P), P) — producers adjust quantity
+    // We cap at ~12 segments to keep the animation bounded.
+
+    const ensureGroup = () => {
+      if (!this._cobwebTraceG) {
+        this._cobwebTraceG = svgEl('g', { class: 'cobweb-trace' });
+        this.plot.plotGroup.appendChild(this._cobwebTraceG);
+      }
+      while (this._cobwebTraceG.firstChild) {
+        this._cobwebTraceG.removeChild(this._cobwebTraceG.firstChild);
+      }
+    };
+    ensureGroup();
+
+    // Precompute segments as (q0, p0) → (q1, p1) in data space
+    const segments = [];
     let p = fromPrice;
-    const maxSteps = 10;
-    let step = 0;
-    const stepDuration = 500;
-    const runStep = () => {
-      if (step >= maxSteps) return;
-      const qSupplied = supply.quantityAt(p);
-      if (!isFinite(qSupplied) || qSupplied < 0) return;
-      const newP = demand.priceAt(qSupplied);
-      const pEnd = Math.max(0, Math.min(this._s.priceMax * 0.98, newP));
-      const pStart = p;
-      if (Math.abs(pEnd - pStart) < 0.005) return;
+    let q = supply.quantityAt(p);
+    const pMax = this._s.priceMax;
+    const qMax = this._s.quantityMax;
+    // First segment: the horizontal leg from the y-axis across to the supply
+    // curve at the starting price. This is the "what suppliers would offer"
+    // indicator.
+    segments.push({ q0: 0, p0: p, q1: q, p1: p });
+
+    const maxPeriods = 6; // at most 12 visible segments
+    for (let i = 0; i < maxPeriods; i++) {
+      const newP = demand.priceAt(q);
+      if (!isFinite(newP)) break;
+      const pClamped = Math.max(0, Math.min(pMax * 0.99, newP));
+      // Vertical leg at Q: from old price to new price
+      segments.push({ q0: q, p0: p, q1: q, p1: pClamped });
+      if (Math.abs(pClamped - p) < pMax * 0.005) break;  // converged
+      p = pClamped;
+      const newQ = supply.quantityAt(p);
+      if (!isFinite(newQ) || newQ < 0) break;
+      const qClamped = Math.max(0, Math.min(qMax * 0.99, newQ));
+      // Horizontal leg at P: from old Q to new Q
+      segments.push({ q0: q, p0: p, q1: qClamped, p1: p });
+      if (Math.abs(qClamped - q) < qMax * 0.005) break;  // converged
+      q = qClamped;
+    }
+
+    // Draw segments one at a time with a short animation per segment.
+    let idx = 0;
+    const stepDuration = 260;
+    const drawNext = () => {
+      if (idx >= segments.length) return;
+      const seg = segments[idx];
+      const x0 = this.xScale(seg.q0), y0 = this.yScale(seg.p0);
+      const x1 = this.xScale(seg.q1), y1 = this.yScale(seg.p1);
+      const line = svgEl('line', {
+        class: 'cobweb-segment',
+        x1: x0, y1: y0, x2: x0, y2: y0,  // start as a point, animate to endpoint
+      });
+      this._cobwebTraceG.appendChild(line);
       const t0 = performance.now();
-      const frame = now => {
+      const tick = now => {
         const t = Math.min(1, (now - t0) / stepDuration);
-        const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
-        const v = pStart + (pEnd - pStart) * eased;
-        if (onUpdate) onUpdate(v);
-        if (t < 1) requestAnimationFrame(frame);
-        else {
-          p = pEnd;
-          step++;
-          setTimeout(runStep, 80);
+        const eased = 1 - Math.pow(1 - t, 2);
+        line.setAttribute('x2', x0 + (x1 - x0) * eased);
+        line.setAttribute('y2', y0 + (y1 - y0) * eased);
+        // Also update the forced-price line to track whichever price we're
+        // "at" during this segment, so the rest of the UI remains coherent.
+        const pAt = seg.p0 + (seg.p1 - seg.p0) * eased;
+        if (onUpdate) onUpdate(pAt);
+        if (t < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          idx++;
+          setTimeout(drawNext, 60);
         }
       };
-      requestAnimationFrame(frame);
+      requestAnimationFrame(tick);
     };
-    runStep();
+    drawNext();
+
+    // Schedule a cleanup of the trace when the animation should have finished.
+    // (A naive fixed timeout — rerunning cobweb clears early via ensureGroup.)
+    const totalMs = segments.length * (stepDuration + 60) + 3000;
+    this._cobwebTraceClearTimer && clearTimeout(this._cobwebTraceClearTimer);
+    this._cobwebTraceClearTimer = setTimeout(() => {
+      if (this._cobwebTraceG) {
+        // Fade out
+        this._cobwebTraceG.style.transition = 'opacity 0.6s';
+        this._cobwebTraceG.style.opacity = '0';
+        setTimeout(() => {
+          if (this._cobwebTraceG) {
+            while (this._cobwebTraceG.firstChild) {
+              this._cobwebTraceG.removeChild(this._cobwebTraceG.firstChild);
+            }
+            this._cobwebTraceG.style.opacity = '';
+            this._cobwebTraceG.style.transition = '';
+          }
+        }, 700);
+      }
+    }, totalMs);
   }
 
   _renderEquilibriumMarker() {
