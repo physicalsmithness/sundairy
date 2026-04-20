@@ -69,6 +69,45 @@ function drawSellerFigure(group, cx, yBase) {
   group.appendChild(tagText);
 }
 
+/* Price-floor context: seller is stuck above the clearing price, unable
+   to discount. Instead of a SALE tag, we draw a small padlock icon beside
+   the seller to signal the locked-above-market-price constraint. */
+function drawFloorSellerFigure(group, cx, yBase) {
+  const headY = yBase - 15;
+  const head = svgEl('circle', { cx, cy: headY, r: 3.5, fill: 'var(--ink-soft)' });
+  const body = svgEl('path', {
+    d: `M ${cx-4} ${yBase} L ${cx+4} ${yBase} L ${cx} ${headY + 3} Z`,
+    fill: 'var(--ink-soft)', opacity: 0.9,
+  });
+  // Small pile of unsold stock next to the seller
+  for (let i = 0; i < 3; i++) {
+    const pile = svgEl('rect', {
+      x: cx + 5 + (i % 2) * 2,
+      y: yBase - 3 - i * 3,
+      width: 7, height: 3,
+      fill: 'var(--supply-fill)',
+      stroke: 'var(--supply)',
+      'stroke-width': 0.4,
+      rx: 0.5,
+    });
+    group.appendChild(pile);
+  }
+  // Padlock icon: small rectangle with a C-shaped hasp above
+  const lockX = cx + 13, lockY = headY - 10;
+  const lockBody = svgEl('rect', {
+    x: lockX, y: lockY, width: 7, height: 6,
+    fill: 'var(--welfare-loss-fill)', stroke: 'var(--welfare-loss)', 'stroke-width': 0.7, rx: 0.8,
+  });
+  const lockHasp = svgEl('path', {
+    d: `M ${lockX + 1.5} ${lockY} Q ${lockX + 1.5} ${lockY - 3}, ${lockX + 3.5} ${lockY - 3} Q ${lockX + 5.5} ${lockY - 3}, ${lockX + 5.5} ${lockY}`,
+    fill: 'none', stroke: 'var(--welfare-loss)', 'stroke-width': 0.9,
+  });
+  group.appendChild(body);
+  group.appendChild(head);
+  group.appendChild(lockBody);
+  group.appendChild(lockHasp);
+}
+
 export class PQPlot {
   constructor({ container, scenario = 'generic', width = 720, height = 420, margin } = {}) {
     this.container = container;
@@ -114,15 +153,17 @@ export class PQPlot {
     this.priceLineG   = svgEl('g', { class: 'price-line-group' });
     this.handlesG     = svgEl('g', { class: 'handles' });
     this.labelsG      = svgEl('g', { class: 'labels' });
+    this.calloutG     = svgEl('g', { class: 'callouts' });
     g.appendChild(this.regionsG);
     g.appendChild(this.annotationsG);
     g.appendChild(this.curvesG);
     g.appendChild(this.gapG);
     g.appendChild(this.forceG);
     g.appendChild(this.priceLineG);
-    g.appendChild(this.hitG);       // curve hit-lines above price-line-hit so grabs on curves win
+    g.appendChild(this.hitG);
     g.appendChild(this.handlesG);
     g.appendChild(this.labelsG);
+    g.appendChild(this.calloutG);     // callouts sit on top of everything
 
     this.hoverHandle = svgEl('circle', {
       class: 'hover-handle hidden', cx: 0, cy: 0, r: 7,
@@ -215,6 +256,7 @@ export class PQPlot {
   setAnnotations(annots)     { this.annotations = annots; return this; }
   setForceArrow(config)      { this.forceArrow = config; return this; }
   setGapBar(config)          { this.gapBar = config; return this; }
+  setCallout(config)         { this.callout = config; return this; }
   setEquilibriumMarker(mark) {
     // When the target changes, start a glide animation from the current
     // displayed position to the new target. If no current position exists
@@ -390,6 +432,7 @@ export class PQPlot {
     this._renderEquilibriumMarker();
     this._renderLabels();
     this._renderReturnAnnotation();
+    this._renderCallout();
   }
 
   get _s()     { return scenarios[this.scenarioKey] || scenarios.generic; }
@@ -599,6 +642,25 @@ export class PQPlot {
       });
       if (r.onClick) poly.addEventListener('click', r.onClick);
       this.regionsG.appendChild(poly);
+
+      // Value label inside the polygon (at its centroid) when requested.
+      if (r.label && visible) {
+        let sx = 0, sy = 0;
+        for (const [q, p] of r.points) {
+          sx += this.xScale(q);
+          sy += this.yScale(p);
+        }
+        const cx = sx / r.points.length;
+        const cy = sy / r.points.length;
+        const txt = svgEl('text', {
+          class: 'region-value-label',
+          x: cx, y: cy, 'text-anchor': 'middle',
+          'dominant-baseline': 'middle',
+          'data-region-label-for': r.id || '',
+        });
+        txt.textContent = r.label;
+        this.regionsG.appendChild(txt);
+      }
     }
   }
 
@@ -671,24 +733,37 @@ export class PQPlot {
     if (magnitude < 0.02) return;
     if (targetPrice == null || eqQ == null) return;
 
-    // Place the arrow on the equilibrium's x-coordinate, running from the
-    // current-price height to the equilibrium-price height. This tells the
-    // student: "the price is here, it wants to be there". Tail starts a
-    // few px from the forced-price line so it doesn't overlap the gap bar.
+    // Place the arrow on the equilibrium's x-coordinate. It starts at the
+    // forced-price line (with a small gap for the gap-bar) and points towards
+    // the equilibrium-price line. We cap the visible length so big disequi‑
+    // libria don't produce a huge swamping arrow; the reader infers the rest.
     const x = this.xScale(eqQ);
     const yFrom = this.yScale(atPrice);
     const yTo = this.yScale(targetPrice);
     const dy = yTo - yFrom;
-    if (Math.abs(dy) < 10) return; // too short to be useful
-    // Start the arrow 6px offset from the forced-price line (so arrow tail
-    // doesn't overlap with gap bar), end 4px before the eq height.
-    const offset = 6;
-    const y1 = yFrom + Math.sign(dy) * offset;
-    const y2 = yTo - Math.sign(dy) * 4;
+    if (Math.abs(dy) < 8) return; // too short to be useful
+
+    const sign = Math.sign(dy);
+    const offset = 6;  // gap between price-line and arrow tail
+    const fullLen = Math.abs(dy) - offset - 4;
+    // Arrow shows a constant fraction of the full gap, capped. On a tiny
+    // gap we might take the full length; on a huge gap we cap around 80px.
+    const maxLen = 80;
+    const minLen = 16;
+    const visibleLen = Math.max(minLen, Math.min(maxLen, fullLen * 0.45 + 16));
+
+    const y1 = yFrom + sign * offset;
+    const y2 = y1 + sign * visibleLen;
+
+    // Stroke width grows (modestly) with magnitude so big gaps feel stronger
+    // without dominating. Range roughly 2 → 4.5 px.
+    const stroke = 2 + Math.min(1, magnitude) * 2.5;
+
     const arrow = svgEl('line', {
       class: `force-arrow ${direction}`,
       x1: x, y1, x2: x, y2,
       'marker-end': 'url(#arrowhead-force)',
+      'stroke-width': stroke,
     });
     this.forceG.appendChild(arrow);
   }
@@ -713,14 +788,10 @@ export class PQPlot {
 
     const group = svgEl('g', { class: 'off-graph' });
     const yAt = this.yScale(atPrice);
-    // Sit just outside the right edge of the plot, in the right margin.
-    // The margin is wide enough (70px) that figures and the curve labels
-    // can coexist without colliding.
     const x = this.margin.left + this.plotW + 14;
 
     if (direction === 'shortage') {
-      // A small stack of buyer figures in the margin, pressing upward.
-      // Their banknotes raised — clearly they'd pay more if allowed.
+      // Buyers in the margin, banknotes raised — they'd pay more if allowed.
       const label = svgEl('text', {
         class: 'off-graph-label',
         x: x + 14, y: yAt - 16,
@@ -729,11 +800,10 @@ export class PQPlot {
       label.textContent = 'buyers bid up';
       group.appendChild(label);
       for (let i = 0; i < 3; i++) {
-        const yBase = yAt + 10 + i * 22;
-        drawBuyerFigure(group, x + 8, yBase);
+        drawBuyerFigure(group, x + 8, yAt + 10 + i * 22);
       }
     } else if (direction === 'surplus') {
-      // Sellers beneath the price line, SALE tags aloft.
+      // Standard surplus (eg demand shock above eq): sellers discount to clear.
       const label = svgEl('text', {
         class: 'off-graph-label',
         x: x + 18, y: yAt + 68,
@@ -742,12 +812,124 @@ export class PQPlot {
       label.textContent = 'sellers cut prices';
       group.appendChild(label);
       for (let i = 0; i < 3; i++) {
-        const yBase = yAt + 24 + i * 18;
-        drawSellerFigure(group, x + 8, yBase);
+        drawSellerFigure(group, x + 8, yAt + 24 + i * 18);
+      }
+    } else if (direction === 'floor-surplus') {
+      // Price floor: sellers would love to discount but a government floor
+      // blocks them. Stock piles up. A padlock tag on each seller.
+      const label = svgEl('text', {
+        class: 'off-graph-label',
+        x: x + 18, y: yAt + 68,
+        'text-anchor': 'middle',
+      });
+      label.textContent = 'price floor: stock piles up';
+      group.appendChild(label);
+      for (let i = 0; i < 3; i++) {
+        drawFloorSellerFigure(group, x + 8, yAt + 24 + i * 18);
       }
     }
 
     this._offGraphG.appendChild(group);
+  }
+
+  /**
+   * Render a text callout inside the plot area. Used by the shock machinery
+   * to surface narration inside the graph itself so the reader doesn't have
+   * to flick between the banner above the graph and the action on it.
+   *
+   * Config: { text, position, variant }
+   *   text     : string to display (can include line breaks via \n)
+   *   position : 'top-right' (default) | 'top-left' | 'bottom-right' | 'bottom-left'
+   *   variant  : optional, 'shock' for the coral left-border treatment
+   */
+  _renderCallout() {
+    this._clear(this.calloutG);
+    if (!this.callout || !this.callout.text) return;
+    const text = this.callout.text;
+    const position = this.callout.position || 'top-right';
+    const variant = this.callout.variant || '';
+
+    // Wrap to lines: split on \n, further break long lines by word wrap.
+    const maxCharsPerLine = 36;
+    const explicitLines = text.split('\n');
+    const lines = [];
+    for (const line of explicitLines) {
+      if (line.length <= maxCharsPerLine) { lines.push(line); continue; }
+      // Greedy word wrap
+      const words = line.split(' ');
+      let cur = '';
+      for (const w of words) {
+        if ((cur + ' ' + w).trim().length > maxCharsPerLine) {
+          lines.push(cur);
+          cur = w;
+        } else {
+          cur = (cur + ' ' + w).trim();
+        }
+      }
+      if (cur) lines.push(cur);
+    }
+
+    const padding = 10;
+    const lineHeight = 17;
+    const fontSize = 12.5;
+    const maxTextWidth = 260; // px
+    const boxHeight = lines.length * lineHeight + padding * 2;
+    const boxWidth = maxTextWidth + padding * 2;
+
+    // Position within the plot area with a small inset
+    const inset = 12;
+    let bx, by;
+    switch (position) {
+      case 'top-left':
+        bx = this.margin.left + inset;
+        by = this.margin.top + inset;
+        break;
+      case 'bottom-right':
+        bx = this.margin.left + this.plotW - boxWidth - inset;
+        by = this.margin.top + this.plotH - boxHeight - inset;
+        break;
+      case 'bottom-left':
+        bx = this.margin.left + inset;
+        by = this.margin.top + this.plotH - boxHeight - inset;
+        break;
+      case 'top-right':
+      default:
+        bx = this.margin.left + this.plotW - boxWidth - inset;
+        by = this.margin.top + inset;
+    }
+
+    const box = svgEl('rect', {
+      class: `callout-box ${variant}`,
+      x: bx, y: by, width: boxWidth, height: boxHeight,
+      rx: 8, ry: 8,
+    });
+    this.calloutG.appendChild(box);
+
+    // Variant 'shock' gets a left border strip in coral
+    if (variant === 'shock') {
+      const border = svgEl('rect', {
+        class: 'callout-border',
+        x: bx, y: by, width: 3, height: boxHeight,
+        rx: 1.5, ry: 1.5,
+      });
+      this.calloutG.appendChild(border);
+    }
+
+    const textEl = svgEl('text', {
+      class: `callout-text ${variant}`,
+      x: bx + padding + (variant === 'shock' ? 4 : 0),
+      y: by + padding + fontSize,
+      'font-size': fontSize,
+    });
+    lines.forEach((line, i) => {
+      const tspan = svgEl('tspan', {
+        x: bx + padding + (variant === 'shock' ? 4 : 0),
+        dy: i === 0 ? 0 : lineHeight,
+      });
+      tspan.textContent = line;
+      textEl.appendChild(tspan);
+    });
+    this.calloutG.appendChild(textEl);
   }
 
   _renderPriceLine() {

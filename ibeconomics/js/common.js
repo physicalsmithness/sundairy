@@ -29,6 +29,7 @@ export const scenarios = {
     quantityLabel: 'Quantity',
     priceUnit: '$',
     quantityUnit: 'units',
+    quantityScale: 1,
     priceMax: 10,              // top of visible price axis
     quantityMax: 100,          // right edge of visible quantity axis
     defaultPrice: 5,
@@ -87,6 +88,7 @@ export const scenarios = {
     quantityLabel: 'Apples per day',
     priceUnit: '£',
     quantityUnit: 'apples',
+    quantityScale: 1,
     priceMax: 2.00,
     quantityMax: 300,
     defaultPrice: 0.80,
@@ -153,10 +155,11 @@ export const scenarios = {
     quantityLabel: 'Phones sold per month (millions)',
     priceUnit: '$',
     quantityUnit: 'm phones',
+    quantityScale: 1_000_000,
     priceMax: 1200,
-    quantityMax: 160,
-    defaultPrice: 600,
-    defaultQuantity: 90,
+    quantityMax: 200,
+    defaultPrice: 400,
+    defaultQuantity: 105,
     narrationSeller: 'phone manufacturers',
     narrationBuyer: 'global consumers',
     sellerIsPlural: true,
@@ -219,6 +222,7 @@ export const scenarios = {
     quantityLabel: 'Tonnes of wheat per year (thousands)',
     priceUnit: 'L',              // Albanian lek symbol shorthand
     quantityUnit: 'k tonnes',
+    quantityScale: 1_000,
     priceMax: 60000,
     quantityMax: 500,
     defaultPrice: 32000,
@@ -285,6 +289,7 @@ export const scenarios = {
     quantityLabel: 'Cups sold on a Saturday',
     priceUnit: '£',
     quantityUnit: 'cups',
+    quantityScale: 1,
     priceMax: 4.00,
     quantityMax: 80,
     defaultPrice: 1.50,
@@ -363,13 +368,22 @@ export function formatQuantity(scenario, value) {
 }
 
 export function formatMoney(scenario, value) {
-  // for total revenue, tax revenue etc — always a currency figure
+  // `value` is (quantity × price) in the display units of the scenario. For
+  // the apple greengrocer this is plain pounds. For smartphones, quantity is
+  // in millions of phones, so value is in millions of dollars. We multiply
+  // by quantityScale to get a "raw" currency amount, then format with b/m/k
+  // suffixes as appropriate.
   const s = scenarios[scenario] || scenarios.generic;
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${s.priceUnit}${(value / 1_000_000).toFixed(1)}m`;
-  if (abs >= 1000)      return `${s.priceUnit}${Math.round(value).toLocaleString()}`;
-  if (abs >= 10)        return `${s.priceUnit}${Math.round(value)}`;
-  return `${s.priceUnit}${value.toFixed(2)}`;
+  const unit = s.priceUnit;
+  const scaled = value * (s.quantityScale || 1);
+  const abs = Math.abs(scaled);
+  const sign = scaled < 0 ? '-' : '';
+  if (abs >= 1e12) return `${sign}${unit}${(abs / 1e12).toFixed(1)}tn`;
+  if (abs >= 1e9)  return `${sign}${unit}${(abs / 1e9).toFixed(1)}bn`;
+  if (abs >= 1e6)  return `${sign}${unit}${(abs / 1e6).toFixed(1)}m`;
+  if (abs >= 1e3)  return `${sign}${unit}${(abs / 1e3).toFixed(1)}k`;
+  if (abs >= 10)   return `${sign}${unit}${Math.round(abs)}`;
+  return `${sign}${unit}${abs.toFixed(2)}`;
 }
 
 // ---- Plot scaffolding ----------------------------------------------------
@@ -391,7 +405,7 @@ export function createPlot({
   scenario = 'generic',
   width = 640,
   height = 460,
-  margin = { top: 30, right: 70, bottom: 56, left: 78 },
+  margin = { top: 30, right: 70, bottom: 64, left: 95 },
 } = {}) {
   const s = scenarios[scenario] || scenarios.generic;
   const plotW = width - margin.left - margin.right;

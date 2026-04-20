@@ -48,9 +48,10 @@
         <button class="event-chip shock-btn" id="shock-floor" title="Impose a minimum price above equilibrium for six weeks.">Price floor <span class="term-badge">minimum price</span></button>
         <button class="event-chip shock-btn" id="shock-supply" title="A sudden drop in supply (e.g. a drought) for six weeks.">Sudden supply cut <span class="term-badge">negative supply shock</span></button>
         <span class="shock-clock" id="shock-clock" style="display: none;"></span>
+        <button class="event-chip shock-pause" id="shock-pause" style="display: none;" title="Pause the shock so you can study what's happening.">Pause ⏸</button>
         <button class="event-chip shock-skip" id="shock-skip" style="display: none;" title="Skip to the end of the shock.">Skip ▸</button>
       </div>
-      <div class="event-narration" id="event-narration">Click an event or shock above to see the market react.</div>
+      <div class="event-narration baseline visible" id="event-narration">Click an event or shock above to see the market react.</div>
       <section class="graph-area">
         <div id="help-panel" class="help-panel">
           <h4>Instructions</h4>
@@ -63,10 +64,6 @@
           </ul>
         </div>
         <div id="plot" aria-label="Interactive supply and demand diagram"></div>
-        <div class="legend" id="legend">
-          <span class="item" data-region="consumer-surplus"><span class="swatch" style="background: var(--demand-fill); border-color: var(--demand);"></span> Consumer surplus</span>
-          <span class="item" data-region="producer-surplus"><span class="swatch" style="background: var(--supply-fill); border-color: var(--supply);"></span> Producer surplus</span>
-        </div>
       </section>
 
       <section class="controls" aria-label="Shift controls">
@@ -135,11 +132,20 @@
       <dl class="live-readout" id="readout">
         <dt>Market price (P*)</dt><dd id="out-price">£0.80</dd>
         <dt>Equilibrium quantity (Q*)</dt><dd id="out-qstar">150</dd>
-        <dt>Quantity demanded</dt><dd id="out-qd">150</dd>
-        <dt>Quantity supplied</dt><dd id="out-qs">150</dd>
         <dt>Gap</dt><dd id="out-gap">In balance</dd>
-        <dt>Consumer expenditure</dt><dd id="out-expenditure">£120</dd>
       </dl>
+
+      <h3 style="margin-top: 1rem;">Calculations</h3>
+      <p class="small muted" style="margin: 0 0 0.4rem;">Click each twice: outline → shaded with value.</p>
+      <ul class="calc-toggles" id="calc-toggles">
+        <li data-calc="cs"><button>Consumer surplus</button><span class="calc-value" id="calc-cs-val"></span></li>
+        <li data-calc="ps"><button>Producer surplus</button><span class="calc-value" id="calc-ps-val"></span></li>
+        <li data-calc="community"><button>Community surplus <span class="small muted" style="font-weight:400;">(CS + PS)</span></button><span class="calc-value" id="calc-community-val"></span></li>
+        <li data-calc="wtp"><button>Total willingness to pay</button><span class="calc-value" id="calc-wtp-val"></span></li>
+        <li data-calc="wta"><button>Total willingness to accept</button><span class="calc-value" id="calc-wta-val"></span></li>
+        <li data-calc="expenditure"><button>Consumer expenditure</button><span class="calc-value" id="calc-expenditure-val"></span></li>
+      </ul>
+
       <p class="prose" id="narration-text">
         The market is in equilibrium. Every apple a customer wants to buy at this price is matched by an apple a seller is willing to sell. No one is frustrated.
       </p>
@@ -179,10 +185,20 @@ const state = {
   eventAnim: null,
   activeShock: null,
   // Transition dynamics (Dynamic 2)
-  demandSpeed: 0.85,     // fast-adjusting demand by default
-  supplySpeed: 0.15,     // slow-adjusting supply by default
-  transition: null,      // { pPrime, qOld, pOld, oldCurves, newEqQ, newEqP, phase }
-  lastSettledCurves: null,  // copy of demand/supply at last-known settled state
+  demandSpeed: 0.85,
+  supplySpeed: 0.15,
+  transition: null,
+  lastSettledCurves: null,
+  // Right-panel calc toggles: each is 'off' | 'shown' | 'labelled'.
+  // Default: CS and PS shown (outlined), others off.
+  calcStates: {
+    cs: 'shown',
+    ps: 'shown',
+    community: 'off',
+    wtp: 'off',
+    wta: 'off',
+    expenditure: 'off',
+  },
 };
 
 const returnStyleLabels = {
@@ -420,92 +436,281 @@ function effectiveQuantities(p) {
    Regions
    ----------------------------------------------------------------------- */
 
-function computeRegions() {
-  const regions = [];
+/**
+ * Build all six calc regions (CS, PS, community, WTP, WTA, expenditure)
+ * as polygon data plus numeric area values. Returns { regions, values }.
+ *
+ * Economics:
+ *   CS  = Sum over units of (willingness to pay - price). Area above p,
+ *         below demand, from 0 to qTraded.
+ *   PS  = Sum over units of (price - marginal cost). Area below p,
+ *         above supply, from 0 to qTraded (including zero-cost rectangle
+ *         where supply has a positive x-intercept).
+ *   Community surplus = CS + PS.
+ *   WTP = Total willingness to pay = area under demand from 0 to qTraded.
+ *         Equals CS + consumer expenditure.
+ *   WTA = Total willingness to accept = area under supply from 0 to qTraded.
+ *         Equals (consumer expenditure) - PS (roughly — the bit producers
+ *         would have accepted).
+ *   Expenditure = p × qTraded. Rectangle.
+ */
+function computeCalcs() {
+  const result = { regions: [], values: {} };
   const e = eq();
-  if (!e) return regions;
+  if (!e) return result;
   const s = scenarios[state.scenarioKey];
   const p = currentPrice();
   const { qD, qS } = effectiveQuantities(p);
   const qTraded = Math.max(0, Math.min(qD, qS));
-
-  // Consumer surplus: region above market price, below demand curve,
-  // between q = 0 and q = qTraded. Walk the perimeter:
-  //   1. start at (0, p)
-  //   2. up the y-axis to where demand hits: (0, demandAtZero), clipped to pTop
-  //   3. if demand exited the plot top, add the corner (qAtTop, pTop)
-  //   4. follow demand down to (qTraded, demand.priceAt(qTraded))
-  //   5. back to (qTraded, p) — but this equals step 4 when p is the market price
-  //      so we only add step 5 if we're showing CS at a forced price where
-  //      demand > p at qTraded.
   const pTop = s.priceMax;
   const dAtZero = state.demand.priceAt(0);
+  const sAtZero = state.supply.priceAt(0);
+
+  // ----- CS polygon -----
+  // Above p, below D, 0..qTraded. Clipped at plot-top if D's y-intercept is tall.
+  let csPts = null;
   if (qTraded > 0 && dAtZero > p) {
     const dTopY = Math.min(dAtZero, pTop);
-    const pts = [[0, p], [0, dTopY]];
+    csPts = [[0, p], [0, dTopY]];
     if (dAtZero > pTop) {
-      // demand exits the top of the plot at some q before reaching q=0
       const qAtTop = state.demand.quantityAt(pTop);
-      pts.push([qAtTop, pTop]);
+      csPts.push([qAtTop, pTop]);
     }
-    // Follow demand to qTraded; demand.priceAt(qTraded) may be >= p (always,
-    // for a sensible market) so we close the polygon with that point and p.
-    pts.push([qTraded, state.demand.priceAt(qTraded)]);
+    csPts.push([qTraded, state.demand.priceAt(qTraded)]);
     if (state.demand.priceAt(qTraded) > p + 0.001) {
-      pts.push([qTraded, p]);
+      csPts.push([qTraded, p]);
     }
-    regions.push({
-      id: 'consumer-surplus',
-      className: 'consumer-surplus',
-      points: pts,
-    });
+  }
+  // Numeric CS: trapezoid area between D(q) and p from q=0 to q=qTraded
+  // = integral (D(q) - p) dq from 0 to qTraded
+  // For a linear demand D(q) = a + b*q (with b < 0):
+  //   = a*qT + b*qT^2/2 - p*qT
+  // But easier: the triangle-like region has endpoints at (0, dAtZero),
+  // (qTraded, D(qTraded)) up top and (0, p), (qTraded, p) at bottom.
+  // Area = (1/2) * (dAtZero - p + D(qTraded) - p) * qTraded
+  //      = qTraded * ((dAtZero + D(qTraded))/2 - p)
+  // This correctly handles the case where we've clipped at the plot top:
+  // since CS is still mathematically the unclipped triangle. We report the
+  // true economic value, not the on-screen polygon area.
+  let csValue = 0;
+  if (qTraded > 0) {
+    const dq0 = Math.max(p, dAtZero);
+    const dqT = Math.max(p, state.demand.priceAt(qTraded));
+    csValue = qTraded * ((dq0 + dqT) / 2 - p);
   }
 
-  // Producer surplus. The polygon depends on where the supply curve enters
-  // the plot on the left:
-  //   Case A: supply.priceAt(0) >= 0 — supply enters through the y-axis at
-  //     some price p_y >= 0. PS is the standard triangle:
-  //       (0, p_y) → (0, p) → (qTraded, p) → (qTraded, S(qTraded)) [and
-  //       closes back along supply to (0, p_y)].
-  //   Case B: supply.priceAt(0) < 0 — supply crosses the x-axis at
-  //     qSStart > 0 (some units would be offered at zero price). Those
-  //     units still sell at market price p, adding a zero-cost rectangle
-  //     to PS:
-  //       (0, 0) → (0, p) → (qTraded, p) → (qTraded, S(qTraded)) →
-  //       close along supply to (qSStart, 0) → (0, 0).
-  const sAtZero = state.supply.priceAt(0);
+  // ----- PS polygon -----
+  let psPts = null;
   if (sAtZero >= 0) {
-    // Case A
     const pSStart = sAtZero;
     if (qTraded > 0 && p > pSStart) {
-      const pts = [
+      psPts = [
         [0, pSStart],
         [0, p],
         [qTraded, p],
         [qTraded, state.supply.priceAt(qTraded)],
       ];
-      regions.push({ id: 'producer-surplus', className: 'producer-surplus', points: pts });
     }
   } else {
-    // Case B
     const qSStart = state.supply.quantityAt(0);
     if (qTraded > qSStart && p > 0) {
-      const pts = [
+      psPts = [
         [0, 0],
         [0, p],
         [qTraded, p],
         [qTraded, state.supply.priceAt(qTraded)],
         [qSStart, 0],
       ];
-      regions.push({ id: 'producer-surplus', className: 'producer-surplus', points: pts });
+    }
+  }
+  // Numeric PS: integral of (p - S(q)) over 0..qTraded, where S(q) is
+  // clamped to >= 0.
+  let psValue = 0;
+  if (qTraded > 0) {
+    if (sAtZero >= 0) {
+      // Supply starts on y-axis at p_y >= 0. PS is the trapezoid between
+      // the supply curve and the horizontal price line at p.
+      const sq0 = sAtZero;
+      const sqT = state.supply.priceAt(qTraded);
+      psValue = Math.max(0, qTraded * (p - (sq0 + sqT) / 2));
+    } else {
+      // Supply crosses x-axis at qSStart > 0. PS = zero-cost rectangle
+      // (0 ≤ q ≤ min(qSStart, qTraded)) + triangle above supply on the
+      // remaining range.
+      const qSStart = state.supply.quantityAt(0);
+      const rectQ = Math.min(qSStart, qTraded);
+      const rect = p * rectQ;
+      let tri = 0;
+      if (qTraded > qSStart) {
+        // Triangle: (qSStart, 0) → (qTraded, S(qTraded)) below the price
+        // line at p. Its area = 0.5 × width × (p - avg supply height).
+        // Supply on this range goes from 0 at qSStart to sqT at qTraded,
+        // so average supply = sqT / 2. Gap to p = p - sqT / 2. But more
+        // directly: triangle between line from (qSStart, 0) to (qTraded, p)
+        // and the horizontal at p (matching at qTraded), has area = 0.5 ×
+        // (qTraded - qSStart) × p — which simplifies because S rises to p.
+        const sqT = Math.max(0, state.supply.priceAt(qTraded));
+        const triWidth = qTraded - qSStart;
+        tri = triWidth * (p - sqT / 2);
+      }
+      psValue = Math.max(0, rect + tri);
     }
   }
 
-  // The quantity gap at the forced price is shown as a bracket bar on the
-  // price line (see setGapBar below), not as an area polygon, because the
-  // thing being communicated is a quantity (apples), not an area (£ × apples).
+  // ----- Community surplus polygon -----
+  // Union of CS and PS regions — the whole area between D and S from 0 to qTraded,
+  // capped above by D, below by S (or y=0 where S is negative).
+  // Walk: (0, max(0, sAtZero)) up to (0, min(dAtZero, pTop)), along D to
+  // (qTraded, D(qTraded)), down to (qTraded, max(0, S(qTraded))), back along
+  // S (or x-axis) to start.
+  let communityPts = null;
+  if (qTraded > 0 && dAtZero > Math.max(0, sAtZero)) {
+    const sStart = Math.max(0, sAtZero);
+    const dTop = Math.min(dAtZero, pTop);
+    communityPts = [[0, sStart], [0, dTop]];
+    if (dAtZero > pTop) {
+      communityPts.push([state.demand.quantityAt(pTop), pTop]);
+    }
+    communityPts.push([qTraded, state.demand.priceAt(qTraded)]);
+    communityPts.push([qTraded, Math.max(0, state.supply.priceAt(qTraded))]);
+    // If supply crosses x-axis to the right of origin, route through that point
+    if (sAtZero < 0) {
+      communityPts.push([state.supply.quantityAt(0), 0]);
+    }
+  }
+  const communityValue = csValue + psValue;
 
-  return regions;
+  // ----- WTP polygon -----
+  // Area under demand from 0 to qTraded: from (0, 0) up the y-axis to
+  // (0, min(dAtZero, pTop)), across along D to (qTraded, D(qTraded)),
+  // down to (qTraded, 0), close.
+  let wtpPts = null;
+  if (qTraded > 0 && dAtZero > 0) {
+    const dTop = Math.min(dAtZero, pTop);
+    wtpPts = [[0, 0], [0, dTop]];
+    if (dAtZero > pTop) {
+      wtpPts.push([state.demand.quantityAt(pTop), pTop]);
+    }
+    wtpPts.push([qTraded, Math.max(0, state.demand.priceAt(qTraded))]);
+    wtpPts.push([qTraded, 0]);
+  }
+  // Numeric: trapezoid = qTraded * (dAtZero + D(qTraded)) / 2 (if both positive)
+  let wtpValue = 0;
+  if (qTraded > 0) {
+    const dq0 = Math.max(0, dAtZero);
+    const dqT = Math.max(0, state.demand.priceAt(qTraded));
+    wtpValue = qTraded * (dq0 + dqT) / 2;
+  }
+
+  // ----- WTA polygon -----
+  // Area under supply from 0 to qTraded: (0, 0) up to (0, max(0, sAtZero)),
+  // along S to (qTraded, S(qTraded)), down to (qTraded, 0), close.
+  let wtaPts = null;
+  if (qTraded > 0 && state.supply.priceAt(qTraded) > 0) {
+    const sStart = Math.max(0, sAtZero);
+    if (sAtZero >= 0) {
+      wtaPts = [[0, 0], [0, sStart],
+                [qTraded, state.supply.priceAt(qTraded)],
+                [qTraded, 0]];
+    } else {
+      // supply crosses the x-axis at some qSStart > 0; WTA starts from there
+      const qSStart = state.supply.quantityAt(0);
+      wtaPts = [[qSStart, 0],
+                [qTraded, state.supply.priceAt(qTraded)],
+                [qTraded, 0]];
+    }
+  }
+  let wtaValue = 0;
+  if (qTraded > 0) {
+    const sq0 = Math.max(0, sAtZero);
+    const sqT = Math.max(0, state.supply.priceAt(qTraded));
+    if (sAtZero >= 0) {
+      wtaValue = qTraded * (sq0 + sqT) / 2;
+    } else {
+      const qSStart = state.supply.quantityAt(0);
+      wtaValue = (qTraded - qSStart) * sqT / 2;
+    }
+  }
+
+  // ----- Consumer expenditure polygon -----
+  // Rectangle: (0, 0) → (0, p) → (qTraded, p) → (qTraded, 0).
+  let expPts = null;
+  if (qTraded > 0 && p > 0) {
+    expPts = [[0, 0], [0, p], [qTraded, p], [qTraded, 0]];
+  }
+  const expValue = qTraded * p;
+
+  // Emit regions based on calcStates. Ordering matters for z-order:
+  // community sits below CS/PS, which sit below WTA/WTP/expenditure (those
+  // don't normally all coexist, but if they do, the later ones appear on top).
+  const show = (calc) => state.calcStates[calc] !== 'off';
+  const isLabelled = (calc) => state.calcStates[calc] === 'labelled';
+
+  // Community first (lowest z-order). When shown, it dims CS/PS visually
+  // via CSS, but we still emit CS and PS so their values can display if
+  // independently labelled.
+  if (show('community') && communityPts) {
+    result.regions.push({
+      id: 'community-surplus',
+      className: 'community-surplus',
+      points: communityPts,
+      label: isLabelled('community') ? formatMoney(state.scenarioKey, communityValue) : null,
+    });
+  }
+  if (show('wtp') && wtpPts) {
+    result.regions.push({
+      id: 'wtp',
+      className: 'wtp-region',
+      points: wtpPts,
+      label: isLabelled('wtp') ? formatMoney(state.scenarioKey, wtpValue) : null,
+    });
+  }
+  if (show('wta') && wtaPts) {
+    result.regions.push({
+      id: 'wta',
+      className: 'wta-region',
+      points: wtaPts,
+      label: isLabelled('wta') ? formatMoney(state.scenarioKey, wtaValue) : null,
+    });
+  }
+  if (show('cs') && csPts) {
+    result.regions.push({
+      id: 'consumer-surplus',
+      className: 'consumer-surplus' + (show('community') ? ' dim' : ''),
+      points: csPts,
+      label: isLabelled('cs') ? formatMoney(state.scenarioKey, csValue) : null,
+    });
+  }
+  if (show('ps') && psPts) {
+    result.regions.push({
+      id: 'producer-surplus',
+      className: 'producer-surplus' + (show('community') ? ' dim' : ''),
+      points: psPts,
+      label: isLabelled('ps') ? formatMoney(state.scenarioKey, psValue) : null,
+    });
+  }
+  if (show('expenditure') && expPts) {
+    result.regions.push({
+      id: 'expenditure',
+      className: 'expenditure-region',
+      points: expPts,
+      label: isLabelled('expenditure') ? formatMoney(state.scenarioKey, expValue) : null,
+    });
+  }
+
+  result.values = {
+    cs: csValue,
+    ps: psValue,
+    community: communityValue,
+    wtp: wtpValue,
+    wta: wtaValue,
+    expenditure: expValue,
+  };
+  return result;
+}
+
+function computeRegions() {
+  return computeCalcs().regions;
 }
 
 /* -----------------------------------------------------------------------
@@ -662,46 +867,85 @@ function renderAll() {
       magnitude,
       direction: gap > 0 ? 'up' : 'down',
     });
+    // Off-graph characters. For price-floor shocks specifically, use a
+    // different "floor" treatment so the SALE stickers don't mislead —
+    // under a floor, sellers are stuck above the clearing price, not
+    // discounting. For regular surpluses (eg after a demand drop) the
+    // standard surplus treatment applies.
+    const shockType = state.activeShock ? state.activeShock.type : null;
+    let offGraphDir;
+    if (gap > 0) {
+      offGraphDir = 'shortage';
+    } else if (shockType === 'floor') {
+      offGraphDir = 'floor-surplus';
+    } else {
+      offGraphDir = 'surplus';
+    }
     plot.setOffGraph({
       enabled: state.offGraphEnabled,
-      direction: gap > 0 ? 'shortage' : 'surplus',
+      direction: offGraphDir,
       atPrice: p,
+      floorPrice: shockType === 'floor' ? p : null,
+      scenario: state.scenarioKey,
     });
   } else {
     plot.setForceArrow(null);
     plot.setOffGraph({ enabled: false });
   }
 
-  // Labels: P* on the y-axis, Q* on the x-axis, with dotted leader lines
-  // from the equilibrium marker to each axis. Convention matches textbook
-  // diagrams.
+  // Labels: symmetric treatment of P* and Q* around the axes. The NAME
+  // ("P*", "Q*") sits OUTSIDE the axis, in the margin, past the tick
+  // numbers. The VALUE sits just INSIDE the axis. Both line up with the
+  // dotted leader lines coming from the equilibrium marker.
   const labels = [];
   if (e) {
-    // P* label just inside the y-axis, at the equilibrium price level.
-    // Placed inside (not in the left margin) to avoid colliding with the
-    // rotated y-axis title.
+    // P* name: in the left margin, to the left of the tick numbers.
+    // Widened margin (95px) leaves room for the rotated axis title at x~18,
+    // the P* name around x=40, and tick numbers hugging the axis at x~88.
+    labels.push({
+      x: 0,
+      y: e.p,
+      rawX: 42,
+      text: 'P*',
+      textAnchor: 'middle',
+      offset: { y: 4 },
+      color: 'var(--ink)',
+      className: 'point-label axis-callout',
+    });
+    // P* value: just inside the plot, right of the y-axis
     labels.push({
       x: 0,
       y: e.p,
       rawX: plot.margin.left + 6,
-      text: `P* = ${formatPrice(state.scenarioKey, e.p)}`,
+      text: formatPrice(state.scenarioKey, e.p),
       textAnchor: 'start',
       offset: { y: -4 },
       color: 'var(--ink)',
       className: 'point-label axis-callout',
     });
-    // Q* label on the x-axis — placed below the axis tick numbers
+    // Q* name: in the x-axis bottom margin, between tick numbers and the axis title
     labels.push({
       x: e.q,
       y: 0,
-      rawY: plot.margin.top + plot.plotH + 48,
-      text: `Q* = ${formatQuantity(state.scenarioKey, e.q)}`,
+      rawY: plot.margin.top + plot.plotH + 38,
+      text: 'Q*',
       textAnchor: 'middle',
       color: 'var(--ink)',
       className: 'point-label axis-callout',
     });
+    // Q* value: just inside the plot, above the x-axis
+    labels.push({
+      x: e.q,
+      y: 0,
+      rawY: plot.margin.top + plot.plotH - 6,
+      text: formatQuantity(state.scenarioKey, e.q),
+      textAnchor: 'start',
+      offset: { x: 5 },
+      color: 'var(--ink)',
+      className: 'point-label axis-callout',
+    });
   }
-  // Current price tick — when forced away from eq. Also just inside the axis.
+  // Current price (when forced off eq): italic muted, also just inside the axis.
   if (state.forcedPrice != null && e) {
     labels.push({
       x: 0,
@@ -720,9 +964,22 @@ function renderAll() {
   // Cobweb needs curves to iterate
   plot.setCobwebCurves({ demand: state.demand, supply: state.supply });
 
+  // In-plot callout during a shock: surface the narration text inside the
+  // graph itself so the reader doesn't have to glance up to the banner.
+  if (state.activeShock && state.activeShock.currentLine) {
+    plot.setCallout({
+      text: state.activeShock.currentLine,
+      position: state.activeShock.calloutPosition || 'top-right',
+      variant: 'shock',
+    });
+  } else {
+    plot.setCallout(null);
+  }
+
   plot.render();
 
   updateNarration();
+  updateCalcValues();
 }
 
 /* -----------------------------------------------------------------------
@@ -739,8 +996,10 @@ function updateNarration() {
 
   document.getElementById('out-price').textContent = atEq ? `${formatPrice(state.scenarioKey, p)} (P*)` : formatPrice(state.scenarioKey, p);
   document.getElementById('out-qstar').textContent = e ? formatQuantity(state.scenarioKey, e.q) : '—';
-  document.getElementById('out-qd').textContent = formatQuantity(state.scenarioKey, qD);
-  document.getElementById('out-qs').textContent = formatQuantity(state.scenarioKey, qS);
+  const qdEl = document.getElementById('out-qd');
+  if (qdEl) qdEl.textContent = formatQuantity(state.scenarioKey, qD);
+  const qsEl = document.getElementById('out-qs');
+  if (qsEl) qsEl.textContent = formatQuantity(state.scenarioKey, qS);
   const gap = qD - qS;
   const gapEl = document.getElementById('out-gap');
   if (atEq) {
@@ -756,7 +1015,8 @@ function updateNarration() {
     gapEl.textContent = 'In balance';
     gapEl.style.color = 'var(--ink)';
   }
-  document.getElementById('out-expenditure').textContent = formatMoney(state.scenarioKey, qTraded * p);
+  const expEl = document.getElementById('out-expenditure');
+  if (expEl) expEl.textContent = formatMoney(state.scenarioKey, qTraded * p);
 
   const nt = document.getElementById('narration-text');
   const sV = verbs(s, 'seller');
@@ -828,6 +1088,24 @@ function updateResetDisabled() {
   reset.disabled = isAtBaseline;
 }
 
+/* Narration banner helpers. The banner toggles between three visual states:
+   `baseline`  — subtle italic prompt ("Click an event to see the market react")
+   `visible`   — regular narration (event applied)
+   `shock-active` — prominent live narration during a shock
+*/
+function showNarration(text) {
+  const narr = document.getElementById('event-narration');
+  narr.classList.remove('baseline');
+  narr.classList.add('visible');
+  narr.textContent = text;
+}
+function showBaselineNarration() {
+  const narr = document.getElementById('event-narration');
+  narr.classList.remove('shock-active');
+  narr.classList.add('baseline', 'visible');
+  narr.textContent = 'Click an event or shock above to see the market react.';
+}
+
 function applyEvent(eventId) {
   const ev = (scenarios[state.scenarioKey].events || []).find(e => e.id === eventId);
   if (!ev) return;
@@ -873,6 +1151,7 @@ function applyEvent(eventId) {
 
   // Show event narration banner
   const narrBanner = document.getElementById('event-narration');
+  narrBanner.classList.remove('baseline');
   narrBanner.classList.add('visible');
 
   // Release any forced price; event will play out at natural equilibrium
@@ -1018,9 +1297,7 @@ function resetEvent() {
   if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
   state.activeEventId = null;
   document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
-  const narrBannerReset = document.getElementById('event-narration');
-  narrBannerReset.classList.remove('visible');
-  narrBannerReset.textContent = 'Click an event above to see the market react.';
+  showBaselineNarration();
 
   // Animate sliders back to 0
   const start = {
@@ -1105,6 +1382,11 @@ function startShock(type) {
     cancelAnimationFrame(state.activeShock.rafId);
     state.activeShock = null;
   }
+  // Cancel any pending fade-to-baseline timeout from a previous shock's end
+  if (state.narrBaselineTimeoutId) {
+    clearTimeout(state.narrBaselineTimeoutId);
+    state.narrBaselineTimeoutId = null;
+  }
   state.forcedPrice = null;
   resetShiftSliders();
   state.activeEventId = null;
@@ -1118,20 +1400,23 @@ function startShock(type) {
   if (!e) return;
 
   const totalWeeks = 6;
-  const durationMs = 24000;  // 4 seconds per week — gives time to read
+  const durationMs = 36000;  // 6 seconds per week — comfortable reading pace
   const shock = {
     type,
     startTime: performance.now(),
     duration: durationMs,
     totalWeeks,
-    currentWeek: 0,  // will become 1 on first tick
+    currentWeek: 0,
     rafId: null,
     baselineEq: { q: e.q, p: e.p },
-    // Automatically force off-graph display on during shocks
     offGraphWasOn: state.offGraphEnabled,
+    // Pause bookkeeping: when paused, remember when the pause started so we
+    // can shift startTime forward on resume.
+    paused: false,
+    pauseStartedAt: null,
+    pausedMsTotal: 0,
   };
   state.activeShock = shock;
-  // Turn on off-graph automatically during shock so the visible queue grows
   state.offGraphEnabled = true;
   document.getElementById('off-graph-toggle').checked = true;
 
@@ -1147,36 +1432,54 @@ function startShock(type) {
     buildCurves();
   }
 
-  // Show the clock and skip button
+  // Show the clock and shock-control buttons
   const clock = document.getElementById('shock-clock');
+  const pauseBtn = document.getElementById('shock-pause');
   const skipBtn = document.getElementById('shock-skip');
   clock.style.display = 'inline-block';
+  pauseBtn.style.display = 'inline-block';
+  pauseBtn.textContent = 'Pause \u23F8';
   skipBtn.style.display = 'inline-block';
 
-  // Promote narration visually: add shock-active class
   const narrBanner = document.getElementById('event-narration');
+  narrBanner.classList.remove('baseline');
   narrBanner.classList.add('visible', 'shock-active');
   narrBanner.textContent = shockNarrations[type][0];
+  shock.currentLine = shockNarrations[type][0];
+  // Position of the callout depends on which end of the graph has space.
+  // For shortage/cap: gap bar and force arrow are in the middle-left area,
+  // so put the callout top-right. For floor/supply-cut: the shifted curves
+  // and gap bar sit in the upper area, so put it bottom-right.
+  const calloutPos = (type === 'cap') ? 'top-right'
+                   : (type === 'floor') ? 'bottom-right'
+                   : 'top-right';
+  shock.calloutPosition = calloutPos;
 
   function tick(now) {
     if (!state.activeShock || state.activeShock !== shock) return;
-    const elapsed = now - shock.startTime;
+    if (shock.paused) {
+      shock.rafId = requestAnimationFrame(tick);
+      return;
+    }
+    const elapsed = now - shock.startTime - shock.pausedMsTotal;
     const progress = Math.min(1, elapsed / shock.duration);
     const week = Math.min(totalWeeks, 1 + Math.floor(progress * totalWeeks));
     if (week !== shock.currentWeek) {
       shock.currentWeek = week;
       const line = shockNarrations[type][Math.min(week - 1, shockNarrations[type].length - 1)];
-      // Brief fade-out then fade-in on week change so the eye notices
-      narrBanner.style.opacity = '0.4';
+      // Slower fade between weeks so the eye registers the change.
+      // Apply to both the banner and the in-plot callout.
+      narrBanner.style.opacity = '0.25';
       setTimeout(() => {
+        if (!state.activeShock || state.activeShock !== shock) return;
         narrBanner.textContent = line;
         narrBanner.style.opacity = '';
-      }, 200);
+        shock.currentLine = line;  // picked up by renderAll → setCallout
+      }, 500);
     }
     clock.textContent = `Week ${week} of ${totalWeeks}`;
 
-    // Per-week visual changes: grow the effect that's happening
-    applyShockWeeklyEvolution(type, week, shock);
+    applyShockWeeklyEvolution(type, progress, shock);
 
     renderAll();
     if (progress < 1) {
@@ -1191,39 +1494,41 @@ function startShock(type) {
   logEvent({ diagram: 'market-equilibrium', action: 'shock-started', type });
 }
 
-/* Per-week visual evolution during a shock. Small, cumulative changes so
-   there's something visible happening beyond the narration text. */
-function applyShockWeeklyEvolution(type, week, shock) {
+/* Per-week visual evolution during a shock. The supply-shift target is a
+   smooth function of progress (0..1 across the shock duration), so the
+   supply curve glides continuously rather than stepping at week boundaries.
+   The narration and clock still tick at whole-week intervals, but the
+   visual change on the graph is continuous — much less jerky. */
+function applyShockWeeklyEvolution(type, progress, shock) {
+  // Helper: smoothstep easing from a..b over the progress range [p0, p1].
+  // Returns a if progress <= p0, b if progress >= p1, smooth cubic in between.
+  const between = (progress, p0, p1, a, b) => {
+    if (progress <= p0) return a;
+    if (progress >= p1) return b;
+    const t = (progress - p0) / (p1 - p0);
+    const eased = t * t * (3 - 2 * t); // smoothstep
+    return a + (b - a) * eased;
+  };
+
+  let targetSupplyShift = 0;
   if (type === 'cap') {
-    // Price cap: over weeks 3-5, suppliers pull out — supply shifts slightly
-    // left. This worsens the shortage.
-    const weekPullback = Math.max(0, week - 2);   // 0 at week 1-2, 3 at week 5-6
-    const targetSupplyShift = -weekPullback * 5;   // 0, 0, -5, -10, -15, -15
-    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
-      state.supplyShift = targetSupplyShift;
-      document.getElementById('supply-shift').value = state.supplyShift;
-      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
-      buildCurves();
-    }
+    // Suppliers progressively pull out from week 3 to week 5 (progress 0.33..0.83)
+    // ending at -15% supply shift; held through week 6.
+    targetSupplyShift = between(progress, 0.33, 0.83, 0, -15);
   } else if (type === 'floor') {
-    // Price floor: over weeks 3-5, producers ramp up — supply shifts right.
-    const weekRampup = Math.max(0, week - 2);
-    const targetSupplyShift = weekRampup * 5;
-    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
-      state.supplyShift = targetSupplyShift;
-      document.getElementById('supply-shift').value = state.supplyShift;
-      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
-      buildCurves();
-    }
+    // Producers progressively ramp up from week 3 to week 5, ending at +15%.
+    targetSupplyShift = between(progress, 0.33, 0.83, 0, 15);
   } else if (type === 'supply') {
-    // Supply cut: over weeks 4-6, recovery begins — supply shifts back
-    const targetSupplyShift = week >= 4 ? -35 + (week - 3) * 10 : -35;
-    if (Math.abs(state.supplyShift - targetSupplyShift) > 0.5) {
-      state.supplyShift = targetSupplyShift;
-      document.getElementById('supply-shift').value = state.supplyShift;
-      document.getElementById('supply-shift-val').textContent = `${state.supplyShift}%`;
-      buildCurves();
-    }
+    // Opening shock goes to -35% immediately (already set at shock-start).
+    // From week 4 onwards (progress 0.5..1), recovery ramps supply back to 0.
+    targetSupplyShift = between(progress, 0.5, 1.0, -35, 0);
+  }
+
+  if (Math.abs(state.supplyShift - targetSupplyShift) > 0.1) {
+    state.supplyShift = targetSupplyShift;
+    document.getElementById('supply-shift').value = state.supplyShift;
+    document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
+    buildCurves();
   }
 }
 
@@ -1231,14 +1536,17 @@ function endShock(shock) {
   // Clean up UI bits
   const clock = document.getElementById('shock-clock');
   clock.style.display = 'none';
+  document.getElementById('shock-pause').style.display = 'none';
   document.getElementById('shock-skip').style.display = 'none';
   document.querySelectorAll('.shock-btn').forEach(b => b.classList.remove('active'));
   const narrBanner = document.getElementById('event-narration');
   narrBanner.classList.remove('shock-active');
-  // Leave the final narration line visible briefly before fading
-  setTimeout(() => {
-    narrBanner.classList.remove('visible');
-    narrBanner.textContent = 'Click an event or shock above to see the market react.';
+  // Leave the final narration line visible briefly, then fade back to baseline.
+  // Store the timeout id so a new shock starting quickly can cancel it.
+  if (state.narrBaselineTimeoutId) clearTimeout(state.narrBaselineTimeoutId);
+  state.narrBaselineTimeoutId = setTimeout(() => {
+    if (!state.activeShock) showBaselineNarration();
+    state.narrBaselineTimeoutId = null;
   }, 2500);
 
   // Restore the user's off-graph preference
@@ -1331,11 +1639,7 @@ function manualSliderChange() {
   if (state.activeEventId) {
     state.activeEventId = null;
     document.querySelectorAll('.event-chip').forEach(c => c.classList.remove('active'));
-    // Also clear the lingering narration — it describes an event that the
-    // user has now moved past.
-    const narr = document.getElementById('event-narration');
-    narr.classList.remove('visible');
-    narr.textContent = 'Click an event or shock above to see the market react.';
+    showBaselineNarration();
   }
   updateResetDisabled();
 }
@@ -1404,6 +1708,24 @@ document.getElementById('shock-skip').addEventListener('click', () => {
     endShock(shock);
   }
 });
+document.getElementById('shock-pause').addEventListener('click', () => {
+  const shock = state.activeShock;
+  if (!shock) return;
+  const btn = document.getElementById('shock-pause');
+  if (shock.paused) {
+    // Resume: add the paused duration to the pause total and clear flag
+    shock.pausedMsTotal += performance.now() - shock.pauseStartedAt;
+    shock.paused = false;
+    shock.pauseStartedAt = null;
+    btn.textContent = 'Pause \u23F8';
+    btn.classList.remove('paused');
+  } else {
+    shock.paused = true;
+    shock.pauseStartedAt = performance.now();
+    btn.textContent = 'Resume \u25B6';
+    btn.classList.add('paused');
+  }
+});
 
 // Adjustment-speed sliders
 document.getElementById('demand-speed').addEventListener('input', ev => {
@@ -1438,12 +1760,53 @@ document.addEventListener('click', ev => {
    Boot
    ----------------------------------------------------------------------- */
 
+/* Calc-toggle wiring. Each <li data-calc="..."> contains a <button> that
+   cycles through states off → shown → labelled → off on click. The state
+   is stored as the data-state attribute on the <li> (so CSS can react)
+   and mirrored into state.calcStates for the region renderer. */
+function setupCalcToggles() {
+  const list = document.getElementById('calc-toggles');
+  if (!list) return;
+  // Sync initial visual state from state.calcStates
+  list.querySelectorAll('li[data-calc]').forEach(li => {
+    const calc = li.dataset.calc;
+    li.dataset.state = state.calcStates[calc] || 'off';
+  });
+  list.addEventListener('click', ev => {
+    const btn = ev.target.closest('button');
+    if (!btn) return;
+    const li = btn.closest('li[data-calc]');
+    if (!li) return;
+    const calc = li.dataset.calc;
+    const cur = state.calcStates[calc] || 'off';
+    const next = cur === 'off' ? 'shown' : cur === 'shown' ? 'labelled' : 'off';
+    state.calcStates[calc] = next;
+    li.dataset.state = next;
+    renderAll();
+  });
+}
+
+/* Update the small value labels to the right of each toggle with live numbers,
+   so students always see the numeric value even without switching to 'labelled'
+   (which shades the region on the diagram). */
+function updateCalcValues() {
+  const { values } = computeCalcs();
+  const ids = ['cs', 'ps', 'community', 'wtp', 'wta', 'expenditure'];
+  ids.forEach(id => {
+    const el = document.getElementById(`calc-${id}-val`);
+    if (!el) return;
+    const v = values[id];
+    el.textContent = (v == null || !isFinite(v)) ? '' : formatMoney(state.scenarioKey, v);
+  });
+}
+
 window.__IBECON_DEBUG__ = true;
 makePlot();
 buildEventRow();
 buildCurves();
 updateSpeedNotes();
 updateSliderHelpers();
+setupCalcToggles();
 renderAll();
 </script>
 
