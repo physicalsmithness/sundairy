@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circular flow of income · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Sector boxes */
+    .sector-box {
+      fill: #fff;
+      stroke: var(--ink-soft);
+      stroke-width: 1.5;
+      rx: 12;
+      ry: 12;
+    }
+    .sector-box.households { fill: #fff9ee; stroke: var(--demand-shift); }
+    .sector-box.firms      { fill: #eef7f2; stroke: var(--supply); }
+    .sector-box.government { fill: #f2eef7; stroke: #7a5ca3; }
+    .sector-box.banks      { fill: #fef3ed; stroke: #b76836; }
+    .sector-box.foreign    { fill: #eef1f7; stroke: #4a6da8; }
+    .sector-box.dimmed     { opacity: 0.25; }
+
+    .sector-label {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      fill: var(--ink);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .sector-sublabel {
+      font-family: 'Source Serif 4', serif;
+      font-style: italic;
+      font-size: 11px;
+      fill: var(--ink-soft);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    /* Flow channels — the rendered paths that dots travel along */
+    .flow-channel {
+      fill: none;
+      stroke: var(--rule);
+      stroke-width: 2;
+      opacity: 0.4;
+    }
+    .flow-channel.strong { stroke-width: 3; opacity: 0.6; }
+    .flow-channel.dim    { opacity: 0.15; }
+
+    .flow-arrow-head {
+      fill: var(--ink-soft);
+    }
+
+    /* Flow labels — text on each arrow */
+    .flow-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      fill: var(--ink-soft);
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: var(--paper);
+      stroke-width: 3;
+      stroke-linejoin: round;
+    }
+    .flow-label .value {
+      font-weight: 600;
+      fill: var(--ink);
+    }
+    .flow-label.leakage .value { fill: var(--welfare-loss); }
+    .flow-label.injection .value { fill: var(--supply); }
+
+    /* The moving dots themselves */
+    .flow-dot {
+      /* class applied to <circle> elements; fill set per flow type */
+      opacity: 0.9;
+    }
+    .flow-dot.factor-income { fill: var(--supply); }
+    .flow-dot.consumption   { fill: var(--demand-shift); }
+    .flow-dot.tax           { fill: #7a5ca3; }
+    .flow-dot.gov-spend     { fill: #7a5ca3; }
+    .flow-dot.savings       { fill: #b76836; }
+    .flow-dot.investment    { fill: #b76836; }
+    .flow-dot.imports       { fill: #4a6da8; }
+    .flow-dot.exports       { fill: #4a6da8; }
+
+    /* Sector toggle chips */
+    .sector-toggles {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 0.6rem;
+    }
+    .sector-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-soft);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sector-toggle.active {
+      background: var(--paper-deep);
+      color: var(--ink);
+      border-color: var(--ink-soft);
+      font-weight: 500;
+    }
+    .sector-toggle .swatch {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      border: 1.5px solid currentColor;
+    }
+
+    /* Balance readout */
+    .balance-card {
+      background: var(--paper-deep);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.9rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      margin-bottom: 0.7rem;
+    }
+    .balance-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 0.15rem 0;
+    }
+    .balance-row .label { color: var(--ink-soft); }
+    .balance-row .value { font-variant-numeric: tabular-nums; font-weight: 500; }
+    .balance-row.leak .value { color: var(--welfare-loss); }
+    .balance-row.inj  .value { color: var(--supply); }
+    .balance-row.total {
+      border-top: 1px solid var(--rule);
+      padding-top: 0.4rem;
+      margin-top: 0.4rem;
+      font-weight: 600;
+    }
+    .balance-row.total.surplus .value { color: var(--supply); }
+    .balance-row.total.deficit .value { color: var(--welfare-loss); }
+    .balance-row.total.balanced .value { color: var(--ink); }
+
+    /* Slider control tweaks — denser than pq-plot sliders */
+    .flow-sliders {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem 1rem;
+    }
+    .flow-slider {
+      padding: 0.35rem 0;
+    }
+    .flow-slider label {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      margin-bottom: 0.15rem;
+    }
+    .flow-slider label .val {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .flow-slider input[type="range"] { width: 100%; }
+    .flow-slider .small {
+      font-size: 10.5px;
+      color: var(--ink-soft);
+      display: block;
+      margin-top: 0.1rem;
+    }
+
+    .event-chip.flow-event {
+      margin-right: 0.3rem;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">1.1 Modelling the economy · Required</span>
+      <h1>The circular flow of income</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="generic" selected>Generic economy</option>
+        <option value="uk">UK-flavoured</option>
+        <option value="small_open">Small, open economy</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+
+    <div class="left-col">
+
+      <div class="sector-toggles" aria-label="Which sectors are active">
+        <button class="sector-toggle active" data-sector="government"><span class="swatch" style="background: #e0d6ee; border-color: #7a5ca3;"></span> Government</button>
+        <button class="sector-toggle active" data-sector="banks"><span class="swatch" style="background: #fce1d4; border-color: #b76836;"></span> Banks &amp; financial sector</button>
+        <button class="sector-toggle active" data-sector="foreign"><span class="swatch" style="background: #dae1f2; border-color: #4a6da8;"></span> Foreign sector</button>
+      </div>
+
+      <section class="graph-area">
+        <div id="circular-flow" aria-label="Animated circular flow of income"></div>
+      </section>
+
+      <section class="controls">
+
+        <div class="control" style="grid-column: span 2;">
+          <label style="margin-bottom: 0.3rem;">Flow magnitudes <span class="small muted" style="text-transform: none; letter-spacing: 0; font-weight: 400;">(dots per second along each arrow; drag to explore)</span></label>
+          <div class="flow-sliders">
+            <div class="flow-slider">
+              <label>Consumption (C) <span class="val" id="val-consumption">60</span></label>
+              <input type="range" id="slider-consumption" min="0" max="100" step="1" value="60" />
+              <span class="small">Households spend on domestic goods.</span>
+            </div>
+            <div class="flow-slider">
+              <label>Factor income (Y) <span class="val" id="val-factor">100</span></label>
+              <input type="range" id="slider-factor" min="20" max="150" step="1" value="100" />
+              <span class="small">Firms pay wages, rent, interest, profits.</span>
+            </div>
+            <div class="flow-slider leakage" data-sector-required="government">
+              <label>Tax leakage (T) <span class="val" id="val-tax">20</span></label>
+              <input type="range" id="slider-tax" min="0" max="40" step="1" value="20" />
+              <span class="small">Out of households' income, taxes go to government.</span>
+            </div>
+            <div class="flow-slider injection" data-sector-required="government">
+              <label>Government spending (G) <span class="val" id="val-gov">20</span></label>
+              <input type="range" id="slider-gov" min="0" max="40" step="1" value="20" />
+              <span class="small">Government buys from domestic firms.</span>
+            </div>
+            <div class="flow-slider leakage" data-sector-required="banks">
+              <label>Savings leakage (S) <span class="val" id="val-savings">15</span></label>
+              <input type="range" id="slider-savings" min="0" max="40" step="1" value="15" />
+              <span class="small">Income not spent, parked in banks.</span>
+            </div>
+            <div class="flow-slider injection" data-sector-required="banks">
+              <label>Investment (I) <span class="val" id="val-invest">15</span></label>
+              <input type="range" id="slider-invest" min="0" max="40" step="1" value="15" />
+              <span class="small">Firms borrow to build/expand.</span>
+            </div>
+            <div class="flow-slider leakage" data-sector-required="foreign">
+              <label>Imports (M) <span class="val" id="val-imports">12</span></label>
+              <input type="range" id="slider-imports" min="0" max="40" step="1" value="12" />
+              <span class="small">Spending that leaves the economy.</span>
+            </div>
+            <div class="flow-slider injection" data-sector-required="foreign">
+              <label>Exports (X) <span class="val" id="val-exports">12</span></label>
+              <input type="range" id="slider-exports" min="0" max="40" step="1" value="12" />
+              <span class="small">Foreign spending on domestic firms.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="control" style="grid-column: span 2;">
+          <label style="margin-bottom: 0.3rem;">Quick scenarios</label>
+          <div class="return-style" role="group" aria-label="Flow presets">
+            <button class="event-btn" data-preset="balance">Balanced economy</button>
+            <button class="event-btn" data-preset="tax-rise">Tax rise (austerity)</button>
+            <button class="event-btn" data-preset="boom">Export boom</button>
+            <button class="event-btn" data-preset="recession">Investment slump</button>
+            <button class="event-btn" data-preset="stimulus">Fiscal stimulus</button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="balance-card">
+        <div class="balance-row leak">
+          <span class="label">Total leakages (T + S + M)</span>
+          <span class="value" id="out-leakages">47</span>
+        </div>
+        <div class="balance-row inj">
+          <span class="label">Total injections (G + I + X)</span>
+          <span class="value" id="out-injections">47</span>
+        </div>
+        <div class="balance-row total balanced" id="balance-row">
+          <span class="label" id="balance-label">In balance</span>
+          <span class="value" id="out-balance">0</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Income flows in a circle: firms pay households for factors of production, households spend on firms' goods. Every injection (G, I, X) adds to the flow; every leakage (T, S, M) pulls out of it. In the long run, the two must balance — that's macroeconomic equilibrium.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> The economy is a <em>circuit</em>, not a collection of isolated transactions. A change in one flow ripples through the others. Leakages equal injections in equilibrium; when they don't, the economy is expanding or contracting.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { svgEl, logEvent } from '../js/common.js';
+
+/* -------------------------------------------------------------------------
+   State
+   ------------------------------------------------------------------------- */
+
+const state = {
+  scenario: 'generic',
+  // Active sectors — households and firms are always on
+  sectors: {
+    government: true,
+    banks: true,
+    foreign: true,
+  },
+  // Flow magnitudes in "currency units per tick"; the dots animate at a
+  // speed proportional to the magnitude.
+  flows: {
+    factor: 100,        // Firms → Households: factor payments
+    consumption: 60,    // Households → Firms: consumer spending
+    tax: 20,            // Households → Government: tax leakage
+    gov: 20,            // Government → Firms: spending injection
+    savings: 15,        // Households → Banks: savings leakage
+    invest: 15,         // Banks → Firms: investment injection
+    imports: 12,        // Households → Foreign: imports leakage
+    exports: 12,        // Foreign → Firms: exports injection
+  },
+  svg: null,
+  dots: [],             // { flow: 'tax', channel: 'paths.tax', t: 0..1, speed, el }
+  lastFrame: null,
+  animating: false,
+};
+
+const presets = {
+  balance:   { tax: 20, gov: 20, savings: 15, invest: 15, imports: 12, exports: 12, consumption: 60 },
+  'tax-rise':{ tax: 35, gov: 25, savings: 15, invest: 15, imports: 12, exports: 12, consumption: 45 },
+  boom:      { tax: 20, gov: 20, savings: 15, invest: 20, imports: 15, exports: 30, consumption: 60 },
+  recession: { tax: 20, gov: 20, savings: 25, invest:  5, imports:  8, exports: 10, consumption: 55 },
+  stimulus:  { tax: 15, gov: 35, savings: 12, invest: 20, imports: 15, exports: 15, consumption: 65 },
+};
+
+/* -------------------------------------------------------------------------
+   Geometry
+   -------------------------------------------------------------------------
+   Sectors are placed at fixed points in the SVG viewbox. Households on the
+   left, Firms on the right (the core two-sector loop). Government in the
+   centre top, Banks bottom left between households and centre, Foreign
+   bottom right. Flow paths are SVG path d-strings.
+
+   I use a viewbox of 800×560 so there's plenty of room for labels.
+   ------------------------------------------------------------------------- */
+
+const W = 820, H = 560;
+const cx = W / 2, cy = H / 2;
+
+const boxes = {
+  households: { x: 50,  y: 200, w: 180, h: 120, label: 'Households', sub: 'buyers, workers, savers' },
+  firms:      { x: 590, y: 200, w: 180, h: 120, label: 'Firms',      sub: 'producers, employers' },
+  government: { x: 320, y: 20,  w: 180, h: 80,  label: 'Government', sub: 'tax and spending' },
+  banks:      { x: 150, y: 430, w: 200, h: 80,  label: 'Banks',      sub: 'savings & loans' },
+  foreign:    { x: 470, y: 430, w: 200, h: 80,  label: 'Foreign sector', sub: 'exports & imports' },
+};
+
+/* For each flow, we define a path (SVG d-string) and a set of precomputed
+   sample points so dots can interpolate along it. Path endpoints are box
+   edge midpoints, with curve control points chosen for visual clarity. */
+
+function boxEdge(b, side) {
+  // Returns a point on the edge of box b. side in {'top', 'bottom', 'left', 'right'}
+  switch (side) {
+    case 'top':    return { x: b.x + b.w/2, y: b.y };
+    case 'bottom': return { x: b.x + b.w/2, y: b.y + b.h };
+    case 'left':   return { x: b.x, y: b.y + b.h/2 };
+    case 'right':  return { x: b.x + b.w, y: b.y + b.h/2 };
+  }
+}
+
+function flowPaths() {
+  const h = boxes.households, f = boxes.firms;
+  const g = boxes.government, b = boxes.banks, fx = boxes.foreign;
+  return {
+    // Factor income: firms top-left corner arcing up and over to households top-right
+    factor: {
+      start: { x: f.x + f.w/3, y: f.y },
+      ctrl1: { x: f.x + f.w/3, y: f.y - 80 },
+      ctrl2: { x: h.x + 2*h.w/3, y: h.y - 80 },
+      end:   { x: h.x + 2*h.w/3, y: h.y },
+      labelAt: 0.5,
+      labelText: 'Wages, rent, interest, profits',
+      labelOffsetY: -10,
+      type: 'factor-income',
+    },
+    // Consumption: households bottom-right arcing down and over to firms bottom-left
+    consumption: {
+      start: { x: h.x + 2*h.w/3, y: h.y + h.h },
+      ctrl1: { x: h.x + 2*h.w/3, y: h.y + h.h + 50 },
+      ctrl2: { x: f.x + f.w/3, y: f.y + f.h + 50 },
+      end:   { x: f.x + f.w/3, y: f.y + f.h },
+      labelAt: 0.5,
+      labelText: 'Consumer spending',
+      labelOffsetY: 30,
+      type: 'consumption',
+    },
+    // Tax: households top-right up to government bottom-left
+    tax: {
+      start: { x: h.x + h.w, y: h.y + h.h/3 },
+      ctrl1: { x: h.x + h.w + 60, y: h.y + h.h/3 - 40 },
+      ctrl2: { x: g.x - 40,    y: g.y + g.h + 40 },
+      end:   { x: g.x,         y: g.y + g.h*0.7 },
+      labelAt: 0.5,
+      labelText: 'Tax (T)',
+      labelOffsetX: -20, labelOffsetY: -5,
+      type: 'tax',
+      kind: 'leakage',
+    },
+    // Government spending: government bottom-right down to firms top-left
+    gov: {
+      start: { x: g.x + g.w,   y: g.y + g.h*0.7 },
+      ctrl1: { x: g.x + g.w + 40, y: g.y + g.h + 40 },
+      ctrl2: { x: f.x - 60,    y: f.y + f.h/3 - 40 },
+      end:   { x: f.x,         y: f.y + f.h/3 },
+      labelAt: 0.5,
+      labelText: 'Government spending (G)',
+      labelOffsetY: -5,
+      type: 'gov-spend',
+      kind: 'injection',
+    },
+    // Savings: households bottom, down-and-right to banks top-left
+    savings: {
+      start: { x: h.x + h.w*0.6, y: h.y + h.h },
+      ctrl1: { x: h.x + h.w*0.6, y: h.y + h.h + 40 },
+      ctrl2: { x: b.x + b.w*0.3, y: b.y - 40 },
+      end:   { x: b.x + b.w*0.3, y: b.y },
+      labelAt: 0.5,
+      labelText: 'Savings (S)',
+      labelOffsetX: -20,
+      type: 'savings',
+      kind: 'leakage',
+    },
+    // Investment: banks right to firms bottom-left
+    invest: {
+      start: { x: b.x + b.w,    y: b.y + b.h/2 },
+      ctrl1: { x: b.x + b.w + 50, y: b.y + b.h/2 - 30 },
+      ctrl2: { x: f.x + f.w*0.3 - 30, y: f.y + f.h + 50 },
+      end:   { x: f.x + f.w*0.3, y: f.y + f.h },
+      labelAt: 0.5,
+      labelText: 'Investment (I)',
+      labelOffsetY: 20,
+      type: 'investment',
+      kind: 'injection',
+    },
+    // Imports: households bottom down-and-right to foreign top-left
+    imports: {
+      start: { x: h.x + h.w*0.9, y: h.y + h.h },
+      ctrl1: { x: h.x + h.w + 100, y: h.y + h.h + 80 },
+      ctrl2: { x: fx.x - 40,    y: fx.y - 40 },
+      end:   { x: fx.x + fx.w*0.2, y: fx.y },
+      labelAt: 0.55,
+      labelText: 'Imports (M)',
+      labelOffsetY: 20,
+      type: 'imports',
+      kind: 'leakage',
+    },
+    // Exports: foreign top-right to firms bottom (inside the box)
+    exports: {
+      start: { x: fx.x + fx.w,  y: fx.y + fx.h/2 },
+      ctrl1: { x: fx.x + fx.w + 40, y: fx.y - 30 },
+      ctrl2: { x: f.x + f.w*0.7 - 20, y: f.y + f.h + 50 },
+      end:   { x: f.x + f.w*0.7, y: f.y + f.h },
+      labelAt: 0.5,
+      labelText: 'Exports (X)',
+      labelOffsetY: 20,
+      type: 'exports',
+      kind: 'injection',
+    },
+  };
+}
+
+// Cubic bezier helpers
+function bezPoint(p, t) {
+  const mt = 1 - t;
+  const x = mt*mt*mt*p.start.x + 3*mt*mt*t*p.ctrl1.x + 3*mt*t*t*p.ctrl2.x + t*t*t*p.end.x;
+  const y = mt*mt*mt*p.start.y + 3*mt*mt*t*p.ctrl1.y + 3*mt*t*t*p.ctrl2.y + t*t*t*p.end.y;
+  return { x, y };
+}
+function bezTangent(p, t) {
+  const mt = 1 - t;
+  // Derivative: 3 * [(P1-P0)mt² + 2(P2-P1)mt·t + (P3-P2)t²]
+  const dx = 3 * (mt*mt*(p.ctrl1.x - p.start.x) + 2*mt*t*(p.ctrl2.x - p.ctrl1.x) + t*t*(p.end.x - p.ctrl2.x));
+  const dy = 3 * (mt*mt*(p.ctrl1.y - p.start.y) + 2*mt*t*(p.ctrl2.y - p.ctrl1.y) + t*t*(p.end.y - p.ctrl2.y));
+  return { dx, dy };
+}
+function bezToD(p) {
+  return `M ${p.start.x} ${p.start.y} C ${p.ctrl1.x} ${p.ctrl1.y}, ${p.ctrl2.x} ${p.ctrl2.y}, ${p.end.x} ${p.end.y}`;
+}
+
+/* -------------------------------------------------------------------------
+   Rendering
+   ------------------------------------------------------------------------- */
+
+function makeSVG() {
+  const container = document.getElementById('circular-flow');
+  container.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.style.background = 'transparent';
+  container.appendChild(svg);
+  state.svg = svg;
+
+  // Defs for arrowheads, one per flow colour
+  const defs = svgEl('defs');
+  svg.appendChild(defs);
+  const arrowColours = {
+    'factor-income': 'var(--supply)',
+    'consumption':   'var(--demand-shift)',
+    'tax':           '#7a5ca3',
+    'gov-spend':     '#7a5ca3',
+    'savings':       '#b76836',
+    'investment':    '#b76836',
+    'imports':       '#4a6da8',
+    'exports':       '#4a6da8',
+  };
+  for (const [id, colour] of Object.entries(arrowColours)) {
+    const marker = svgEl('marker', {
+      id: `arrow-${id}`,
+      viewBox: '0 0 10 10',
+      refX: 9, refY: 5,
+      markerWidth: 6, markerHeight: 6,
+      orient: 'auto-start-reverse',
+    });
+    marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: colour }));
+    defs.appendChild(marker);
+  }
+
+  // Layers
+  state.flowsG = svgEl('g', { class: 'flows' });
+  state.dotsG  = svgEl('g', { class: 'dots' });
+  state.boxesG = svgEl('g', { class: 'boxes' });
+  state.labelsG = svgEl('g', { class: 'labels' });
+  svg.appendChild(state.flowsG);
+  svg.appendChild(state.dotsG);
+  svg.appendChild(state.boxesG);   // boxes on top of flow paths but below labels
+  svg.appendChild(state.labelsG);
+
+  drawBoxes();
+  drawFlowChannels();
+}
+
+function drawBoxes() {
+  while (state.boxesG.firstChild) state.boxesG.removeChild(state.boxesG.firstChild);
+  while (state.labelsG.firstChild) state.labelsG.removeChild(state.labelsG.firstChild);
+
+  for (const [name, b] of Object.entries(boxes)) {
+    const active = (name === 'households' || name === 'firms') || state.sectors[name];
+    const g = svgEl('g', { class: `sector sector-${name} ${active ? '' : 'dimmed'}` });
+    g.appendChild(svgEl('rect', {
+      class: `sector-box ${name} ${active ? '' : 'dimmed'}`,
+      x: b.x, y: b.y, width: b.w, height: b.h, rx: 12, ry: 12,
+    }));
+    const lbl = svgEl('text', {
+      class: 'sector-label', x: b.x + b.w/2, y: b.y + b.h/2 - 8,
+    });
+    lbl.textContent = b.label;
+    g.appendChild(lbl);
+    const sub = svgEl('text', {
+      class: 'sector-sublabel', x: b.x + b.w/2, y: b.y + b.h/2 + 12,
+    });
+    sub.textContent = b.sub;
+    g.appendChild(sub);
+    state.boxesG.appendChild(g);
+  }
+}
+
+function drawFlowChannels() {
+  while (state.flowsG.firstChild) state.flowsG.removeChild(state.flowsG.firstChild);
+
+  state._flowPaths = flowPaths();
+  for (const [key, p] of Object.entries(state._flowPaths)) {
+    // Is this flow visible (sector required is active)?
+    const sectorReq = requiredSectorFor(key);
+    const active = !sectorReq || state.sectors[sectorReq];
+
+    const path = svgEl('path', {
+      class: `flow-channel ${active ? '' : 'dim'}`,
+      d: bezToD(p),
+      'marker-end': `url(#arrow-${p.type})`,
+      'data-flow': key,
+    });
+    state.flowsG.appendChild(path);
+
+    if (active) {
+      // Flow label at labelAt fraction along the curve
+      const labelPt = bezPoint(p, p.labelAt);
+      const lx = labelPt.x + (p.labelOffsetX || 0);
+      const ly = labelPt.y + (p.labelOffsetY || 0);
+      const kindClass = p.kind === 'leakage' ? 'leakage' : (p.kind === 'injection' ? 'injection' : '');
+      const text = svgEl('text', {
+        class: `flow-label ${kindClass}`,
+        x: lx, y: ly,
+        'text-anchor': 'middle',
+      });
+      text.textContent = p.labelText;
+      state.flowsG.appendChild(text);
+    }
+  }
+}
+
+function requiredSectorFor(flowKey) {
+  if (flowKey === 'tax' || flowKey === 'gov') return 'government';
+  if (flowKey === 'savings' || flowKey === 'invest') return 'banks';
+  if (flowKey === 'imports' || flowKey === 'exports') return 'foreign';
+  return null;  // factor and consumption always run
+}
+
+/* -------------------------------------------------------------------------
+   Animation
+   -------------------------------------------------------------------------
+   On each frame, we do two things:
+     1. For each flow, spawn new dots at a rate proportional to the flow's
+        magnitude. A flow of magnitude m spawns m/K dots per second, where
+        K is a tuning constant.
+     2. Advance every live dot's t parameter by (speed · dt) / pathLength.
+        When t >= 1, the dot has reached the end and is removed.
+
+   We track dots as an array of objects. SVG circles are appended to the
+   dotsG layer and updated in place (setAttribute cx, cy).
+   ------------------------------------------------------------------------- */
+
+// Tuning: at magnitude 60 (default consumption), how many dots per second?
+const DOTS_PER_SEC_PER_MAG = 0.2;
+// Each dot travels at this many SVG units per second along its path.
+// Path lengths are ~300-500 units, so a dot takes 3-5 seconds to cross.
+const DOT_SPEED = 110;
+
+function flowMagnitude(key) {
+  return state.flows[key] || 0;
+}
+
+// Fractional "dot budget" that accumulates between spawns so that
+// non-integer dot rates work correctly.
+const spawnBudgets = {};
+
+function spawnDots(dt) {
+  for (const [key, p] of Object.entries(state._flowPaths || {})) {
+    const sectorReq = requiredSectorFor(key);
+    if (sectorReq && !state.sectors[sectorReq]) continue;
+    const mag = flowMagnitude(key);
+    if (mag <= 0) continue;
+
+    spawnBudgets[key] = (spawnBudgets[key] || 0) + mag * DOTS_PER_SEC_PER_MAG * dt;
+    while (spawnBudgets[key] >= 1) {
+      spawnBudgets[key] -= 1;
+      spawnDot(key, p);
+    }
+  }
+}
+
+function spawnDot(key, pathData) {
+  const circle = svgEl('circle', {
+    class: `flow-dot ${pathData.type}`,
+    r: 3.3,
+    cx: pathData.start.x, cy: pathData.start.y,
+  });
+  state.dotsG.appendChild(circle);
+  state.dots.push({
+    flow: key,
+    path: pathData,
+    t: 0,
+    // Small per-dot speed jitter so dots don't march in lockstep
+    speedMul: 0.9 + Math.random() * 0.2,
+    el: circle,
+  });
+}
+
+function advanceDots(dt) {
+  // Estimate path lengths on first frame; cache for speed
+  if (!state._pathLengths) {
+    state._pathLengths = {};
+    for (const [key, p] of Object.entries(state._flowPaths || {})) {
+      state._pathLengths[key] = approxPathLength(p, 30);
+    }
+  }
+  for (let i = state.dots.length - 1; i >= 0; i--) {
+    const d = state.dots[i];
+    const len = state._pathLengths[d.flow] || 400;
+    const delta = (DOT_SPEED * d.speedMul * dt) / len;
+    d.t += delta;
+    if (d.t >= 1) {
+      d.el.remove();
+      state.dots.splice(i, 1);
+      continue;
+    }
+    const pt = bezPoint(d.path, d.t);
+    d.el.setAttribute('cx', pt.x);
+    d.el.setAttribute('cy', pt.y);
+  }
+}
+
+function approxPathLength(p, samples) {
+  let len = 0;
+  let prev = bezPoint(p, 0);
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const cur = bezPoint(p, t);
+    const dx = cur.x - prev.x, dy = cur.y - prev.y;
+    len += Math.sqrt(dx*dx + dy*dy);
+    prev = cur;
+  }
+  return len;
+}
+
+function tick(now) {
+  if (!state.lastFrame) state.lastFrame = now;
+  const dt = Math.min(0.1, (now - state.lastFrame) / 1000);  // cap at 100ms
+  state.lastFrame = now;
+  spawnDots(dt);
+  advanceDots(dt);
+  if (state.animating) requestAnimationFrame(tick);
+}
+
+function startAnimation() {
+  if (state.animating) return;
+  state.animating = true;
+  state.lastFrame = null;
+  requestAnimationFrame(tick);
+}
+
+function stopAnimation() {
+  state.animating = false;
+}
+
+/* -------------------------------------------------------------------------
+   Flow state <-> UI reconciliation
+   ------------------------------------------------------------------------- */
+
+function updateBalanceReadout() {
+  const L = (state.sectors.government ? state.flows.tax : 0)
+          + (state.sectors.banks ? state.flows.savings : 0)
+          + (state.sectors.foreign ? state.flows.imports : 0);
+  const J = (state.sectors.government ? state.flows.gov : 0)
+          + (state.sectors.banks ? state.flows.invest : 0)
+          + (state.sectors.foreign ? state.flows.exports : 0);
+  document.getElementById('out-leakages').textContent = L;
+  document.getElementById('out-injections').textContent = J;
+
+  const balance = J - L;
+  document.getElementById('out-balance').textContent = (balance >= 0 ? '+' : '') + balance;
+  const row = document.getElementById('balance-row');
+  const label = document.getElementById('balance-label');
+  row.classList.remove('balanced', 'surplus', 'deficit');
+  if (balance === 0) {
+    row.classList.add('balanced');
+    label.textContent = 'In balance (injections = leakages)';
+  } else if (balance > 0) {
+    row.classList.add('surplus');
+    label.textContent = 'Expanding (injections > leakages)';
+  } else {
+    row.classList.add('deficit');
+    label.textContent = 'Contracting (injections < leakages)';
+  }
+
+  // Narration tailored to the state
+  const narrText = document.getElementById('narration-text');
+  if (balance === 0) {
+    narrText.innerHTML = `Every pound that leaves the circuit as tax, savings, or imports is matched by a pound injected through government spending, investment, or exports. The economy's circuit is steady — this is the macroeconomic equilibrium condition, <em>leakages = injections</em>.`;
+  } else if (balance > 0) {
+    narrText.innerHTML = `Injections exceed leakages by <strong>${balance}</strong>. More is being pumped into the circuit than taken out — incomes and output are expanding. This pushes the economy toward higher equilibrium output, with some combination of growth in real GDP and inflationary pressure.`;
+  } else {
+    narrText.innerHTML = `Leakages exceed injections by <strong>${Math.abs(balance)}</strong>. More is being pulled out of the circuit than put in — incomes and output are contracting. Without a change (e.g. lower interest rates, higher government spending), the economy trends toward a lower equilibrium.`;
+  }
+}
+
+function updateSliderValueReadouts() {
+  const map = {
+    consumption: 'val-consumption',
+    factor:      'val-factor',
+    tax:         'val-tax',
+    gov:         'val-gov',
+    savings:     'val-savings',
+    invest:      'val-invest',
+    imports:     'val-imports',
+    exports:     'val-exports',
+  };
+  for (const [k, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = state.flows[k];
+  }
+  // Also update slider positions to match state
+  const sliderMap = {
+    consumption: 'slider-consumption',
+    factor:      'slider-factor',
+    tax:         'slider-tax',
+    gov:         'slider-gov',
+    savings:     'slider-savings',
+    invest:      'slider-invest',
+    imports:     'slider-imports',
+    exports:     'slider-exports',
+  };
+  for (const [k, id] of Object.entries(sliderMap)) {
+    const el = document.getElementById(id);
+    if (el) el.value = state.flows[k];
+  }
+}
+
+function refreshAllVisuals() {
+  drawBoxes();
+  drawFlowChannels();
+  // Reset cached path lengths since paths may have been repositioned (not yet,
+  // but leave the hook for when we add relayout on sector-toggle)
+  state._pathLengths = null;
+  // Clear dots belonging to flows on newly-dimmed sectors
+  for (let i = state.dots.length - 1; i >= 0; i--) {
+    const req = requiredSectorFor(state.dots[i].flow);
+    if (req && !state.sectors[req]) {
+      state.dots[i].el.remove();
+      state.dots.splice(i, 1);
+    }
+  }
+  // Hide slider rows for inactive sectors
+  document.querySelectorAll('.flow-slider[data-sector-required]').forEach(row => {
+    const req = row.dataset.sectorRequired;
+    row.style.display = state.sectors[req] ? '' : 'none';
+  });
+  updateBalanceReadout();
+  updateSliderValueReadouts();
+}
+
+/* -------------------------------------------------------------------------
+   UI wiring
+   ------------------------------------------------------------------------- */
+
+function wireSliders() {
+  const map = {
+    'slider-consumption': 'consumption',
+    'slider-factor':      'factor',
+    'slider-tax':         'tax',
+    'slider-gov':         'gov',
+    'slider-savings':     'savings',
+    'slider-invest':      'invest',
+    'slider-imports':     'imports',
+    'slider-exports':     'exports',
+  };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', ev => {
+      state.flows[key] = Number(ev.target.value);
+      updateSliderValueReadouts();
+      updateBalanceReadout();
+    });
+  }
+}
+
+function wireSectorToggles() {
+  document.querySelectorAll('.sector-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sector = btn.dataset.sector;
+      state.sectors[sector] = !state.sectors[sector];
+      btn.classList.toggle('active', state.sectors[sector]);
+      refreshAllVisuals();
+    });
+  });
+}
+
+function wirePresets() {
+  document.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = presets[btn.dataset.preset];
+      if (!preset) return;
+      Object.assign(state.flows, preset);
+      refreshAllVisuals();
+      logEvent({ diagram: 'circular-flow', action: 'preset-applied', preset: btn.dataset.preset });
+    });
+  });
+}
+
+// Init
+makeSVG();
+refreshAllVisuals();
+wireSliders();
+wireSectorToggles();
+wirePresets();
+startAnimation();
+</script>
+
+</body>
+</html>
