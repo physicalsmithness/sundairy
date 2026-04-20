@@ -731,7 +731,6 @@ function renderAll() {
       kind: 'demand',
       label: 'D',
       draggable: true,
-      onDragStart: () => captureSettledCurves('demand'),
       onDrag: (newCurve) => {
         state.demand = newCurve;
         state.forcedPrice = null;
@@ -742,16 +741,16 @@ function renderAll() {
         document.getElementById('demand-shift').value = state.demandShift;
         document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift.toFixed(0)}%`;
         manualSliderChange();
+        startOrUpdateTransition();
         renderAll();
       },
-      onDragEnd: () => triggerTransitionIfChanged('demand'),
+      onDragEnd: () => beginSettle(),
     },
     {
       curve: state.supply,
       kind: 'supply',
       label: 'S',
       draggable: true,
-      onDragStart: () => captureSettledCurves('supply'),
       onDrag: (newCurve) => {
         state.supply = newCurve;
         state.forcedPrice = null;
@@ -762,14 +761,18 @@ function renderAll() {
         document.getElementById('supply-shift').value = state.supplyShift;
         document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift.toFixed(0)}%`;
         manualSliderChange();
+        startOrUpdateTransition();
         renderAll();
       },
-      onDragEnd: () => triggerTransitionIfChanged('supply'),
+      onDragEnd: () => beginSettle(),
     },
   ];
 
-  // If a transition is in progress, also render the pre-shift curves as ghosts
-  if (state.transition) {
+  // If a transition is in progress, also render the pre-shift curves as
+  // ghosts. (Only shown when state.transition.oldCurves is populated —
+  // reserved for future use; the current Dynamic-2 design captures only
+  // the old equilibrium point, not the full old curves.)
+  if (state.transition && state.transition.oldCurves) {
     curveSpecs.push({
       curve: state.transition.oldCurves.demand,
       kind: 'demand',
@@ -816,14 +819,41 @@ function renderAll() {
 
   // Dotted leader lines from the equilibrium marker to each axis — always on
   // when there is an equilibrium, textbook convention.
+  const annots = [];
   if (e) {
-    plot.setAnnotations([
-      { kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true },
-      { kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true },
-    ]);
-  } else {
-    plot.setAnnotations([]);
+    annots.push({ kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true });
   }
+  // Transition-dynamics annotations: dotted lines for P1/Q1 (old equilibrium
+  // origin) and P2/Q2 (current transacted state), with fade applied during
+  // the 'fading' phase.
+  const tr = state.transition;
+  if (tr) {
+    const alpha = tr.phase === 'fading' ? (tr.fadeAlpha || 1) : 1;
+    // P1/Q1 mark where we came from (old equilibrium). Dotted cross.
+    annots.push({
+      kind: 'dropLine', q: tr.oldQStar, pFrom: tr.oldPStar, pTo: 0,
+      toAxis: true, dashed: true, className: 'transition-old',
+      opacity: alpha,
+    });
+    annots.push({
+      kind: 'acrossLine', p: tr.oldPStar, qFrom: 0, qTo: tr.oldQStar,
+      fromAxis: true, dashed: true, className: 'transition-old',
+      opacity: alpha,
+    });
+    // P2/Q2 mark where we are right now. Thinner dotted lines, different colour.
+    if (tr.phase !== 'fading') {
+      annots.push({
+        kind: 'dropLine', q: tr.currentQ, pFrom: tr.currentP, pTo: 0,
+        toAxis: true, dashed: true, className: 'transition-current',
+      });
+      annots.push({
+        kind: 'acrossLine', p: tr.currentP, qFrom: 0, qTo: tr.currentQ,
+        fromAxis: true, dashed: true, className: 'transition-current',
+      });
+    }
+  }
+  plot.setAnnotations(annots);
 
   // Gap bar (horizontal bar showing shortage or surplus quantity)
   if (state.forcedPrice != null && e) {
@@ -959,10 +989,71 @@ function renderAll() {
       className: 'point-label',
     });
   }
+  // Transition labels: P1/Q1 (old origin) and P2/Q2 (current transacted state).
+  if (tr) {
+    const alpha = tr.phase === 'fading' ? (tr.fadeAlpha || 1) : 1;
+    // P1 in left margin, old-position colour, faded in 'fading' phase
+    labels.push({
+      x: 0, y: tr.oldPStar,
+      rawX: 42,
+      text: 'P1',
+      textAnchor: 'middle',
+      offset: { y: 4 },
+      color: 'var(--ink-soft)',
+      className: 'point-label transition-label',
+      opacity: alpha,
+    });
+    labels.push({
+      x: tr.oldQStar, y: 0,
+      rawY: plot.margin.top + plot.plotH + 38,
+      text: 'Q1',
+      textAnchor: 'middle',
+      color: 'var(--ink-soft)',
+      className: 'point-label transition-label',
+      opacity: alpha,
+    });
+    if (tr.phase !== 'fading') {
+      // P2 outside axis, value inside (current transacted state)
+      labels.push({
+        x: 0, y: tr.currentP,
+        rawX: 42,
+        text: 'P2',
+        textAnchor: 'middle',
+        offset: { y: 4 },
+        color: 'var(--demand-shift)',
+        className: 'point-label transition-label',
+      });
+      labels.push({
+        x: tr.currentQ, y: 0,
+        rawY: plot.margin.top + plot.plotH + 38,
+        text: 'Q2',
+        textAnchor: 'middle',
+        color: 'var(--demand-shift)',
+        className: 'point-label transition-label',
+      });
+    }
+  }
   plot.setLabels(labels);
 
   // Cobweb needs curves to iterate
   plot.setCobwebCurves({ demand: state.demand, supply: state.supply });
+
+  // Transition dynamics markers (circle on demand at current Q2/P2, dotted
+  // ring at old Q1/P1).
+  if (state.transition) {
+    const t = state.transition;
+    const fadeAlpha = t.phase === 'fading' ? (t.fadeAlpha || 0) : 1;
+    plot.setTransitionCircle({
+      oldQ: t.oldQStar,
+      oldP: t.oldPStar,
+      curQ: t.currentQ,
+      curP: t.currentP,
+      fadeAlpha,
+      showCurrent: t.phase !== 'fading',
+    });
+  } else {
+    plot.setTransitionCircle(null);
+  }
 
   // In-plot callout during a shock: surface the narration text inside the
   // graph itself so the reader doesn't have to glance up to the banner.
@@ -1224,8 +1315,10 @@ function applyEvent(eventId) {
    ----------------------------------------------------------------------- */
 
 function captureSettledCurves(changedSide) {
-  // Called when the user starts dragging a curve. Remember the pre-drag
-  // curves so we can play the transition from there.
+  // Kept as a stub for compatibility. The current Dynamic-2 design does not
+  // rely on pre-drag curve snapshots; it tracks only the pre-shift
+  // equilibrium point (Q1, P1). Left here in case a future feature needs
+  // the full old curves.
   state.lastSettledCurves = {
     demand: state.demand,
     supply: state.supply,
@@ -1233,65 +1326,10 @@ function captureSettledCurves(changedSide) {
   state.lastSettledChangedSide = changedSide;
 }
 
-function triggerTransitionIfChanged(changedSide) {
-  const settled = state.lastSettledCurves;
-  if (!settled) return;
-  // If both speed sliders are high, transition is essentially instant;
-  // skip the animation.
-  const effectiveSlowness = Math.max(
-    changedSide === 'demand' ? (1 - state.supplySpeed) : (1 - state.demandSpeed),
-    0
-  );
-  if (effectiveSlowness < 0.1) {
-    // Fast both sides: no overshoot worth showing
-    state.lastSettledCurves = null;
-    return;
-  }
-
-  const oldCurves = settled;
-  const newCurves = { demand: state.demand, supply: state.supply };
-
-  // Set up transition state; renderAll reads it to show ghosts, P' marker, etc.
-  state.transition = {
-    oldCurves,
-    changedSide,
-    pPrime: null,
-    qOld: null,
-    pOld: null,
-    newEqQ: null,
-    newEqP: null,
-    phase: 'overshoot',
-    progress: 0,
-  };
-
-  plot.runTransition({
-    oldCurves,
-    newCurves,
-    changedSide,
-    demandSpeed: state.demandSpeed,
-    supplySpeed: state.supplySpeed,
-    onUpdate: ({ p, q, pPrime, qOld, pOld, newEq, progress, phase }) => {
-      state.transition.pPrime = pPrime;
-      state.transition.qOld = qOld;
-      state.transition.pOld = pOld;
-      state.transition.newEqQ = newEq.q;
-      state.transition.newEqP = newEq.p;
-      state.transition.phase = phase;
-      state.transition.progress = progress;
-      // The "current transacted price" during the transition is p,
-      // so we represent it as a forced price (visualised as the price line).
-      state.forcedPrice = p;
-      renderAll();
-    },
-    onDone: () => {
-      state.transition = null;
-      state.lastSettledCurves = null;
-      state.forcedPrice = null;
-      renderAll();
-    },
-  });
-  logEvent({ diagram: 'market-equilibrium', action: 'transition-started', changedSide });
-}
+// The old plot.runTransition-based transition flow has been replaced by the
+// new slider-and-drag-driven system in startOrUpdateTransition / beginSettle /
+// tickSettle / beginFade. Both curve drags and slider moves now flow through
+// that single system.
 
 function resetEvent() {
   if (state.eventAnim) { state.eventAnim.cancel = true; state.eventAnim = null; }
@@ -1644,36 +1682,223 @@ function manualSliderChange() {
   updateResetDisabled();
 }
 
+/* -----------------------------------------------------------------------
+   Transition dynamics (Dynamic 2)
+   -----------------------------------------------------------------------
+   When a curve shifts, we don't just teleport from old equilibrium to new.
+   We tell a story: the old equilibrium was at (Q1, P1). After the shift,
+   the market's WTP at the old quantity has changed. So price jumps (at
+   speed `demandSpeed`) to what buyers will now pay at Q1, which is the
+   overshoot price P2. Then, at speed `supplySpeed`, supply catches up:
+   quantity slides from Q1 toward the new Q*, and price slides along the
+   demand curve from P2 toward the new P*.
+
+   Visually:
+     P1 label on y-axis at the old price; dotted line at that height.
+     Q1 label on x-axis at the old quantity; dotted line at that quantity.
+     P2 label on y-axis at the current transacted price; dotted line.
+     Q2 label on x-axis at the current transacted quantity.
+     A small filled circle on the demand curve at (Q2, P2) marks "where the
+       market is right now".
+     The old open-circle equilibrium marker fades to a dotted outline at
+       (Q1, P1) to show "where we came from".
+     The new open-circle equilibrium marker sits at (Q*, P*).
+
+   State machine:
+     'shifting' — user is dragging a slider; the curves are moving live.
+                  We hold Q2 == Q1 (quantity hasn't adjusted yet). P2 = D_new(Q1).
+     'settling' — user released; quantity and price slide toward new eq.
+     'fading'   — equilibrium reached; P1/Q1 markers fade out over ~600ms.
+*/
+
+function startOrUpdateTransition() {
+  // Capture the PRE-shift equilibrium as Q1/P1 on first call. If we're
+  // already mid-transition, keep Q1/P1 fixed — the user continuing to drag
+  // doesn't reset the origin.
+  const currentEq = eq();
+  if (!currentEq) return;
+
+  if (!state.transition || state.transition.phase === 'fading') {
+    // Starting a new transition. Use the snapshot from snapshotPreShift()
+    // if available (captured just before buildCurves swapped the curves);
+    // otherwise fall back to current eq.
+    const oldEq = state._preShiftEq || { q: currentEq.q, p: currentEq.p };
+    state.transition = {
+      phase: 'shifting',
+      oldQStar: oldEq.q,
+      oldPStar: oldEq.p,
+      currentQ: oldEq.q,
+      currentP: oldEq.p,
+      settleStartTime: null,
+      fadeStartTime: null,
+    };
+  } else if (state.transition.phase === 'settling') {
+    // User grabbed a slider mid-settle. Halt the settle in place; the
+    // current position becomes the new "current" from which we continue.
+    state.transition.phase = 'shifting';
+  }
+
+  // During 'shifting' phase, currentQ stays at the old quantity (supply
+  // hasn't adjusted yet). currentP = D_new(currentQ) — the price buyers are
+  // willing to pay at that quantity on the new demand curve. This creates
+  // the classic overshoot visible as P2 jumping up above the new P*.
+  if (state.transition.phase === 'shifting') {
+    const p2 = state.demand.priceAt(state.transition.currentQ);
+    if (isFinite(p2)) {
+      state.transition.currentP = p2;
+    }
+  }
+
+  // Cache the old curves so the eq() for "old" can recompute if needed
+  state.transition.newEqQ = currentEq.q;
+  state.transition.newEqP = currentEq.p;
+}
+
+function beginSettle() {
+  if (!state.transition) return;
+  if (state.transition.phase !== 'shifting') return;
+
+  // If the current position is already at the new equilibrium, skip to fade.
+  const dQ = state.transition.currentQ - state.transition.newEqQ;
+  const dP = state.transition.currentP - state.transition.newEqP;
+  const s = scenarios[state.scenarioKey];
+  const qTol = s.quantityMax * 0.005;
+  const pTol = s.priceMax * 0.005;
+  if (Math.abs(dQ) < qTol && Math.abs(dP) < pTol) {
+    beginFade();
+    return;
+  }
+
+  state.transition.phase = 'settling';
+  state.transition.settleStartTime = performance.now();
+  state.transition.settleFromQ = state.transition.currentQ;
+  state.transition.settleFromP = state.transition.currentP;
+  requestAnimationFrame(tickSettle);
+}
+
+function tickSettle(now) {
+  const t = state.transition;
+  if (!t || t.phase !== 'settling') return;
+
+  // Glide quantity from settleFromQ toward newEqQ at a rate set by supplySpeed.
+  // We use an exponential decay approach: each frame, close a fraction of the
+  // remaining gap. supplySpeed=1 closes 60% per 100ms; supplySpeed=0.1 closes ~6%.
+  const elapsedMs = now - t.settleStartTime;
+  // Time constant: smaller when supplySpeed is larger (faster response)
+  // Time constant: when supplySpeed = 1 (fast), tau ~ 250ms; at the default
+  // supplySpeed = 0.15 (slow), tau ~ 1700ms (~5 seconds to fully settle).
+  // At supplySpeed = 0.05 (very slow), tau ~ 5000ms (~15 seconds).
+  const tau = 250 / Math.max(0.05, state.supplySpeed);
+  const progress = 1 - Math.exp(-elapsedMs / tau);
+
+  const q = t.settleFromQ + (t.newEqQ - t.settleFromQ) * progress;
+  // Price follows along demand curve as quantity settles
+  const p = state.demand.priceAt(q);
+  t.currentQ = q;
+  t.currentP = isFinite(p) ? p : t.currentP;
+
+  // Close enough to equilibrium? Move to fade.
+  const s = scenarios[state.scenarioKey];
+  const qTol = s.quantityMax * 0.003;
+  if (Math.abs(t.currentQ - t.newEqQ) < qTol || progress > 0.99) {
+    t.currentQ = t.newEqQ;
+    t.currentP = t.newEqP;
+    renderAll();
+    beginFade();
+    return;
+  }
+
+  renderAll();
+  requestAnimationFrame(tickSettle);
+}
+
+function beginFade() {
+  if (!state.transition) return;
+  state.transition.phase = 'fading';
+  state.transition.fadeStartTime = performance.now();
+  // Remember the curves as now-settled, so future shifts use these as origin
+  state.lastSettledCurves = {
+    demand: state.demand,
+    supply: state.supply,
+  };
+  requestAnimationFrame(tickFade);
+}
+
+function tickFade(now) {
+  const t = state.transition;
+  if (!t || t.phase !== 'fading') return;
+  const elapsed = now - t.fadeStartTime;
+  const duration = 700;
+  t.fadeAlpha = Math.max(0, 1 - elapsed / duration);
+  renderAll();
+  if (elapsed < duration) {
+    requestAnimationFrame(tickFade);
+  } else {
+    // Fade done — clear transition
+    state.transition = null;
+    state._preShiftEq = null;
+    renderAll();
+  }
+}
+
+/* Snapshot the current equilibrium so startOrUpdateTransition can capture
+   it as the "old" origin for a new transition. Called before buildCurves()
+   in each slider input handler. */
+function snapshotPreShift() {
+  if (state.transition && state.transition.phase !== 'fading') {
+    // Already in a transition; don't overwrite the origin.
+    return;
+  }
+  const e = eq();
+  if (!e) return;
+  state._preShiftEq = { q: e.q, p: e.p };
+}
+
 document.getElementById('demand-shift').addEventListener('input', ev => {
+  snapshotPreShift();
   state.demandShift = Number(ev.target.value);
   document.getElementById('demand-shift-val').textContent = `${state.demandShift >= 0 ? '+' : ''}${state.demandShift}%`;
   manualSliderChange();
   buildCurves();
+  startOrUpdateTransition();
   renderAll();
 });
+document.getElementById('demand-shift').addEventListener('change', () => beginSettle());
+
 document.getElementById('supply-shift').addEventListener('input', ev => {
+  snapshotPreShift();
   state.supplyShift = Number(ev.target.value);
   document.getElementById('supply-shift-val').textContent = `${state.supplyShift >= 0 ? '+' : ''}${state.supplyShift}%`;
   manualSliderChange();
   buildCurves();
+  startOrUpdateTransition();
   renderAll();
 });
+document.getElementById('supply-shift').addEventListener('change', () => beginSettle());
+
 document.getElementById('demand-pivot').addEventListener('input', ev => {
+  snapshotPreShift();
   state.demandPivot = Number(ev.target.value);
   const v = state.demandPivot;
   document.getElementById('demand-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
   manualSliderChange();
   buildCurves();
+  startOrUpdateTransition();
   renderAll();
 });
+document.getElementById('demand-pivot').addEventListener('change', () => beginSettle());
+
 document.getElementById('supply-pivot').addEventListener('input', ev => {
+  snapshotPreShift();
   state.supplyPivot = Number(ev.target.value);
   const v = state.supplyPivot;
   document.getElementById('supply-pivot-val').textContent = v > 20 ? 'inelastic' : v < -20 ? 'elastic' : 'normal';
   manualSliderChange();
   buildCurves();
+  startOrUpdateTransition();
   renderAll();
 });
+document.getElementById('supply-pivot').addEventListener('change', () => beginSettle());
 
 // Return-style selector
 document.querySelectorAll('#return-style button').forEach(btn => {

@@ -725,6 +725,36 @@ input[type="range"]::-moz-range-thumb {
 .graph-area svg .annotation.dashed {
   stroke-dasharray: 3 3;
 }
+/* Transition dynamics: older origin lines in muted ink, current transacted
+   lines in the demand accent colour so they read as "live". */
+.graph-area svg .annotation.transition-old {
+  stroke: var(--ink-soft);
+  opacity: 0.7;
+}
+.graph-area svg .annotation.transition-current {
+  stroke: var(--demand-shift);
+  stroke-dasharray: 4 2;
+  opacity: 0.95;
+}
+/* Old equilibrium ring during transition (dashed outline) */
+.graph-area svg .transition-old-marker {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  opacity: 0.8;
+}
+/* Current transacted dot: filled, demand colour, lives on the demand curve */
+.graph-area svg .transition-current-marker {
+  fill: var(--demand-shift);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+/* P1/Q1/P2/Q2 labels — slightly smaller than P*/Q* */
+.graph-area svg text.point-label.transition-label {
+  font-size: 11px;
+  font-weight: 500;
+}
 .graph-area svg .annotation-label {
   font-family: 'Source Serif 4', serif;
   font-style: italic;

@@ -153,6 +153,7 @@ export class PQPlot {
     this.priceLineG   = svgEl('g', { class: 'price-line-group' });
     this.handlesG     = svgEl('g', { class: 'handles' });
     this.labelsG      = svgEl('g', { class: 'labels' });
+    this.transitionG  = svgEl('g', { class: 'transition-markers' });
     this.calloutG     = svgEl('g', { class: 'callouts' });
     g.appendChild(this.regionsG);
     g.appendChild(this.annotationsG);
@@ -162,6 +163,7 @@ export class PQPlot {
     g.appendChild(this.priceLineG);
     g.appendChild(this.hitG);
     g.appendChild(this.handlesG);
+    g.appendChild(this.transitionG);  // circle on demand curve and old-eq marker
     g.appendChild(this.labelsG);
     g.appendChild(this.calloutG);     // callouts sit on top of everything
 
@@ -257,6 +259,7 @@ export class PQPlot {
   setForceArrow(config)      { this.forceArrow = config; return this; }
   setGapBar(config)          { this.gapBar = config; return this; }
   setCallout(config)         { this.callout = config; return this; }
+  setTransitionCircle(config) { this.transitionCircle = config; return this; }
   setEquilibriumMarker(mark) {
     // When the target changes, start a glide animation from the current
     // displayed position to the new target. If no current position exists
@@ -430,6 +433,7 @@ export class PQPlot {
     this._renderOffGraph();
     this._renderPriceLine();
     this._renderEquilibriumMarker();
+    this._renderTransitionMarkers();
     this._renderLabels();
     this._renderReturnAnnotation();
     this._renderCallout();
@@ -667,21 +671,25 @@ export class PQPlot {
   _renderAnnotations() {
     this._clear(this.annotationsG);
     for (const a of this.annotations) {
+      const extraClass = a.className ? ` ${a.className}` : '';
+      const dashed = a.dashed ? ' dashed' : '';
       if (a.kind === 'dropLine') {
         const line = svgEl('line', {
-          class: 'annotation' + (a.dashed ? ' dashed' : ''),
+          class: `annotation${dashed}${extraClass}`,
           x1: this.xScale(a.q), y1: this.yScale(a.pFrom),
           x2: this.xScale(a.q), y2: a.toAxis ? (this.margin.top + this.plotH) : this.yScale(a.pTo),
         });
+        if (a.opacity != null) line.setAttribute('opacity', a.opacity);
         this.annotationsG.appendChild(line);
       } else if (a.kind === 'acrossLine') {
         const line = svgEl('line', {
-          class: 'annotation' + (a.dashed ? ' dashed' : ''),
+          class: `annotation${dashed}${extraClass}`,
           x1: a.fromAxis ? this.margin.left : this.xScale(a.qFrom),
           y1: this.yScale(a.p),
           x2: this.xScale(a.qTo),
           y2: this.yScale(a.p),
         });
+        if (a.opacity != null) line.setAttribute('opacity', a.opacity);
         this.annotationsG.appendChild(line);
       } else if (a.kind === 'arrow') {
         const line = svgEl('line', {
@@ -830,6 +838,43 @@ export class PQPlot {
     }
 
     this._offGraphG.appendChild(group);
+  }
+
+  /**
+   * Render transition dynamics markers: a filled circle at the current
+   * transacted (Q2, P2) on the demand curve, and a faded open circle at
+   * the old equilibrium (Q1, P1). The circle at (Q2, P2) makes "where
+   * the market is right now" concrete — during Phase A (shifting) it sits
+   * above Q1 on the shifted demand curve; during Phase B (settling) it
+   * slides down along demand toward the new equilibrium.
+   */
+  _renderTransitionMarkers() {
+    this._clear(this.transitionG);
+    if (!this.transitionCircle) return;
+    const { oldQ, oldP, curQ, curP, fadeAlpha, showCurrent } = this.transitionCircle;
+
+    // Old-equilibrium dotted ring at (Q1, P1) — dashed circle to distinguish
+    // from the live equilibrium marker (solid-edged). Faded during 'fading'.
+    if (oldQ != null && oldP != null) {
+      const oldRing = svgEl('circle', {
+        class: 'transition-old-marker',
+        cx: this.xScale(oldQ), cy: this.yScale(oldP),
+        r: 6,
+      });
+      if (fadeAlpha != null) oldRing.setAttribute('opacity', fadeAlpha);
+      this.transitionG.appendChild(oldRing);
+    }
+
+    // Current "you are here" filled dot at (Q2, P2) — only shown while
+    // shifting or settling (not during fade).
+    if (showCurrent && curQ != null && curP != null) {
+      const dot = svgEl('circle', {
+        class: 'transition-current-marker',
+        cx: this.xScale(curQ), cy: this.yScale(curP),
+        r: 5,
+      });
+      this.transitionG.appendChild(dot);
+    }
   }
 
   /**
@@ -1150,6 +1195,7 @@ export class PQPlot {
         fill: l.color || 'var(--ink)',
       });
       if (l.italic) t.setAttribute('font-style', 'italic');
+      if (l.opacity != null) t.setAttribute('opacity', l.opacity);
       t.textContent = l.text;
       this.labelsG.appendChild(t);
     }
