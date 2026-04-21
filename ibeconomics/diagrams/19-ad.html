@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aggregate demand · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad {
+      stroke: var(--demand-shift);
+      stroke-width: 2.5;
+    }
+    .curve-ad-ghost {
+      stroke: var(--demand);
+      stroke-width: 1.8;
+      stroke-dasharray: 4 3;
+      opacity: 0.7;
+    }
+    .lras-line {
+      stroke: #5d7a68;
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+    }
+    .shift-arrow {
+      stroke: var(--ink);
+      stroke-width: 1.8;
+      marker-end: url(#arrow-head);
+    }
+
+    .components-grid {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .components-grid .row { display: contents; }
+    .components-grid .code {
+      font-weight: 700;
+      color: var(--demand-shift);
+      font-variant-numeric: tabular-nums;
+    }
+    .components-grid .name {
+      color: var(--ink-soft);
+    }
+    .components-grid .change {
+      font-variant-numeric: tabular-nums;
+      font-size: 11.5px;
+      text-align: right;
+    }
+    .components-grid .change.up { color: #2d7a50; font-weight: 600; }
+    .components-grid .change.down { color: var(--welfare-loss); font-weight: 600; }
+    .components-grid .change.unchanged { color: var(--ink-soft); }
+
+    .shift-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--paper-deep);
+      color: var(--ink);
+    }
+    .shift-pill.right { background: #dff0e3; color: #2d6b46; }
+    .shift-pill.left  { background: #f6d9d4; color: var(--welfare-loss); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.2 Aggregate demand · Required</span>
+      <h1>Aggregate demand</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="shift-row">
+        <span class="events-label">Cause a shift</span>
+        <button class="event-chip active" data-shift="none">None (at baseline)</button>
+        <button class="event-chip" data-shift="c-up">Consumer confidence ↑ <span class="term-badge">C</span></button>
+        <button class="event-chip" data-shift="i-up">Interest rates ↓ <span class="term-badge">I</span></button>
+        <button class="event-chip" data-shift="g-up">Government spending ↑ <span class="term-badge">G</span></button>
+        <button class="event-chip" data-shift="xm-up">£ depreciates <span class="term-badge">X−M</span></button>
+        <button class="event-chip" data-shift="tax-up">Income tax ↑ <span class="term-badge">C</span></button>
+        <button class="event-chip" data-shift="recession">Global recession <span class="term-badge">X−M</span></button>
+      </div>
+
+      <div class="event-narration baseline visible" id="shift-narration">
+        The aggregate demand curve shows total planned spending on a country's output at each price level: AD = C + I + G + (X − M). It slopes downward because of the real-balance, interest-rate, and net-export effects. Pick a cause to see AD shift.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Price level (read point on curves) <span class="value" id="pl-val">100</span></label>
+          <input type="range" id="pl-slider" min="40" max="180" step="1" value="100" />
+          <span class="small muted">Slide to read output demanded at a given price level. Move this to see the quantity-demanded change vs a curve shift.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="shift-pill" id="shift-pill">No shift</span>
+      </div>
+
+      <div class="components-grid">
+        <div class="row">
+          <span class="code">C</span>
+          <span class="name">Consumption</span>
+          <span class="change unchanged" id="c-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">I</span>
+          <span class="name">Investment</span>
+          <span class="change unchanged" id="i-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">G</span>
+          <span class="name">Government spending</span>
+          <span class="change unchanged" id="g-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">X−M</span>
+          <span class="name">Net exports</span>
+          <span class="change unchanged" id="xm-change">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Aggregate demand has four components: consumer spending C, business investment I, government spending G, and net exports X − M. Anything that changes one of these shifts the whole AD curve.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Shifts vs movements.</strong> Changes in the price level produce <em>movements along</em> AD (because of real-balance, interest-rate, and net-export effects). Changes in any of the four components shift the entire curve. Distinguishing the two is one of the most common stumbling blocks in macro diagrams.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  shift: 'none',
+  plotVal: 100,     // current price-level indicator (reads y-value)
+  plot: null,
+};
+
+/* Baseline AD: linear, passes through (Y=120, PL=100) with a chosen slope.
+   I'll use: AD(Y) at PL=100 → Y=120 (normal output)
+             AD(Y) at PL=50  → Y=180 (real-balance + interest + NX effects)
+   This gives slope (100-50)/(120-180) = -0.833, which means a 50-point price
+   drop increases Y by 60. Reasonable. */
+const baselineSlope = -50 / 60;  // dPL/dY
+
+/* Each shift case specifies a shift in Y at PL=100 (the horizontal shift
+   of the curve). Positive values = rightward shift. */
+const shifts = {
+  none:     { dy: 0, comps: {} },
+  'c-up':   { dy: 25, comps: { C: 'up' } },
+  'i-up':   { dy: 30, comps: { I: 'up' } },
+  'g-up':   { dy: 35, comps: { G: 'up' } },
+  'xm-up':  { dy: 20, comps: { XM: 'up' } },
+  'tax-up': { dy: -20, comps: { C: 'down' } },
+  'recession': { dy: -30, comps: { XM: 'down' } },
+};
+
+const narrations = {
+  none:      'No shift — baseline AD. Slide the price-level indicator on the plot to read real output demanded at each price level.',
+  'c-up':    'Consumer confidence rises (wealth effects from rising stock prices, job security improves, optimism about the future). Households spend more of each unit of income → C rises → AD shifts right.',
+  'i-up':    'The central bank cuts interest rates. Business borrowing gets cheaper → more capital investment → I rises. Some consumer durables also get a boost via cheaper credit. AD shifts right.',
+  'g-up':    'Government announces a fiscal expansion (infrastructure, defence, transfers). G rises directly. AD shifts right; the "multiplier" effect means the total shift is larger than the direct G increase.',
+  'xm-up':   'Sterling depreciates. UK exports look cheaper abroad (X rises) and foreign imports look more expensive at home (M falls). Net exports rise → AD shifts right.',
+  'tax-up':  'Income tax rates go up. Disposable income falls → C falls. AD shifts left. The size of the shift depends on the marginal propensity to consume (MPC): the higher MPC, the larger the AD shift.',
+  'recession': 'A trading partner enters recession. Foreign demand for UK exports falls → X falls. Net exports fall → AD shifts left. This is how recessions transmit internationally.',
+};
+
+function ad(Y, dY = 0) {
+  // Linear AD with a horizontal shift dY.
+  // Baseline: AD(Y) = 100 + slope × (Y - 120)
+  // Shifted: AD(Y) = 100 + slope × (Y - 120 - dY)
+  return 100 + baselineSlope * (Y - 120 - dY);
+}
+
+function adInverse(PL, dY = 0) {
+  // Solve PL = 100 + slope*(Y - 120 - dY)  →  Y = (PL-100)/slope + 120 + dY
+  return (PL - 100) / baselineSlope + 120 + dY;
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: 240,
+    yMax: 200,
+    nxTicks: 12,
+    nyTicks: 10,
+    tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+
+  // Arrowhead marker for shift arrows
+  const defs = svgEl('defs', {});
+  const marker = svgEl('marker', {
+    id: 'arrow-head',
+    viewBox: '0 0 10 10',
+    refX: 8, refY: 5,
+    markerWidth: 6, markerHeight: 6,
+    orient: 'auto',
+  });
+  const path = svgEl('path', {
+    d: 'M 0 0 L 10 5 L 0 10 z',
+    fill: 'var(--ink)',
+  });
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  state.plot.svg.insertBefore(defs, state.plot.svg.firstChild);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const xMax = 240, yMax = 200;
+  const dY = shifts[state.shift].dy;
+  const hasShift = dY !== 0;
+
+  // Draw baseline ghost first if there's a shift
+  if (hasShift) {
+    const y0a = adInverse(40, 0), y1a = adInverse(180, 0);
+    const x0 = yMax - 20; // start at high PL
+    // Draw AD0 (baseline) as dashed ghost
+    const baselineQ1 = { Y: adInverse(20, 0), PL: 20 };
+    const baselineQ2 = { Y: adInverse(180, 0), PL: 180 };
+    const bd = svgEl('path', {
+      class: 'curve curve-ad-ghost',
+      d: `M ${xScale(baselineQ1.Y)} ${yScale(baselineQ1.PL)} L ${xScale(baselineQ2.Y)} ${yScale(baselineQ2.PL)}`,
+      fill: 'none', stroke: 'var(--demand)', 'stroke-width': 1.8,
+      'stroke-dasharray': '4 3', opacity: 0.7,
+    });
+    plotGroup.appendChild(bd);
+    // AD0 label near the curve
+    const lblBase = svgEl('text', {
+      x: xScale(adInverse(60, 0)) - 8, y: yScale(60) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    lblBase.textContent = 'AD₀';
+    plotGroup.appendChild(lblBase);
+  }
+
+  // Draw current AD
+  const q1 = { Y: adInverse(20, dY), PL: 20 };
+  const q2 = { Y: adInverse(180, dY), PL: 180 };
+  // Clamp to plot area
+  const clamp = p => ({
+    Y: Math.max(0, Math.min(xMax, p.Y)),
+    PL: Math.max(0, Math.min(yMax, p.PL)),
+  });
+  const c1 = clamp(q1), c2 = clamp(q2);
+  const adPath = svgEl('path', {
+    class: 'curve curve-ad',
+    d: `M ${xScale(c1.Y)} ${yScale(c1.PL)} L ${xScale(c2.Y)} ${yScale(c2.PL)}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 2.5,
+  });
+  plotGroup.appendChild(adPath);
+
+  // Label the current AD
+  const lblY = 60;
+  const lblX = adInverse(lblY, dY);
+  if (lblX > 0 && lblX < xMax) {
+    const lbl = svgEl('text', {
+      x: xScale(lblX) - 8, y: yScale(lblY) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+    });
+    lbl.textContent = hasShift ? 'AD₁' : 'AD';
+    plotGroup.appendChild(lbl);
+  }
+
+  // Shift arrow (horizontal, at middle of plot)
+  if (hasShift) {
+    const arrowY = 100;
+    const x1 = adInverse(arrowY, 0);
+    const x2 = adInverse(arrowY, dY);
+    if (x1 > 0 && x2 > 0 && x1 < xMax && x2 < xMax && Math.abs(x2 - x1) > 5) {
+      const arr = svgEl('line', {
+        class: 'shift-arrow',
+        x1: xScale(x1), y1: yScale(arrowY),
+        x2: xScale(x2), y2: yScale(arrowY),
+      });
+      plotGroup.appendChild(arr);
+    }
+  }
+
+  // Draw price-level indicator (horizontal dashed line at current PL slider)
+  const plVal = state.plotVal;
+  if (plVal > 20 && plVal < 180) {
+    const indLine = svgEl('line', {
+      x1: xScale(0), y1: yScale(plVal),
+      x2: xScale(xMax), y2: yScale(plVal),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1,
+      'stroke-dasharray': '3 3', opacity: 0.6,
+    });
+    plotGroup.appendChild(indLine);
+    // Point where indicator meets current AD
+    const adY = adInverse(plVal, dY);
+    if (adY > 0 && adY < xMax) {
+      const dot = svgEl('circle', {
+        cx: xScale(adY), cy: yScale(plVal), r: 5,
+        fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+      });
+      plotGroup.appendChild(dot);
+      // Drop-line to x-axis
+      const drop = svgEl('line', {
+        x1: xScale(adY), y1: yScale(plVal),
+        x2: xScale(adY), y2: yScale(0),
+        stroke: 'var(--ink-soft)', 'stroke-width': 1,
+        'stroke-dasharray': '3 3', opacity: 0.6,
+      });
+      plotGroup.appendChild(drop);
+      // Y label
+      const yLbl = svgEl('text', {
+        x: xScale(adY), y: yScale(0) + 14, 'text-anchor': 'middle',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+      });
+      yLbl.textContent = `Y = ${adY.toFixed(0)}`;
+      plotGroup.appendChild(yLbl);
+      // PL label
+      const plLbl = svgEl('text', {
+        x: xScale(0) - 8, y: yScale(plVal) + 3, 'text-anchor': 'end',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+      });
+      plLbl.textContent = `PL = ${plVal.toFixed(0)}`;
+      plotGroup.appendChild(plLbl);
+    }
+  }
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const s = shifts[state.shift];
+  const hasShift = s.dy !== 0;
+
+  const pill = document.getElementById('shift-pill');
+  if (!hasShift) {
+    pill.className = 'shift-pill';
+    pill.textContent = 'No shift';
+  } else if (s.dy > 0) {
+    pill.className = 'shift-pill right';
+    pill.textContent = `AD shifts right (+${s.dy} units)`;
+  } else {
+    pill.className = 'shift-pill left';
+    pill.textContent = `AD shifts left (${s.dy} units)`;
+  }
+
+  // Component changes
+  const setChange = (id, direction) => {
+    const el = document.getElementById(id);
+    if (!direction) { el.className = 'change unchanged'; el.textContent = '—'; return; }
+    if (direction === 'up')   { el.className = 'change up';   el.textContent = '↑ rising'; }
+    else                      { el.className = 'change down'; el.textContent = '↓ falling'; }
+  };
+  setChange('c-change',  s.comps.C);
+  setChange('i-change',  s.comps.I);
+  setChange('g-change',  s.comps.G);
+  setChange('xm-change', s.comps.XM);
+
+  document.getElementById('shift-narration').textContent = narrations[state.shift];
+}
+
+document.querySelectorAll('[data-shift]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.shift = btn.dataset.shift;
+    document.querySelectorAll('[data-shift]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+
+document.getElementById('pl-slider').addEventListener('input', ev => {
+  state.plotVal = Number(ev.target.value);
+  document.getElementById('pl-val').textContent = state.plotVal.toFixed(0);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

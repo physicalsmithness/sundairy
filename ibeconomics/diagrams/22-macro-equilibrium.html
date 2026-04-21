@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macroeconomic equilibrium · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad        { stroke: var(--demand-shift); stroke-width: 2.5; }
+    .curve-ad-ghost  { stroke: var(--demand); stroke-width: 1.8; stroke-dasharray: 4 3; opacity: 0.55; }
+    .curve-sras      { stroke: var(--supply); stroke-width: 2.5; }
+    .curve-sras-ghost { stroke: var(--supply); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.45; }
+    .curve-lras      { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+
+    .gap-bar {
+      stroke: var(--welfare-loss);
+      stroke-width: 2;
+    }
+    .gap-bar-good {
+      stroke: #2d7a50;
+      stroke-width: 2;
+    }
+    .wage-arrow {
+      stroke: var(--ink);
+      stroke-width: 1.8;
+      marker-end: url(#arrow-head);
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: #2d7a50; font-weight: 600; }
+    .totals-grid .delta.down { color: var(--welfare-loss); font-weight: 600; }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .phase-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .phase-pill.lr { background: #dff0e3; color: #2d6b46; }
+    .phase-pill.sr-infl { background: #fde8c6; color: #8a5a00; }
+    .phase-pill.sr-recess { background: #f6d9d4; color: var(--welfare-loss); }
+    .phase-pill.adjusting { background: #e8ddf6; color: #5d3a99; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.2 Macroeconomic equilibrium · Required</span>
+      <h1>Macroeconomic equilibrium: short run and long run</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="shock-row">
+        <span class="events-label">Start a shock</span>
+        <button class="event-chip active" data-shock="none">No shock (at LR eq)</button>
+        <button class="event-chip" data-shock="ad-boom">AD ↑ (fiscal stimulus, boom)</button>
+        <button class="event-chip" data-shock="ad-bust">AD ↓ (financial crisis, recession)</button>
+        <button class="event-chip" data-shock="sras-shock">SRAS ↓ (oil shock, stagflation)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="shock-narration">
+        Macroeconomic equilibrium sits where AD, SRAS, and LRAS all cross — at full-employment output Yf. Apply a shock and watch the short-run equilibrium move. Then drag the time slider to watch wages adjust and the economy return to Yf.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Time since shock <span class="value" id="t-val">t = 0 (short run)</span></label>
+          <input type="range" id="t-slider" min="0" max="100" step="1" value="0" />
+          <span class="small muted">Drag right to advance time. Wages gradually adjust to close the output gap — SRAS shifts, and the economy returns to Yf at a new price level.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="phase-pill lr" id="phase-pill">Long-run equilibrium</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Real output Y</span>
+          <span class="val" id="y-val">—</span>
+          <span class="delta" id="y-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price level PL</span>
+          <span class="val" id="pl-val">—</span>
+          <span class="delta" id="pl-delta"></span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">Output gap vs Yf</span>
+          <span class="val" id="gap-val">—</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        With no shock, AD, SRAS, and LRAS all meet at the same point (Yf, baseline PL). Apply a shock and watch the short-run equilibrium diverge from Yf, creating an output gap. Then advance time to see wages adjust and the economy self-correct.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The long-run neutrality of AD.</strong> AD shifts change real output only in the short run. Eventually, wages and other input prices adjust, SRAS shifts to restore Yf, and the only lasting effect is on the price level. This is the core neoclassical result. Keynesians agree with the mechanism but argue "the long run" can take decades — in the meantime real people are unemployed.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  shock: 'none',     // 'none' | 'ad-boom' | 'ad-bust' | 'sras-shock'
+  t: 0,              // 0 = immediately after shock (SR); 100 = fully adjusted (LR)
+  plot: null,
+};
+
+const Yf = 120;
+const Y_MAX = 240;
+const PL_MAX = 200;
+const adSlope = -50 / 60;
+const srasSlope = 50 / 60;
+
+/* -----------------------------------------------------------------------
+   Curves
+   -----------------------------------------------------------------------
+   Baseline (no shock, LR eq): AD and SRAS both pass through (Yf, 100).
+   After a shock, one of the curves shifts. Over time, SRAS shifts to
+   restore Yf.
+   ----------------------------------------------------------------------- */
+
+const shocks = {
+  none:           { adShift: 0, srasShock: 0 },
+  'ad-boom':      { adShift:  40, srasShock: 0 },
+  'ad-bust':      { adShift: -40, srasShock: 0 },
+  'sras-shock':   { adShift:   0, srasShock: -30 }, // negative = SRAS shifts left
+};
+
+function adCurve(Y) {
+  const dY = shocks[state.shock].adShift;
+  return 100 + adSlope * (Y - Yf - dY);
+}
+function adInverse(PL) {
+  const dY = shocks[state.shock].adShift;
+  return (PL - 100) / adSlope + Yf + dY;
+}
+
+/* SRAS shift: combine the initial shock (if any) with the wage-adjustment
+   shift that happens over time. The wage-adjustment is designed to bring
+   the economy back to Yf at t=100.
+
+   At t=0: SRAS shift = srasShock (the initial SRAS shock, if any)
+   At t=100: SRAS total shift such that AD crosses SRAS at Yf.
+
+   To find the "target" SRAS shift for LR: SRAS equation at Yf must equal
+   AD equation at Yf.
+     SRAS(Yf, shift=s) = 100 + srasSlope * (Yf - Yf - s) = 100 - srasSlope*s
+     AD(Yf) = 100 + adSlope * (Yf - Yf - dY) = 100 - adSlope*dY
+   Set equal: 100 - srasSlope*s = 100 - adSlope*dY
+     → s = (adSlope/srasSlope) * dY
+   With our slopes (adSlope=-5/6, srasSlope=5/6): s = -dY.
+   So if AD shifted right by dY, SRAS must shift left by the same dY to
+   restore Yf. Nice symmetric result.
+*/
+function srasShiftLR() {
+  const dY = shocks[state.shock].adShift;
+  const initial = shocks[state.shock].srasShock;
+  // The LR target: economy returns to Yf.
+  // If initial SRAS shock was zero and AD shifted by dY: SRAS target shift = -dY
+  // If initial SRAS shock was non-zero: wages *mostly* reverse the shock too.
+  //   But for pure Keynesian/textbook simplicity: LR target always restores Yf.
+  if (dY !== 0 && initial === 0) return -dY;          // wages shift SRAS to match
+  if (initial !== 0 && dY === 0) return 0;            // LR: SRAS returns to origin
+  return 0;
+}
+
+function currentSrasShift() {
+  const initial = shocks[state.shock].srasShock;
+  const lrTarget = srasShiftLR();
+  // Linear interpolate from initial (at t=0) to lrTarget (at t=100)
+  const t = state.t / 100;
+  return initial * (1 - t) + lrTarget * t;
+}
+
+function srasCurve(Y) {
+  const s = currentSrasShift();
+  return 100 + srasSlope * (Y - Yf - s);
+}
+
+function findEq() {
+  // Intersect AD and SRAS: 100 + adSlope*(Y-Yf-dY) = 100 + srasSlope*(Y-Yf-s)
+  //  → adSlope*(Y-Yf-dY) = srasSlope*(Y-Yf-s)
+  //  → Y(adSlope - srasSlope) = adSlope*(Yf+dY) - srasSlope*(Yf+s)
+  const dY = shocks[state.shock].adShift;
+  const s = currentSrasShift();
+  const Y = (adSlope * (Yf + dY) - srasSlope * (Yf + s)) / (adSlope - srasSlope);
+  const PL = adCurve(Y);
+  return { Y, PL };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX,
+    yMax: PL_MAX,
+    nxTicks: 12,
+    nyTicks: 10,
+    tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+
+  // Arrow marker
+  const defs = svgEl('defs', {});
+  const marker = svgEl('marker', {
+    id: 'arrow-head',
+    viewBox: '0 0 10 10', refX: 8, refY: 5,
+    markerWidth: 6, markerHeight: 6, orient: 'auto',
+  });
+  marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--ink)' }));
+  defs.appendChild(marker);
+  state.plot.svg.insertBefore(defs, state.plot.svg.firstChild);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const hasShock = state.shock !== 'none';
+  const dY = shocks[state.shock].adShift;
+  const srasS = currentSrasShift();
+
+  // 1. LRAS vertical line
+  const lras = svgEl('line', {
+    class: 'curve-lras',
+    x1: xScale(Yf), y1: yScale(0),
+    x2: xScale(Yf), y2: yScale(PL_MAX),
+  });
+  plotGroup.appendChild(lras);
+  const lrasLbl = svgEl('text', {
+    x: xScale(Yf), y: yScale(PL_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;",
+  });
+  lrasLbl.textContent = 'LRAS';
+  plotGroup.appendChild(lrasLbl);
+
+  // 2. Baseline ghosts (pre-shock AD and SRAS) — only if shock applied
+  if (hasShock && dY !== 0) {
+    // Ghost AD (only if AD actually shifted)
+    const adGhostY1 = (180 - 100) / adSlope + Yf;   // Y at PL=180, shift=0
+    const adGhostY2 = (20 - 100) / adSlope + Yf;
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ad-ghost',
+      d: `M ${xScale(adGhostY1)} ${yScale(180)} L ${xScale(adGhostY2)} ${yScale(20)}`,
+      fill: 'none',
+    }));
+    const adG = svgEl('text', {
+      x: xScale((180 - 100) / adSlope + Yf + 8), y: yScale(180) - 6,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    adG.textContent = 'AD₀';
+    plotGroup.appendChild(adG);
+  }
+  if (hasShock) {
+    // Ghost SRAS at t>0 (when SRAS has shifted from zero baseline)
+    // Draw zero-baseline SRAS as ghost if current has shifted from zero
+    if (Math.abs(srasS) > 0.5) {
+      const gY1 = (20 - 100) / srasSlope + Yf;
+      const gY2 = (180 - 100) / srasSlope + Yf;
+      plotGroup.appendChild(svgEl('path', {
+        class: 'curve-sras-ghost',
+        d: `M ${xScale(gY1)} ${yScale(20)} L ${xScale(gY2)} ${yScale(180)}`,
+        fill: 'none',
+      }));
+    }
+  }
+
+  // 3. AD (current)
+  const adY180 = adInverse(180), adY20 = adInverse(20);
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ad',
+    d: `M ${xScale(adY180)} ${yScale(180)} L ${xScale(adY20)} ${yScale(20)}`,
+    fill: 'none',
+  }));
+  const adCurLbl = svgEl('text', {
+    x: xScale(adY20) - 6, y: yScale(20) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  adCurLbl.textContent = hasShock && dY !== 0 ? 'AD₁' : 'AD';
+  plotGroup.appendChild(adCurLbl);
+
+  // 4. SRAS (current)
+  const srasStart = { Y: (20 - 100) / srasSlope + Yf + srasS, PL: 20 };
+  const srasEnd   = { Y: (180 - 100) / srasSlope + Yf + srasS, PL: 180 };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-sras',
+    d: `M ${xScale(srasStart.Y)} ${yScale(srasStart.PL)} L ${xScale(srasEnd.Y)} ${yScale(srasEnd.PL)}`,
+    fill: 'none',
+  }));
+  const srasLbl = svgEl('text', {
+    x: xScale(srasEnd.Y) + 6, y: yScale(srasEnd.PL) + 3, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  srasLbl.textContent = hasShock && Math.abs(srasS) > 0.5 ? 'SRAS₁' : 'SRAS';
+  plotGroup.appendChild(srasLbl);
+
+  // 5. Equilibrium
+  const eq = findEq();
+  if (eq.Y > 0 && eq.Y < Y_MAX && eq.PL > 0 && eq.PL < PL_MAX) {
+    // Drop lines
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    }));
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    }));
+    // Dot
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(eq.Y), cy: yScale(eq.PL), r: 6,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    }));
+    // Labels
+    const yLbl = svgEl('text', {
+      x: xScale(eq.Y), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    yLbl.textContent = `Y = ${eq.Y.toFixed(0)}`;
+    plotGroup.appendChild(yLbl);
+    const plLbl = svgEl('text', {
+      x: xScale(0) - 8, y: yScale(eq.PL) + 3, 'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    plLbl.textContent = `PL = ${eq.PL.toFixed(0)}`;
+    plotGroup.appendChild(plLbl);
+  }
+
+  // 6. Output-gap indicator bar (between eq.Y and Yf on x-axis)
+  const gap = eq.Y - Yf;
+  if (hasShock && Math.abs(gap) > 0.5) {
+    const barY = yScale(12);  // inside plot area, low down
+    const x1 = xScale(Math.min(eq.Y, Yf));
+    const x2 = xScale(Math.max(eq.Y, Yf));
+    plotGroup.appendChild(svgEl('line', {
+      x1, y1: barY, x2, y2: barY,
+      stroke: gap > 0 ? '#8a5a00' : 'var(--welfare-loss)',
+      'stroke-width': 2.5,
+    }));
+    // Tick marks at each end
+    [x1, x2].forEach(x => {
+      plotGroup.appendChild(svgEl('line', {
+        x1: x, x2: x, y1: barY - 4, y2: barY + 4,
+        stroke: gap > 0 ? '#8a5a00' : 'var(--welfare-loss)',
+        'stroke-width': 2,
+      }));
+    });
+    const lbl = svgEl('text', {
+      x: (x1 + x2) / 2, y: barY - 8, 'text-anchor': 'middle',
+      style: `font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: ${gap > 0 ? '#8a5a00' : 'var(--welfare-loss)'}; paint-order: stroke; stroke: #fff; stroke-width: 3;`,
+    });
+    lbl.textContent = (gap > 0 ? 'Inflationary gap: ' : 'Recessionary gap: ') + Math.abs(gap).toFixed(0);
+    plotGroup.appendChild(lbl);
+  }
+
+  updateRightPanel(eq);
+  updateSliderLabel();
+}
+
+function updateSliderLabel() {
+  const el = document.getElementById('t-val');
+  if (state.t === 0) el.textContent = 't = 0 (immediate short run)';
+  else if (state.t >= 99) el.textContent = 't = 100 (long-run equilibrium)';
+  else el.textContent = `t = ${state.t} (adjusting...)`;
+}
+
+function updateRightPanel(eq) {
+  const baselineEq = { Y: Yf, PL: 100 };
+  document.getElementById('y-val').textContent = eq.Y.toFixed(0);
+  document.getElementById('pl-val').textContent = eq.PL.toFixed(0);
+  const setDelta = (id, v) => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.3) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + Math.abs(v).toFixed(0);
+    el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDelta('y-delta', eq.Y - baselineEq.Y);
+  setDelta('pl-delta', eq.PL - baselineEq.PL);
+
+  const gap = eq.Y - Yf;
+  const gapEl = document.getElementById('gap-val');
+  if (Math.abs(gap) < 0.5) gapEl.textContent = 'at Yf (no gap)';
+  else if (gap > 0) gapEl.textContent = `+${gap.toFixed(0)} (inflationary)`;
+  else gapEl.textContent = `${gap.toFixed(0)} (recessionary)`;
+
+  // Phase pill + narration
+  const pill = document.getElementById('phase-pill');
+  const narr = document.getElementById('narration-text');
+  if (state.shock === 'none') {
+    pill.className = 'phase-pill lr';
+    pill.textContent = 'Long-run equilibrium';
+    narr.innerHTML = 'AD, SRAS, and LRAS all cross at (Yf, baseline PL). No output gap, no pressure on wages. Apply a shock to start the story.';
+  } else if (state.t === 0) {
+    if (gap > 0) {
+      pill.className = 'phase-pill sr-infl';
+      pill.textContent = 'Short-run inflationary gap';
+      narr.innerHTML = `The shock has moved equilibrium to Y = ${eq.Y.toFixed(0)}, above Yf = ${Yf}. Labour market is tight, firms are straining. Price level has risen to ${eq.PL.toFixed(0)}. This is unsustainable: wages will start to rise.`;
+    } else {
+      pill.className = 'phase-pill sr-recess';
+      pill.textContent = 'Short-run recessionary gap';
+      narr.innerHTML = `The shock has pushed equilibrium to Y = ${eq.Y.toFixed(0)}, below Yf = ${Yf}. Unemployment rises. Price level fell to ${eq.PL.toFixed(0)}. Eventually, wage and price pressure downward will shift SRAS right and restore Yf — but this can take years.`;
+    }
+  } else if (state.t < 95) {
+    pill.className = 'phase-pill adjusting';
+    pill.textContent = 'SRAS adjusting';
+    narr.innerHTML = `Wages are adjusting to the output gap. SRAS is shifting ${gap > 0 ? 'left (wages rising)' : 'right (wages falling)'}, gradually closing the gap. Current Y = ${eq.Y.toFixed(0)}, PL = ${eq.PL.toFixed(0)}.`;
+  } else {
+    pill.className = 'phase-pill lr';
+    pill.textContent = 'New long-run equilibrium';
+    const plDiff = eq.PL - 100;
+    narr.innerHTML = `The adjustment is complete. Output has returned to Yf = ${Yf} — AD shocks don't change real output in the long run. What has changed is the price level, now at ${eq.PL.toFixed(0)} ${plDiff >= 0 ? '(higher' : '(lower'} by ${Math.abs(plDiff).toFixed(0)} points). This is the neoclassical result: AD is neutral in the long run.`;
+  }
+}
+
+/* UI */
+document.querySelectorAll('[data-shock]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.shock = btn.dataset.shock;
+    state.t = 0;
+    document.getElementById('t-slider').value = 0;
+    document.querySelectorAll('[data-shock]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('t-slider').addEventListener('input', ev => {
+  state.t = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

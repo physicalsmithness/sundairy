@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Economic growth · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad        { stroke: var(--demand-shift); stroke-width: 2.5; }
+    .curve-ad-ghost  { stroke: var(--demand); stroke-width: 1.8; stroke-dasharray: 4 3; opacity: 0.55; }
+    .curve-sras      { stroke: var(--supply); stroke-width: 2.5; }
+    .curve-sras-ghost { stroke: var(--supply); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.45; }
+    .curve-lras      { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+    .curve-lras-ghost { stroke: #5d7a68; stroke-width: 1.5; stroke-dasharray: 2 3; opacity: 0.5; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: #2d7a50; font-weight: 600; }
+    .totals-grid .delta.down { color: var(--welfare-loss); font-weight: 600; }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .verdict-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .verdict-pill.good { background: #dff0e3; color: #2d6b46; }
+    .verdict-pill.mixed { background: #fde8c6; color: #8a5a00; }
+    .verdict-pill.neutral { background: var(--paper-deep); color: var(--ink); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.3 Economic growth · Required</span>
+      <h1>Economic growth: AD-led vs LRAS-led</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="mode-row">
+        <span class="events-label">Growth source</span>
+        <button class="event-chip active" data-mode="ad">AD shifts right <span class="term-badge">short-run</span></button>
+        <button class="event-chip" data-mode="lras">LRAS shifts right <span class="term-badge">long-run</span></button>
+        <button class="event-chip" data-mode="both">Both together</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="mode-narration">
+        AD-led growth comes from higher demand — stimulus, credit booms, confidence. But when the economy is near Yf, AD growth mostly produces inflation, not real output. LRAS-led growth comes from actual capacity increases — more labour, capital, or better technology. It's real and sustainable.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Growth magnitude <span class="value" id="mag-val">+25 units</span></label>
+          <input type="range" id="mag-slider" min="0" max="50" step="1" value="25" />
+          <span class="small muted">How far right does the relevant curve shift? Represents the size of the stimulus or the productivity/capacity increase.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="verdict-pill mixed" id="verdict-pill">Some growth, some inflation</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Real output Y</span>
+          <span class="val" id="y-val">—</span>
+          <span class="delta" id="y-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price level PL</span>
+          <span class="val" id="pl-val">—</span>
+          <span class="delta" id="pl-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Full-employment Yf</span>
+          <span class="val" id="yf-val">—</span>
+          <span class="delta" id="yf-delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        AD shifts right: some output growth, some inflation — the balance depends on how close we are to full employment. At or near Yf, most of an AD rise becomes inflation.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Only LRAS-led growth is sustainable.</strong> Moving AD right without expanding capacity is like running a hot engine: you get more output short-term, but it overheats (inflation) and eventually reverts. Shifting LRAS right moves the whole ceiling up: permanent gains in real output, no inflation cost. This is why real-income growth over decades comes from productivity and capacity, not stimulus.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  mode: 'ad',     // 'ad' | 'lras' | 'both'
+  mag: 25,
+  plot: null,
+};
+
+const Yf0 = 120;       // baseline full-employment output
+const Y_MAX = 240;
+const PL_MAX = 200;
+const adSlope = -50 / 60;
+const srasSlope = 50 / 60;
+
+/* Shifts based on mode */
+function currentShifts() {
+  const m = state.mag;
+  if (state.mode === 'ad')    return { adShift: m, lrasShift: 0 };
+  if (state.mode === 'lras')  return { adShift: 0, lrasShift: m };
+  return                           { adShift: m, lrasShift: m };
+}
+
+function Yf() {
+  return Yf0 + currentShifts().lrasShift;
+}
+
+/* AD curve (with current shift) */
+function adInverse(PL) {
+  const { adShift } = currentShifts();
+  return (PL - 100) / adSlope + Yf0 + adShift;
+}
+
+/* SRAS curve — shifts along with LRAS (since LRAS-shift represents real
+   capacity growth, SRAS naturally shifts too when capacity grows).
+   For pure AD-led growth, SRAS stays put. */
+function srasInverse(PL) {
+  const { lrasShift } = currentShifts();
+  return (PL - 100) / srasSlope + Yf0 + lrasShift;
+}
+
+function findEq() {
+  // Intersect AD and SRAS
+  const { adShift, lrasShift } = currentShifts();
+  // 100 + adSlope*(Y - Yf0 - adShift) = 100 + srasSlope*(Y - Yf0 - lrasShift)
+  // → Y(adSlope - srasSlope) = adSlope*(Yf0+adShift) - srasSlope*(Yf0+lrasShift)
+  const Y = (adSlope * (Yf0 + adShift) - srasSlope * (Yf0 + lrasShift)) / (adSlope - srasSlope);
+  const PL = 100 + adSlope * (Y - Yf0 - adShift);
+  return { Y, PL };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX, yMax: PL_MAX,
+    nxTicks: 12, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const { adShift, lrasShift } = currentShifts();
+  const hasShift = adShift !== 0 || lrasShift !== 0;
+
+  // 1. LRAS original (ghost, if shifted)
+  if (lrasShift > 0) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'curve-lras-ghost',
+      x1: xScale(Yf0), y1: yScale(0),
+      x2: xScale(Yf0), y2: yScale(PL_MAX),
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale(Yf0), y: yScale(PL_MAX) - 20, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; fill: #5d7a68; opacity: 0.75;",
+    });
+    gLbl.textContent = 'LRAS₀';
+    plotGroup.appendChild(gLbl);
+  }
+  // LRAS current
+  const yfNow = Yf();
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-lras',
+    x1: xScale(yfNow), y1: yScale(0),
+    x2: xScale(yfNow), y2: yScale(PL_MAX),
+  }));
+  const lrasLbl = svgEl('text', {
+    x: xScale(yfNow), y: yScale(PL_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;",
+  });
+  lrasLbl.textContent = lrasShift > 0 ? 'LRAS₁' : 'LRAS';
+  plotGroup.appendChild(lrasLbl);
+
+  // 2. SRAS (current, and ghost if shifted)
+  if (lrasShift > 0) {
+    // SRAS ghost (baseline, no LRAS shift)
+    const g1 = { Y: (20 - 100) / srasSlope + Yf0, PL: 20 };
+    const g2 = { Y: (180 - 100) / srasSlope + Yf0, PL: 180 };
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-sras-ghost',
+      d: `M ${xScale(g1.Y)} ${yScale(g1.PL)} L ${xScale(g2.Y)} ${yScale(g2.PL)}`,
+      fill: 'none',
+    }));
+  }
+  // SRAS current
+  const s1 = { Y: (20 - 100) / srasSlope + Yf0 + lrasShift, PL: 20 };
+  const s2 = { Y: (180 - 100) / srasSlope + Yf0 + lrasShift, PL: 180 };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-sras',
+    d: `M ${xScale(s1.Y)} ${yScale(s1.PL)} L ${xScale(s2.Y)} ${yScale(s2.PL)}`,
+    fill: 'none',
+  }));
+  const srasLbl = svgEl('text', {
+    x: xScale(s2.Y) + 6, y: yScale(s2.PL) + 3, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  srasLbl.textContent = lrasShift > 0 ? 'SRAS₁' : 'SRAS';
+  plotGroup.appendChild(srasLbl);
+
+  // 3. AD (current, and ghost if shifted)
+  if (adShift > 0) {
+    const g1 = { Y: (20 - 100) / adSlope + Yf0, PL: 20 };
+    const g2 = { Y: (180 - 100) / adSlope + Yf0, PL: 180 };
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ad-ghost',
+      d: `M ${xScale(g1.Y)} ${yScale(g1.PL)} L ${xScale(g2.Y)} ${yScale(g2.PL)}`,
+      fill: 'none',
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale((60 - 100) / adSlope + Yf0) - 4, y: yScale(60) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    gLbl.textContent = 'AD₀';
+    plotGroup.appendChild(gLbl);
+  }
+  const ad1 = { Y: adInverse(180), PL: 180 };
+  const ad2 = { Y: adInverse(20),  PL: 20 };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ad',
+    d: `M ${xScale(ad1.Y)} ${yScale(ad1.PL)} L ${xScale(ad2.Y)} ${yScale(ad2.PL)}`,
+    fill: 'none',
+  }));
+  const adLbl = svgEl('text', {
+    x: xScale(ad2.Y) - 6, y: yScale(ad2.PL) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  adLbl.textContent = adShift > 0 ? 'AD₁' : 'AD';
+  plotGroup.appendChild(adLbl);
+
+  // 4. Equilibrium
+  const eq = findEq();
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(eq.Y), cy: yScale(eq.PL), r: 6,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  const yLbl = svgEl('text', {
+    x: xScale(eq.Y), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  yLbl.textContent = `Y = ${eq.Y.toFixed(0)}`;
+  plotGroup.appendChild(yLbl);
+  const plLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(eq.PL) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  plLbl.textContent = `PL = ${eq.PL.toFixed(0)}`;
+  plotGroup.appendChild(plLbl);
+
+  updateRightPanel(eq);
+  updateSliderLabel();
+}
+
+function updateSliderLabel() {
+  document.getElementById('mag-val').textContent = `+${state.mag} units`;
+}
+
+function updateRightPanel(eq) {
+  const { adShift, lrasShift } = currentShifts();
+  const baselineEq = { Y: 120, PL: 100, Yf: Yf0 };
+  const yfNow = Yf();
+
+  document.getElementById('y-val').textContent = eq.Y.toFixed(0);
+  document.getElementById('pl-val').textContent = eq.PL.toFixed(0);
+  document.getElementById('yf-val').textContent = yfNow.toFixed(0);
+
+  const setDelta = (id, v) => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.3) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + Math.abs(v).toFixed(0);
+    el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDelta('y-delta', eq.Y - baselineEq.Y);
+  setDelta('pl-delta', eq.PL - baselineEq.PL);
+  setDelta('yf-delta', yfNow - baselineEq.Yf);
+
+  // Verdict + narration
+  const pill = document.getElementById('verdict-pill');
+  const narr = document.getElementById('narration-text');
+  const dPL = eq.PL - 100;
+  const dY = eq.Y - 120;
+
+  if (state.mag === 0) {
+    pill.className = 'verdict-pill neutral';
+    pill.textContent = 'No growth';
+    narr.innerHTML = 'Nothing has shifted. Equilibrium unchanged.';
+    return;
+  }
+
+  if (state.mode === 'ad') {
+    pill.className = 'verdict-pill mixed';
+    pill.textContent = 'Growth + inflation';
+    narr.innerHTML = `<strong>AD-led growth.</strong> AD shifts right: output rises to ${eq.Y.toFixed(0)} (+${dY.toFixed(0)}), but price level also rises to ${eq.PL.toFixed(0)} (+${dPL.toFixed(0)}). Firms can't expand capacity overnight, so higher demand bids up both output and prices. Output still sits below Yf (unless shift is huge), but the PL cost is real. This kind of growth is temporary: in the long run, SRAS will shift left as wages adjust, reversing the output gain.`;
+  } else if (state.mode === 'lras') {
+    pill.className = 'verdict-pill good';
+    pill.textContent = 'Real, sustainable growth';
+    narr.innerHTML = `<strong>LRAS-led growth.</strong> Productive capacity has expanded — more labour, more capital, better technology. LRAS and SRAS both shift right by ${state.mag} units. Equilibrium output rises to ${eq.Y.toFixed(0)} (+${dY.toFixed(0)}), and price level actually <em>falls</em> to ${eq.PL.toFixed(0)} (${dPL >= 0 ? '+' : ''}${dPL.toFixed(0)}) because the same demand now spreads over more output. This is the real growth story: higher living standards without inflation.`;
+  } else {
+    pill.className = 'verdict-pill good';
+    pill.textContent = 'Growth, stable PL';
+    narr.innerHTML = `<strong>Matched AD and LRAS growth.</strong> Productive capacity expands and demand grows to match. Output rises to ${eq.Y.toFixed(0)}, and price level stays at roughly ${eq.PL.toFixed(0)}. This is the healthiest kind of growth — more output, more jobs, no inflation. Real-world examples: successful development economies through periods of rapid capital investment matched by rising incomes driving consumption.`;
+  }
+}
+
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('mag-slider').addEventListener('input', ev => {
+  state.mag = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

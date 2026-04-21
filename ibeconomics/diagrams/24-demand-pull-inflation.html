@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demand-pull inflation · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad        { stroke: var(--demand-shift); stroke-width: 2.5; }
+    .curve-ad-ghost  { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; }
+    .curve-sras      { stroke: var(--supply); stroke-width: 2.5; }
+    .curve-lras      { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+
+    .stage-timeline {
+      display: flex;
+      gap: 0.3rem;
+      margin-bottom: 0.5rem;
+    }
+    .stage-timeline .stage {
+      flex: 1;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      background: var(--paper-deep);
+      color: var(--ink-soft);
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid var(--rule);
+      transition: background 0.1s;
+    }
+    .stage-timeline .stage.active {
+      background: var(--demand-shift);
+      color: #fff;
+      border-color: var(--demand-shift);
+    }
+    .stage-timeline .stage:hover:not(.active) {
+      background: #f1e9de;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: var(--welfare-loss); font-weight: 600; }
+    .totals-grid .delta.down { color: #2d7a50; font-weight: 600; }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .inflation-callout {
+      background: #fde8c6;
+      border-left: 3px solid #8a5a00;
+      padding: 0.5rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: #5a3a00;
+      border-radius: 0 4px 4px 0;
+      margin: 0.4rem 0;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.3 Demand-pull inflation · Required</span>
+      <h1>Demand-pull inflation</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Cause</span>
+        <button class="event-chip active" data-case="stimulus">Fiscal stimulus</button>
+        <button class="event-chip" data-case="credit">Credit boom</button>
+        <button class="event-chip" data-case="confidence">Rising confidence</button>
+        <button class="event-chip" data-case="export-boom">Export-led boom</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        Demand-pull inflation: AD grows faster than the economy's productive capacity, bidding up prices. The classic "too much money chasing too few goods" story.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control" style="grid-column: span 2;">
+          <label>Stage in the demand-pull story</label>
+          <div class="stage-timeline" id="stage-timeline">
+            <div class="stage active" data-stage="0">1. Start at LR equilibrium</div>
+            <div class="stage" data-stage="1">2. AD shifts right</div>
+            <div class="stage" data-stage="2">3. PL rises, Y above Yf</div>
+            <div class="stage" data-stage="3">4. SRAS shifts left (wages adjust)</div>
+            <div class="stage" data-stage="4">5. Back to Yf, but PL much higher</div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Real output Y</span>
+          <span class="val" id="y-val">120</span>
+          <span class="delta" id="y-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price level PL</span>
+          <span class="val" id="pl-val">100</span>
+          <span class="delta" id="pl-delta"></span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">Inflation vs start</span>
+          <span class="val" id="inflation-val">0%</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <div class="inflation-callout" id="callout">
+        Start at long-run equilibrium. Click the stages in order to see demand-pull inflation play out.
+      </div>
+
+      <div class="key-idea">
+        <p><strong>Demand-pull vs cost-push.</strong> Demand-pull inflation comes from the <em>demand side</em> (AD rising) and initially boosts real output along with prices. Cost-push inflation comes from the <em>supply side</em> (SRAS falling) and brings inflation <em>with</em> falling output — stagflation. Demand-pull is "a nice problem to have"; cost-push is painful.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  caseKey: 'stimulus',
+  stage: 0,
+  plot: null,
+};
+
+const Yf = 120;
+const Y_MAX = 240;
+const PL_MAX = 200;
+const adSlope = -50 / 60;
+const srasSlope = 50 / 60;
+
+/* Each stage has a specific (adShift, srasShift) pair to tell the story. */
+const stages = [
+  { adShift: 0,  srasShift: 0,   label: 'LR eq' },   // 0
+  { adShift: 40, srasShift: 0,   label: 'AD₁ drawn' }, // 1
+  { adShift: 40, srasShift: 0,   label: 'SR eq'   }, // 2 (same curves, emphasis on new eq)
+  { adShift: 40, srasShift: -20, label: 'SRAS₁ shifting' }, // 3
+  { adShift: 40, srasShift: -40, label: 'New LR eq' }, // 4
+];
+
+const cases = {
+  stimulus:   { narration: 'A large fiscal stimulus — think a major infrastructure programme or wartime spending. Government spending rises sharply → AD shifts right.' },
+  credit:     { narration: 'Banks lend more aggressively, perhaps because the central bank cut rates or lending standards loosened. Consumer credit and business investment both rise → AD shifts right.' },
+  confidence: { narration: 'Consumer and business confidence surge (stock market boom, rising house prices, optimism about the future). Households save less and spend more → AD shifts right.' },
+  'export-boom': { narration: 'A trading partner enters a period of rapid growth. Demand for UK exports surges → net exports rise sharply → AD shifts right.' },
+};
+
+function adInverse(PL, dY = 0) {
+  return (PL - 100) / adSlope + Yf + dY;
+}
+
+function findEq(adShift, srasShift) {
+  const Y = (adSlope * (Yf + adShift) - srasSlope * (Yf + srasShift)) / (adSlope - srasSlope);
+  const PL = 100 + adSlope * (Y - Yf - adShift);
+  return { Y, PL };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX, yMax: PL_MAX,
+    nxTicks: 12, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function drawLine(cls, x1, y1, x2, y2, extra = {}) {
+  const { xScale, yScale, plotGroup } = state.plot;
+  const el = svgEl('path', {
+    class: cls,
+    d: `M ${xScale(x1)} ${yScale(y1)} L ${xScale(x2)} ${yScale(y2)}`,
+    fill: 'none',
+    ...extra,
+  });
+  plotGroup.appendChild(el);
+  return el;
+}
+
+function drawText(x, y, text, style) {
+  const { xScale, yScale, plotGroup } = state.plot;
+  const t = svgEl('text', { x: xScale(x), y: yScale(y), 'text-anchor': 'middle', style });
+  t.textContent = text;
+  plotGroup.appendChild(t);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const stage = stages[state.stage];
+  const { adShift, srasShift } = stage;
+
+  // 1. LRAS
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-lras',
+    x1: xScale(Yf), y1: yScale(0), x2: xScale(Yf), y2: yScale(PL_MAX),
+  }));
+  drawText(Yf, PL_MAX - 6, 'LRAS', "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;");
+
+  // 2. AD₀ ghost (stages 1+)
+  if (state.stage >= 1) {
+    drawLine('curve-ad-ghost', adInverse(180, 0), 180, adInverse(20, 0), 20);
+    const gL = svgEl('text', {
+      x: xScale(adInverse(55, 0)) - 6, y: yScale(55) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    gL.textContent = 'AD₀';
+    plotGroup.appendChild(gL);
+  }
+
+  // 3. AD₁ (current)
+  drawLine('curve-ad', adInverse(180, adShift), 180, adInverse(20, adShift), 20);
+  const adLbl = svgEl('text', {
+    x: xScale(adInverse(55, adShift)) + 6, y: yScale(55) - 4,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  adLbl.textContent = adShift > 0 ? 'AD₁' : 'AD';
+  plotGroup.appendChild(adLbl);
+
+  // 4. SRAS₀ ghost if SRAS has shifted
+  if (srasShift !== 0) {
+    const gY1 = (20 - 100) / srasSlope + Yf;
+    const gY2 = (180 - 100) / srasSlope + Yf;
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-sras-ghost',
+      d: `M ${xScale(gY1)} ${yScale(20)} L ${xScale(gY2)} ${yScale(180)}`,
+      fill: 'none',
+      stroke: 'var(--supply)', 'stroke-width': 1.2,
+      'stroke-dasharray': '3 3', opacity: 0.45,
+    }));
+  }
+  // SRAS current
+  const s1 = { Y: (20 - 100) / srasSlope + Yf + srasShift, PL: 20 };
+  const s2 = { Y: (180 - 100) / srasSlope + Yf + srasShift, PL: 180 };
+  drawLine('curve-sras', s1.Y, s1.PL, s2.Y, s2.PL);
+  const srasLbl = svgEl('text', {
+    x: xScale(s2.Y) + 6, y: yScale(s2.PL) + 3, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  srasLbl.textContent = srasShift !== 0 ? 'SRAS₁' : 'SRAS';
+  plotGroup.appendChild(srasLbl);
+
+  // 5. Equilibrium
+  const eq = findEq(adShift, srasShift);
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(eq.Y), cy: yScale(eq.PL), r: 6,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  drawText(eq.Y, 0, `Y = ${eq.Y.toFixed(0)}`, "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);");
+  // PL label on y-axis
+  const plLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(eq.PL) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  plLbl.textContent = `PL = ${eq.PL.toFixed(0)}`;
+  plotGroup.appendChild(plLbl);
+
+  // Move x-axis label position
+  // (not touching createAxes, just drawing the Y label near bottom)
+
+  updateRightPanel(eq);
+}
+
+function updateRightPanel(eq) {
+  document.getElementById('y-val').textContent = eq.Y.toFixed(0);
+  document.getElementById('pl-val').textContent = eq.PL.toFixed(0);
+
+  const setDelta = (id, v, inflationDirection = 'up') => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.3) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + Math.abs(v).toFixed(0);
+    // For inflation: up is bad (red). For output: up can be good until Yf.
+    if (inflationDirection === 'inflation') {
+      el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+    } else {
+      el.className = 'delta ' + (v >= 0 ? 'down' : 'up');  // output: up = good (green via .down class)
+    }
+  };
+  setDelta('y-delta', eq.Y - 120, 'output');
+  setDelta('pl-delta', eq.PL - 100, 'inflation');
+
+  // Inflation percent vs start
+  const infl = ((eq.PL - 100) / 100) * 100;
+  document.getElementById('inflation-val').textContent = infl >= 0 ? `+${infl.toFixed(1)}%` : `${infl.toFixed(1)}%`;
+
+  // Stage callout
+  const callout = document.getElementById('callout');
+  const stageNarr = [
+    'Start at long-run equilibrium: Y=120, PL=100. All curves meet at (Yf, baseline PL).',
+    'AD shifts right from AD₀ to AD₁ (the demand-side cause). SRAS hasn\'t moved yet. Look where AD₁ meets SRAS.',
+    'New short-run equilibrium: Y above Yf (overheating), PL higher. The economy is producing beyond its sustainable output — workers are stretched, materials in short supply. Inflation has begun.',
+    'Wages start rising in response to the tight labour market. This pushes SRAS left. The new equilibrium is moving back toward Yf, but PL is still rising.',
+    'New long-run equilibrium: back at Yf, but PL much higher than where we started. The AD expansion produced no permanent output gain — only higher prices. This is demand-pull inflation in full.',
+  ];
+  callout.textContent = stageNarr[state.stage];
+}
+
+/* UI */
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.caseKey = btn.dataset.case;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('case-narration').textContent = cases[state.caseKey].narration;
+  });
+});
+document.querySelectorAll('[data-stage]').forEach(el => {
+  el.addEventListener('click', () => {
+    state.stage = Number(el.dataset.stage);
+    document.querySelectorAll('[data-stage]').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    renderAll();
+  });
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

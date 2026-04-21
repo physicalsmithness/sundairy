@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Short-run aggregate supply · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad {
+      stroke: var(--supply);
+      stroke-width: 2.5;
+    }
+    .curve-ad-ghost {
+      stroke: var(--supply);
+      stroke-width: 1.8;
+      stroke-dasharray: 4 3;
+      opacity: 0.5;
+    }
+    .lras-line {
+      stroke: #5d7a68;
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+    }
+    .shift-arrow {
+      stroke: var(--ink);
+      stroke-width: 1.8;
+      marker-end: url(#arrow-head);
+    }
+
+    .components-grid {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .components-grid .row { display: contents; }
+    .components-grid .code {
+      font-weight: 700;
+      color: var(--supply);
+      font-variant-numeric: tabular-nums;
+    }
+    .components-grid .name {
+      color: var(--ink-soft);
+    }
+    .components-grid .change {
+      font-variant-numeric: tabular-nums;
+      font-size: 11.5px;
+      text-align: right;
+    }
+    .components-grid .change.up { color: #2d7a50; font-weight: 600; }
+    .components-grid .change.down { color: var(--welfare-loss); font-weight: 600; }
+    .components-grid .change.unchanged { color: var(--ink-soft); }
+
+    .shift-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--paper-deep);
+      color: var(--ink);
+    }
+    .shift-pill.right { background: #dff0e3; color: #2d6b46; }
+    .shift-pill.left  { background: #f6d9d4; color: var(--welfare-loss); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.2 Short-run aggregate supply · Required</span>
+      <h1>Short-run aggregate supply</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="shift-row">
+        <span class="events-label">Cause a shift</span>
+        <button class="event-chip active" data-shift="none">None (at baseline)</button>
+        <button class="event-chip" data-shift="oil-up">Oil-price shock ↑ <span class="term-badge">inputs</span></button>
+        <button class="event-chip" data-shift="wages-up">Wages rise <span class="term-badge">labour</span></button>
+        <button class="event-chip" data-shift="productivity">Productivity gain <span class="term-badge">tech</span></button>
+        <button class="event-chip" data-shift="indirect-tax">Indirect tax ↑ <span class="term-badge">policy</span></button>
+        <button class="event-chip" data-shift="weather-bad">Bad harvest <span class="term-badge">natural</span></button>
+        <button class="event-chip" data-shift="weather-good">Good harvest <span class="term-badge">natural</span></button>
+      </div>
+
+      <div class="event-narration baseline visible" id="shift-narration">
+        Short-run aggregate supply shows total output firms are willing to produce at each price level, holding production costs fixed. It slopes upward because higher prices mean higher profits (given sticky wages) and firms respond by producing more. Pick a cause to see SRAS shift.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Price level (read point on curves) <span class="value" id="pl-val">100</span></label>
+          <input type="range" id="pl-slider" min="40" max="180" step="1" value="100" />
+          <span class="small muted">Slide to read output supplied at a given price level. Move this to see the quantity-supplied change vs a curve shift.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="shift-pill" id="shift-pill">No shift</span>
+      </div>
+
+      <div class="components-grid">
+        <div class="row">
+          <span class="code">W</span>
+          <span class="name">Wages</span>
+          <span class="change unchanged" id="c-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">I</span>
+          <span class="name">Input prices (oil, materials)</span>
+          <span class="change unchanged" id="i-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">P</span>
+          <span class="name">Productivity</span>
+          <span class="change unchanged" id="g-change">—</span>
+        </div>
+        <div class="row">
+          <span class="code">T</span>
+          <span class="name">Taxes / subsidies on production</span>
+          <span class="change unchanged" id="xm-change">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Anything that changes the cost of producing output shifts SRAS. Higher input costs, wages, or production taxes shift SRAS left. Higher productivity or subsidies shift SRAS right. In the short run, wages are "sticky" — slow to respond to changes in the price level — which is why SRAS slopes up rather than being vertical.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Why SRAS slopes up.</strong> In the short run, nominal wages are fixed by existing contracts. If the price level rises, the <em>real</em> wage firms pay falls, making labour effectively cheaper, so firms produce more. As output approaches full-capacity (full employment), the curve gets steeper because extra output requires more overtime, temporary hires, and other costly adjustments.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  shift: 'none',
+  plotVal: 100,
+  plot: null,
+};
+
+/* Baseline SRAS: linear, positive slope, through (Y=120, PL=100).
+   Slope chosen so PL goes from 50 at Y=60 to 150 at Y=180.  */
+const baselineSlope = 50 / 60;  // positive: upward-sloping supply
+
+/* Each shift case specifies horizontal shift in Y at PL=100.
+   Positive = rightward (good: more output at any PL).
+   Negative = leftward  (bad: less output at any PL). */
+const shifts = {
+  none:             { dy: 0, comps: {} },
+  'oil-up':         { dy: -25, comps: { I: 'up' } },
+  'wages-up':       { dy: -20, comps: { W: 'up' } },
+  'productivity':   { dy:  30, comps: { P: 'up' } },
+  'indirect-tax':   { dy: -18, comps: { T: 'up' } },
+  'weather-bad':    { dy: -15, comps: { I: 'up' } },
+  'weather-good':   { dy:  15, comps: { I: 'down' } },
+};
+
+const narrations = {
+  none:           'No shift — baseline SRAS. Slide the price-level indicator to read real output supplied at each price level.',
+  'oil-up':       'Oil prices spike (OPEC decision, war in oil-producing region, supply disruption). Energy is a production input across almost every sector, so firms\' costs rise sharply. SRAS shifts left: at any PL, less output is supplied. A classic supply shock.',
+  'wages-up':     'Labour unions secure big wage rises, or a minimum-wage uplift bites. Nominal wages rise → firms\' costs rise → less output at any PL → SRAS shifts left.',
+  'productivity': 'Technological improvement, better training, new management practices, or capital investment paying off. Each worker produces more per hour → per-unit costs fall → SRAS shifts right.',
+  'indirect-tax': 'Government raises VAT or introduces new production taxes. Firms\' effective cost of producing each unit rises → SRAS shifts left.',
+  'weather-bad':  'Drought, flood, frost, or pandemic restrictions disrupt production. Supply chains break, output is lost, and costs rise. SRAS shifts left.',
+  'weather-good': 'Exceptional harvest year, mild climate, or a new resource discovery. Input costs fall → SRAS shifts right.',
+};
+
+function ad(Y, dY = 0) {
+  // SRAS: upward-sloping. dY is horizontal shift (positive = right).
+  return 100 + baselineSlope * (Y - 120 - dY);
+}
+
+function adInverse(PL, dY = 0) {
+  return (PL - 100) / baselineSlope + 120 + dY;
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: 240,
+    yMax: 200,
+    nxTicks: 12,
+    nyTicks: 10,
+    tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+
+  // Arrowhead marker for shift arrows
+  const defs = svgEl('defs', {});
+  const marker = svgEl('marker', {
+    id: 'arrow-head',
+    viewBox: '0 0 10 10',
+    refX: 8, refY: 5,
+    markerWidth: 6, markerHeight: 6,
+    orient: 'auto',
+  });
+  const path = svgEl('path', {
+    d: 'M 0 0 L 10 5 L 0 10 z',
+    fill: 'var(--ink)',
+  });
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  state.plot.svg.insertBefore(defs, state.plot.svg.firstChild);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const xMax = 240, yMax = 200;
+  const dY = shifts[state.shift].dy;
+  const hasShift = dY !== 0;
+
+  // Draw baseline ghost first if there's a shift
+  if (hasShift) {
+    const y0a = adInverse(40, 0), y1a = adInverse(180, 0);
+    const x0 = yMax - 20; // start at high PL
+    // Draw AD0 (baseline) as dashed ghost
+    const baselineQ1 = { Y: adInverse(20, 0), PL: 20 };
+    const baselineQ2 = { Y: adInverse(180, 0), PL: 180 };
+    const bd = svgEl('path', {
+      class: 'curve curve-ad-ghost',
+      d: `M ${xScale(baselineQ1.Y)} ${yScale(baselineQ1.PL)} L ${xScale(baselineQ2.Y)} ${yScale(baselineQ2.PL)}`,
+      fill: 'none', stroke: 'var(--supply-fill)', 'stroke-width': 1.8,
+      'stroke-dasharray': '4 3', opacity: 0.7,
+    });
+    plotGroup.appendChild(bd);
+    // AD0 label near the curve
+    const lblBase = svgEl('text', {
+      x: xScale(adInverse(60, 0)) - 8, y: yScale(60) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; fill: var(--supply-fill); opacity: 0.8;",
+    });
+    lblBase.textContent = 'SRAS₀';
+    plotGroup.appendChild(lblBase);
+  }
+
+  // Draw current AD
+  const q1 = { Y: adInverse(20, dY), PL: 20 };
+  const q2 = { Y: adInverse(180, dY), PL: 180 };
+  // Clamp to plot area
+  const clamp = p => ({
+    Y: Math.max(0, Math.min(xMax, p.Y)),
+    PL: Math.max(0, Math.min(yMax, p.PL)),
+  });
+  const c1 = clamp(q1), c2 = clamp(q2);
+  const adPath = svgEl('path', {
+    class: 'curve curve-ad',
+    d: `M ${xScale(c1.Y)} ${yScale(c1.PL)} L ${xScale(c2.Y)} ${yScale(c2.PL)}`,
+    fill: 'none', stroke: 'var(--supply)', 'stroke-width': 2.5,
+  });
+  plotGroup.appendChild(adPath);
+
+  // Label the current AD
+  const lblY = 60;
+  const lblX = adInverse(lblY, dY);
+  if (lblX > 0 && lblX < xMax) {
+    const lbl = svgEl('text', {
+      x: xScale(lblX) - 8, y: yScale(lblY) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+    });
+    lbl.textContent = hasShift ? 'SRAS₁' : 'SRAS';
+    plotGroup.appendChild(lbl);
+  }
+
+  // Shift arrow (horizontal, at middle of plot)
+  if (hasShift) {
+    const arrowY = 100;
+    const x1 = adInverse(arrowY, 0);
+    const x2 = adInverse(arrowY, dY);
+    if (x1 > 0 && x2 > 0 && x1 < xMax && x2 < xMax && Math.abs(x2 - x1) > 5) {
+      const arr = svgEl('line', {
+        class: 'shift-arrow',
+        x1: xScale(x1), y1: yScale(arrowY),
+        x2: xScale(x2), y2: yScale(arrowY),
+      });
+      plotGroup.appendChild(arr);
+    }
+  }
+
+  // Draw price-level indicator (horizontal dashed line at current PL slider)
+  const plVal = state.plotVal;
+  if (plVal > 20 && plVal < 180) {
+    const indLine = svgEl('line', {
+      x1: xScale(0), y1: yScale(plVal),
+      x2: xScale(xMax), y2: yScale(plVal),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1,
+      'stroke-dasharray': '3 3', opacity: 0.6,
+    });
+    plotGroup.appendChild(indLine);
+    // Point where indicator meets current AD
+    const adY = adInverse(plVal, dY);
+    if (adY > 0 && adY < xMax) {
+      const dot = svgEl('circle', {
+        cx: xScale(adY), cy: yScale(plVal), r: 5,
+        fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+      });
+      plotGroup.appendChild(dot);
+      // Drop-line to x-axis
+      const drop = svgEl('line', {
+        x1: xScale(adY), y1: yScale(plVal),
+        x2: xScale(adY), y2: yScale(0),
+        stroke: 'var(--ink-soft)', 'stroke-width': 1,
+        'stroke-dasharray': '3 3', opacity: 0.6,
+      });
+      plotGroup.appendChild(drop);
+      // Y label
+      const yLbl = svgEl('text', {
+        x: xScale(adY), y: yScale(0) + 14, 'text-anchor': 'middle',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+      });
+      yLbl.textContent = `Y = ${adY.toFixed(0)}`;
+      plotGroup.appendChild(yLbl);
+      // PL label
+      const plLbl = svgEl('text', {
+        x: xScale(0) - 8, y: yScale(plVal) + 3, 'text-anchor': 'end',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+      });
+      plLbl.textContent = `PL = ${plVal.toFixed(0)}`;
+      plotGroup.appendChild(plLbl);
+    }
+  }
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const s = shifts[state.shift];
+  const hasShift = s.dy !== 0;
+
+  const pill = document.getElementById('shift-pill');
+  if (!hasShift) {
+    pill.className = 'shift-pill';
+    pill.textContent = 'No shift';
+  } else if (s.dy > 0) {
+    pill.className = 'shift-pill right';
+    pill.textContent = `SRAS shifts right (+${s.dy} units)`;
+  } else {
+    pill.className = 'shift-pill left';
+    pill.textContent = `SRAS shifts left (${s.dy} units)`;
+  }
+
+  // Component changes
+  const setChange = (id, direction) => {
+    const el = document.getElementById(id);
+    if (!direction) { el.className = 'change unchanged'; el.textContent = '—'; return; }
+    if (direction === 'up')   { el.className = 'change up';   el.textContent = '↑ rising'; }
+    else                      { el.className = 'change down'; el.textContent = '↓ falling'; }
+  };
+  setChange('c-change',  s.comps.C);
+  setChange('i-change',  s.comps.I);
+  setChange('g-change',  s.comps.G);
+  setChange('xm-change', s.comps.XM);
+
+  document.getElementById('shift-narration').textContent = narrations[state.shift];
+}
+
+document.querySelectorAll('[data-shift]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.shift = btn.dataset.shift;
+    document.querySelectorAll('[data-shift]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+
+document.getElementById('pl-slider').addEventListener('input', ev => {
+  state.plotVal = Number(ev.target.value);
+  document.getElementById('pl-val').textContent = state.plotVal.toFixed(0);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

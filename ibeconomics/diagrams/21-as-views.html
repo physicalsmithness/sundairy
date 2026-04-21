@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keynesian vs neoclassical AS · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-as {
+      stroke: var(--supply);
+      stroke-width: 2.5;
+    }
+    .curve-as-faint {
+      stroke: var(--supply);
+      stroke-width: 1.2;
+      stroke-dasharray: 3 3;
+      opacity: 0.45;
+    }
+    .curve-ad {
+      stroke: var(--demand-shift);
+      stroke-width: 2.5;
+    }
+    .curve-ad-ghost {
+      stroke: var(--demand);
+      stroke-width: 1.8;
+      stroke-dasharray: 4 3;
+      opacity: 0.55;
+    }
+    .yf-line {
+      stroke: #5d7a68;
+      stroke-width: 1.5;
+      stroke-dasharray: 6 4;
+      opacity: 0.8;
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-left: 0.5rem;
+    }
+    .view-toggle button {
+      padding: 0.3rem 0.7rem;
+      background: #fff;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+    .view-toggle button.active {
+      background: var(--supply);
+      color: #fff;
+    }
+
+    .outcome-box {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 0.7rem;
+    }
+    .outcome-box .outcome-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.5rem;
+      align-items: baseline;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 0.2rem 0;
+    }
+    .outcome-box .outcome-row .lbl { color: var(--ink-soft); font-size: 11.5px; }
+    .outcome-box .outcome-row .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .outcome-box .outcome-row .delta.up { color: #2d7a50; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11.5px; }
+    .outcome-box .outcome-row .delta.down { color: var(--welfare-loss); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11.5px; }
+
+    .school-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .school-pill.keynes { background: #f6dfc6; color: #8a5a00; }
+    .school-pill.neo    { background: #e8ddf6; color: #5d3a99; }
+    .school-pill.mixed  { background: var(--paper-deep); color: var(--ink); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.2 Alternative views of AS · Required</span>
+      <h1>Keynesian vs neoclassical AS</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="school-row">
+        <span class="events-label">View of AS</span>
+        <button class="event-chip active" data-school="keynes">Pure Keynesian (L-shaped)</button>
+        <button class="event-chip" data-school="mixed">Intermediate (three ranges)</button>
+        <button class="event-chip" data-school="neo">Pure neoclassical (vertical at Yf)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="school-narration">
+        The Keynesian school argues that in the short run, wages and prices are sticky downward, so the economy can operate below full employment for long periods with unused capacity. AS is flat until Yf.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>AD position <span class="value" id="ad-val">Baseline</span></label>
+          <input type="range" id="ad-slider" min="-60" max="60" step="1" value="0" />
+          <span class="small muted">Shift AD left (recession / austerity) or right (boom / stimulus). Same AD shift produces different outcomes depending on where you are on AS — that's the whole point.</span>
+        </div>
+
+        <div class="control">
+          <label>Show AS ranges</label>
+          <div class="view-toggle" role="group">
+            <button data-show-ranges="on" class="active">Shaded</button>
+            <button data-show-ranges="off">Plain</button>
+          </div>
+          <span class="small muted">Tint the three sections of AS (Keynesian / intermediate / classical) so you can see which section the equilibrium is in.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="school-pill keynes" id="school-pill">Pure Keynesian view</span>
+      </div>
+
+      <div class="outcome-box">
+        <div class="outcome-row">
+          <span class="lbl">Real output Y</span>
+          <span class="val" id="y-val">—</span>
+          <span class="delta" id="y-delta"></span>
+        </div>
+        <div class="outcome-row">
+          <span class="lbl">Price level PL</span>
+          <span class="val" id="pl-val">—</span>
+          <span class="delta" id="pl-delta"></span>
+        </div>
+        <div class="outcome-row">
+          <span class="lbl">Output gap vs Yf</span>
+          <span class="val" id="gap-val">—</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        The Keynesian AS curve is flat up to Yf and then vertical. Below Yf, AD shifts produce changes in output with no inflation (the flat portion). At Yf, any further AD increase produces pure inflation.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Why this disagreement matters.</strong> If you're a Keynesian, fiscal or monetary stimulus below Yf produces free output — no inflation cost. If you're neoclassical, the same stimulus just causes inflation because output is fixed at Yf by real factors. This is the core macroeconomic dispute of the 20th century — and it's still live.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  school: 'keynes',        // 'keynes' | 'mixed' | 'neo'
+  adShift: 0,              // horizontal AD shift in Y units
+  showRanges: true,
+  plot: null,
+};
+
+const Yf = 120;             // full-employment output
+const Y_MAX = 240;          // plot max
+const PL_MAX = 200;
+const adBaselineSlope = -50 / 60;
+
+/* AD: linear, passes through (120, 100) at baseline. */
+function ad(Y, dY = 0) {
+  return 100 + adBaselineSlope * (Y - Yf - dY);
+}
+function adInverse(PL, dY = 0) {
+  return (PL - 100) / adBaselineSlope + Yf + dY;
+}
+
+/* AS shapes
+   ----------
+   Keynesian: flat at PL=60 up to Yf, then vertical from PL=60 up.
+              Actually textbook typically has it at PL=some baseline (say 80)
+              up to Yf, then vertical. I'll use PL=70 for the horizontal part.
+
+   Mixed / intermediate: three pieces —
+     • flat at PL=60 from Y=0 to Y=Yf*0.6  (Keynesian range)
+     • upward-sloping from (Yf*0.6, 60) to (Yf, 120)
+     • vertical at Y=Yf above PL=120
+
+   Neoclassical: vertical at Yf for all PL.
+*/
+
+function as_keynes_path() {
+  // From (0, 80) horizontally to (Yf, 80), then vertically up to (Yf, PL_MAX)
+  return [[0, 80], [Yf, 80], [Yf, PL_MAX]];
+}
+function as_mixed_path() {
+  const Yk = Yf * 0.6;   // end of Keynesian range
+  return [
+    [0, 80], [Yk, 80],                 // flat
+    [Yf, 120],                          // intermediate (single line segment)
+    [Yf, PL_MAX],                       // vertical
+  ];
+}
+function as_neo_path() {
+  return [[Yf, 0], [Yf, PL_MAX]];
+}
+
+function currentAsPath() {
+  if (state.school === 'keynes') return as_keynes_path();
+  if (state.school === 'mixed')  return as_mixed_path();
+  return as_neo_path();
+}
+
+/* Find intersection of AD (with current shift) and AS (current school).
+   Walk the AS polyline and find where AD crosses. */
+function findEquilibrium() {
+  const asPath = currentAsPath();
+  const dY = state.adShift;
+  for (let i = 0; i < asPath.length - 1; i++) {
+    const [y1, p1] = asPath[i];
+    const [y2, p2] = asPath[i + 1];
+    // Parameterise this segment as (y(t), p(t)) = ((1-t)y1+t*y2, (1-t)p1+t*p2) for t in [0,1]
+    // AD equation: PL = ad(Y, dY)
+    // Substitute: (1-t)p1+t*p2 = ad((1-t)y1+t*y2, dY) = 100 + slope*((1-t)y1+t*y2 - Yf - dY)
+    // Let A = 100 + slope*(y1 - Yf - dY);  B = slope*(y2 - y1);  so RHS = A + t*B
+    // LHS = p1 + t*(p2 - p1)
+    // Solve: p1 + t(p2-p1) = A + tB  → t = (A - p1) / ((p2-p1) - B)
+    const A = 100 + adBaselineSlope * (y1 - Yf - dY);
+    const B = adBaselineSlope * (y2 - y1);
+    const denom = (p2 - p1) - B;
+    if (Math.abs(denom) < 1e-9) continue;
+    const t = (A - p1) / denom;
+    if (t >= -0.001 && t <= 1.001) {
+      const y = (1 - t) * y1 + t * y2;
+      const p = (1 - t) * p1 + t * p2;
+      return { Y: y, PL: p };
+    }
+  }
+  // Fallback: intersect with extended first or last segment
+  return null;
+}
+
+/* Baseline (no shift) equilibrium for comparison */
+function baselineEq() {
+  const saved = state.adShift;
+  state.adShift = 0;
+  const eq = findEquilibrium();
+  state.adShift = saved;
+  return eq;
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX,
+    yMax: PL_MAX,
+    nxTicks: 12,
+    nyTicks: 10,
+    tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+
+  // Arrowhead
+  const defs = svgEl('defs', {});
+  const marker = svgEl('marker', {
+    id: 'arrow-head',
+    viewBox: '0 0 10 10',
+    refX: 8, refY: 5,
+    markerWidth: 6, markerHeight: 6,
+    orient: 'auto',
+  });
+  const path = svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--ink)' });
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  state.plot.svg.insertBefore(defs, state.plot.svg.firstChild);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  // Optional: shaded Keynesian / intermediate / classical ranges.
+  // Only draw for the "mixed" view or when Keynesian/neo shows its range.
+  if (state.showRanges) {
+    // Keynesian range (always shown): vertical band from Y=0 to Yk
+    const Yk = state.school === 'mixed' ? Yf * 0.6 : (state.school === 'keynes' ? Yf : 0);
+    if (Yk > 0) {
+      const band = svgEl('rect', {
+        x: xScale(0), y: yScale(PL_MAX),
+        width: xScale(Yk) - xScale(0), height: yScale(0) - yScale(PL_MAX),
+        fill: '#fde8c6', opacity: 0.35,
+      });
+      plotGroup.appendChild(band);
+    }
+    // Intermediate range (only for mixed)
+    if (state.school === 'mixed') {
+      const band = svgEl('rect', {
+        x: xScale(Yf * 0.6), y: yScale(PL_MAX),
+        width: xScale(Yf) - xScale(Yf * 0.6), height: yScale(0) - yScale(PL_MAX),
+        fill: '#e8ddf6', opacity: 0.35,
+      });
+      plotGroup.appendChild(band);
+    }
+    // Classical range (neo-only + to right of Yf in mixed)
+    const Yc_start = state.school === 'neo' ? 0 : Yf;
+    if (Yc_start < Y_MAX) {
+      const band = svgEl('rect', {
+        x: xScale(Yc_start), y: yScale(PL_MAX),
+        width: xScale(Y_MAX) - xScale(Yc_start), height: yScale(0) - yScale(PL_MAX),
+        fill: '#dff0e3', opacity: 0.4,
+      });
+      plotGroup.appendChild(band);
+    }
+  }
+
+  // Yf vertical reference line
+  const yfLine = svgEl('line', {
+    class: 'yf-line',
+    x1: xScale(Yf), y1: yScale(0), x2: xScale(Yf), y2: yScale(PL_MAX),
+  });
+  plotGroup.appendChild(yfLine);
+  const yfLbl = svgEl('text', {
+    x: xScale(Yf), y: yScale(PL_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;",
+  });
+  yfLbl.textContent = 'Yf';
+  plotGroup.appendChild(yfLbl);
+
+  // AS curve
+  const asPath = currentAsPath();
+  const asD = asPath.map(([y, p], i) => `${i === 0 ? 'M' : 'L'} ${xScale(y)} ${yScale(p)}`).join(' ');
+  const asEl = svgEl('path', {
+    class: 'curve curve-as',
+    d: asD, fill: 'none',
+  });
+  plotGroup.appendChild(asEl);
+  // AS label at the right end
+  const lastPt = asPath[asPath.length - 1];
+  const asLbl = svgEl('text', {
+    x: xScale(lastPt[0]) + 6, y: yScale(lastPt[1]) + 3,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  asLbl.textContent = state.school === 'neo' ? 'LRAS' : 'AS';
+  plotGroup.appendChild(asLbl);
+
+  // Ghost baseline AD (when shifted)
+  if (state.adShift !== 0) {
+    const adY1 = adInverse(20, 0), adY2 = adInverse(180, 0);
+    const ghostPath = svgEl('path', {
+      class: 'curve-ad-ghost',
+      d: `M ${xScale(adInverse(180, 0))} ${yScale(180)} L ${xScale(adInverse(20, 0))} ${yScale(20)}`,
+      fill: 'none',
+    });
+    plotGroup.appendChild(ghostPath);
+    const ghostLbl = svgEl('text', {
+      x: xScale(adInverse(60, 0)) - 4, y: yScale(60) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    ghostLbl.textContent = 'AD₀';
+    plotGroup.appendChild(ghostLbl);
+  }
+
+  // Current AD
+  const adPath = svgEl('path', {
+    class: 'curve curve-ad',
+    d: `M ${xScale(adInverse(180, state.adShift))} ${yScale(180)} L ${xScale(adInverse(20, state.adShift))} ${yScale(20)}`,
+    fill: 'none',
+  });
+  plotGroup.appendChild(adPath);
+  const adLbl = svgEl('text', {
+    x: xScale(adInverse(60, state.adShift)) - 4, y: yScale(60) - 4,
+    'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  adLbl.textContent = state.adShift !== 0 ? 'AD₁' : 'AD';
+  plotGroup.appendChild(adLbl);
+
+  // Equilibrium
+  const eq = findEquilibrium();
+  if (eq) {
+    // Drop lines
+    const vDrop = svgEl('line', {
+      x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    });
+    const hDrop = svgEl('line', {
+      x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    });
+    plotGroup.appendChild(vDrop);
+    plotGroup.appendChild(hDrop);
+    // Dot
+    const dot = svgEl('circle', {
+      cx: xScale(eq.Y), cy: yScale(eq.PL), r: 6,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    });
+    plotGroup.appendChild(dot);
+    // Labels on axes
+    const yLbl = svgEl('text', {
+      x: xScale(eq.Y), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    yLbl.textContent = `Y = ${eq.Y.toFixed(0)}`;
+    plotGroup.appendChild(yLbl);
+    const plLbl = svgEl('text', {
+      x: xScale(0) - 8, y: yScale(eq.PL) + 3, 'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    plLbl.textContent = `PL = ${eq.PL.toFixed(0)}`;
+    plotGroup.appendChild(plLbl);
+  }
+
+  updateRightPanel(eq);
+  updateSlider();
+}
+
+function updateSlider() {
+  const adVal = document.getElementById('ad-val');
+  if (state.adShift === 0) adVal.textContent = 'Baseline';
+  else if (state.adShift > 0) adVal.textContent = `AD shifted right by ${state.adShift}`;
+  else adVal.textContent = `AD shifted left by ${Math.abs(state.adShift)}`;
+}
+
+function updateRightPanel(eq) {
+  const pill = document.getElementById('school-pill');
+  const narr = document.getElementById('narration-text');
+  if (state.school === 'keynes') {
+    pill.className = 'school-pill keynes';
+    pill.textContent = 'Pure Keynesian view';
+    narr.innerHTML = `The Keynesian AS curve is flat up to Yf = ${Yf} and then vertical. Below Yf, AD shifts produce changes in output with no inflation (the flat portion). At Yf, any further AD increase produces pure inflation.`;
+  } else if (state.school === 'mixed') {
+    pill.className = 'school-pill mixed';
+    pill.textContent = 'Intermediate view';
+    narr.innerHTML = `The AS curve has three ranges: a flat Keynesian range (below ~${Math.round(Yf*0.6)}), an intermediate upward-sloping range, and a vertical classical range at Yf. Most economists use some variant of this, accepting that both Keynesian and classical insights apply depending on how close to capacity the economy is.`;
+  } else {
+    pill.className = 'school-pill neo';
+    pill.textContent = 'Pure neoclassical view';
+    narr.innerHTML = `The neoclassical / long-run AS is vertical at Yf. Output is determined entirely by real factors — labour, capital, technology — not by AD. Any rightward AD shift just raises the price level without changing Y. This view dominates the long run in most modern macro.`;
+  }
+
+  if (!eq) {
+    document.getElementById('y-val').textContent = '—';
+    document.getElementById('pl-val').textContent = '—';
+    document.getElementById('gap-val').textContent = '—';
+    return;
+  }
+  document.getElementById('y-val').textContent = eq.Y.toFixed(0);
+  document.getElementById('pl-val').textContent = eq.PL.toFixed(0);
+  // Output gap
+  const gap = eq.Y - Yf;
+  const gapEl = document.getElementById('gap-val');
+  if (Math.abs(gap) < 1) gapEl.textContent = 'at Yf (no gap)';
+  else if (gap < 0) gapEl.textContent = `${gap.toFixed(0)} (recessionary)`;
+  else gapEl.textContent = `+${gap.toFixed(0)} (inflationary)`;
+
+  // Deltas vs baseline
+  const baseEq = baselineEq();
+  if (baseEq && state.adShift !== 0) {
+    const dY = eq.Y - baseEq.Y;
+    const dPL = eq.PL - baseEq.PL;
+    const setDelta = (id, v) => {
+      const el = document.getElementById(id);
+      if (Math.abs(v) < 0.1) { el.textContent = ''; el.className = 'delta'; return; }
+      const sign = v >= 0 ? '+' : '−';
+      el.textContent = sign + Math.abs(v).toFixed(0);
+      el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+    };
+    setDelta('y-delta', dY);
+    setDelta('pl-delta', dPL);
+  } else {
+    document.getElementById('y-delta').textContent = '';
+    document.getElementById('pl-delta').textContent = '';
+  }
+}
+
+/* UI */
+document.querySelectorAll('[data-school]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.school = btn.dataset.school;
+    document.querySelectorAll('[data-school]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('ad-slider').addEventListener('input', ev => {
+  state.adShift = Number(ev.target.value);
+  renderAll();
+});
+document.querySelectorAll('[data-show-ranges]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.showRanges = btn.dataset.showRanges === 'on';
+    document.querySelectorAll('[data-show-ranges]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>
