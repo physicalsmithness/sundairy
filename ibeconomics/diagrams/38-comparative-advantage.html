@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comparative advantage · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .panel-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.6rem 0.3rem;
+    }
+    .panel-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+    .panel-title.albania { color: #b05a1f; }
+    .panel-title.brazil  { color: #2d6b90; }
+
+    .ppc-albania { stroke: #b05a1f; stroke-width: 2.5; fill: none; }
+    .ppc-brazil  { stroke: #2d6b90; stroke-width: 2.5; fill: none; }
+    .trade-line  { stroke: #5d3a99; stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
+    .trade-arrow { stroke: var(--ink); stroke-width: 1.8; marker-end: url(#arrow-head); }
+
+    .dot-prod { fill: #fff; stroke-width: 2.5; }
+    .dot-cons { fill: #fff; stroke-width: 2; }
+
+    .totals-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .country-box {
+      padding: 0.5rem 0.7rem;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+    }
+    .country-box.albania { background: rgba(176, 90, 31, 0.08); border-left: 3px solid #b05a1f; }
+    .country-box.brazil  { background: rgba(45, 107, 144, 0.08); border-left: 3px solid #2d6b90; }
+    .country-box h4 { margin: 0 0 0.3rem; font-size: 12.5px; font-weight: 600; }
+    .country-box h4.albania { color: #b05a1f; }
+    .country-box h4.brazil  { color: #2d6b90; }
+    .country-box .stats { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; font-size: 11.5px; }
+    .country-box .stats .lbl { color: var(--ink-soft); }
+    .country-box .stats .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+
+    .oc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      margin-bottom: 0.6rem;
+    }
+    .oc-cell {
+      padding: 0.4rem 0.6rem;
+      background: var(--paper-deep);
+      border-radius: 4px;
+    }
+    .oc-cell .label { color: var(--ink-soft); font-size: 10.5px; margin-bottom: 0.15rem; }
+    .oc-cell .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+    .ca-flag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-weight: 600;
+      margin-left: 0.3rem;
+    }
+    .ca-flag.wheat { background: #fde8c6; color: #8a5a00; }
+    .ca-flag.cloth { background: #dff0e3; color: #2d6b46; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">4.1 Comparative advantage · HL Required</span>
+      <h1>Comparative advantage: the case for trade</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="scenario-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-scenario="autarky">Autarky (no trade)</button>
+        <button class="event-chip" data-scenario="specialise">Specialise completely</button>
+        <button class="event-chip" data-scenario="trade">Specialise + trade</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="scenario-narration">
+        Without trade, each country consumes what it produces. They pick some mix on their own PPC. Switch to specialisation to see each country produce what it's relatively best at.
+      </div>
+
+      <div class="panel-wrap">
+        <div class="panel">
+          <div class="panel-title albania">Albania</div>
+          <div id="albania-plot"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title brazil">Brazil</div>
+          <div id="brazil-plot"></div>
+        </div>
+      </div>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Albania's production mix <span class="value" id="a-mix-val">50% wheat</span></label>
+          <input type="range" id="a-mix-slider" min="0" max="100" step="1" value="50" />
+          <span class="small muted">Under autarky, pick where Albania produces on its PPC. 100% wheat means only wheat; 0% means only cloth.</span>
+        </div>
+
+        <div class="control">
+          <label>Brazil's production mix <span class="value" id="b-mix-val">50% wheat</span></label>
+          <input type="range" id="b-mix-slider" min="0" max="100" step="1" value="50" />
+          <span class="small muted">Under autarky, pick where Brazil produces on its PPC.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="oc-grid">
+        <div class="oc-cell">
+          <div class="label">Albania opp. cost of 1 wheat</div>
+          <div class="value">0.5 cloth <span class="ca-flag wheat">CA in wheat</span></div>
+        </div>
+        <div class="oc-cell">
+          <div class="label">Brazil opp. cost of 1 cloth</div>
+          <div class="value">1 wheat <span class="ca-flag cloth">CA in cloth</span></div>
+        </div>
+      </div>
+
+      <div class="totals-wrap">
+        <div class="country-box albania">
+          <h4 class="albania">Albania</h4>
+          <div class="stats">
+            <span class="lbl">Wheat produced</span><span class="val" id="a-w-prod">50</span>
+            <span class="lbl">Cloth produced</span><span class="val" id="a-c-prod">25</span>
+            <span class="lbl">Wheat consumed</span><span class="val" id="a-w-cons">50</span>
+            <span class="lbl">Cloth consumed</span><span class="val" id="a-c-cons">25</span>
+          </div>
+        </div>
+        <div class="country-box brazil">
+          <h4 class="brazil">Brazil</h4>
+          <div class="stats">
+            <span class="lbl">Wheat produced</span><span class="val" id="b-w-prod">30</span>
+            <span class="lbl">Cloth produced</span><span class="val" id="b-c-prod">30</span>
+            <span class="lbl">Wheat consumed</span><span class="val" id="b-w-cons">30</span>
+            <span class="lbl">Cloth consumed</span><span class="val" id="b-c-cons">30</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        With no trade, each country consumes what it produces — somewhere on its own PPC. Pick "Specialise" to send each country to the vertex of the good it has a comparative advantage in. Then "Specialise + trade" lets both countries consume outside their PPCs.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Comparative advantage, not absolute advantage.</strong> Albania can make more wheat than Brazil can (100 vs 60). Albania can also make less cloth than Brazil (50 vs 60). You might think: Albania is better at wheat, Brazil is better at cloth, trade is obvious. But the deep insight from Ricardo (1817) is that trade still benefits both countries even if one has absolute advantage in both — as long as the <em>opportunity costs</em> differ. Each country should specialise where its opp cost is lowest, then trade.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  scenario: 'autarky',
+  aMix: 50,   // 0-100: percent of resources in WHEAT
+  bMix: 50,
+  albaniaPlot: null,
+  brazilPlot: null,
+};
+
+const ALBANIA_MAX_W = 100;  // max wheat if all resources on wheat
+const ALBANIA_MAX_C = 50;
+const BRAZIL_MAX_W  = 60;
+const BRAZIL_MAX_C  = 60;
+const TRADE_RATIO = 1.5;  // cloth costs 1.5 wheat — between the two opp costs
+
+/* Under autarky: each country produces on their PPC based on aMix/bMix. */
+function autarkyProduction(mixPct, maxW, maxC) {
+  const w = (mixPct / 100) * maxW;
+  const c = maxC - (mixPct / 100) * maxC;  // linear PPC
+  return { w, c };
+}
+
+/* Under specialisation: Albania all-wheat, Brazil all-cloth. */
+function specialisedProduction() {
+  return {
+    albania: { w: ALBANIA_MAX_W, c: 0 },
+    brazil:  { w: 0, c: BRAZIL_MAX_C },
+  };
+}
+
+/* Under trade at TRADE_RATIO: each country trades a chunk.
+   Say Albania exports 40 wheat, imports 40/1.5 = 26.7 cloth.
+   So Albania consumes 60 wheat, 26.7 cloth.
+   Brazil consumes 40 wheat, 60 - 26.7 = 33.3 cloth.
+   Both outside their own PPCs. */
+function tradeConsumption() {
+  const wheatExported = 40;
+  const clothImported = wheatExported / TRADE_RATIO;  // 26.67
+  return {
+    albania: { wProd: ALBANIA_MAX_W, cProd: 0,
+               wCons: ALBANIA_MAX_W - wheatExported, cCons: clothImported },
+    brazil:  { wProd: 0, cProd: BRAZIL_MAX_C,
+               wCons: wheatExported, cCons: BRAZIL_MAX_C - clothImported },
+  };
+}
+
+function makePlots() {
+  state.albaniaPlot = createAxes({
+    container: document.getElementById('albania-plot'),
+    width: 380, height: 340,
+    margin: { top: 25, right: 30, bottom: 50, left: 55 },
+    xLabel: 'Wheat',
+    yLabel: 'Cloth',
+    xMax: 120, yMax: 75,
+    nxTicks: 6, nyTicks: 5, tickEvery: 1,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+  state.brazilPlot = createAxes({
+    container: document.getElementById('brazil-plot'),
+    width: 380, height: 340,
+    margin: { top: 25, right: 30, bottom: 50, left: 55 },
+    xLabel: 'Wheat',
+    yLabel: 'Cloth',
+    xMax: 120, yMax: 75,
+    nxTicks: 6, nyTicks: 5, tickEvery: 1,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+
+  // Arrow marker for both plots
+  [state.albaniaPlot, state.brazilPlot].forEach(p => {
+    const defs = svgEl('defs', {});
+    const m = svgEl('marker', {
+      id: 'arrow-head', viewBox: '0 0 10 10', refX: 8, refY: 5,
+      markerWidth: 6, markerHeight: 6, orient: 'auto',
+    });
+    m.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--ink)' }));
+    defs.appendChild(m);
+    p.svg.insertBefore(defs, p.svg.firstChild);
+  });
+}
+
+function renderPanel(plot, country, ppcColor, prod, cons, showTrade) {
+  const { plotGroup, xScale, yScale } = plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const maxW = country === 'albania' ? ALBANIA_MAX_W : BRAZIL_MAX_W;
+  const maxC = country === 'albania' ? ALBANIA_MAX_C : BRAZIL_MAX_C;
+
+  // PPC: straight line from (maxW, 0) to (0, maxC)
+  plotGroup.appendChild(svgEl('path', {
+    class: country === 'albania' ? 'ppc-albania' : 'ppc-brazil',
+    d: `M ${xScale(maxW)} ${yScale(0)} L ${xScale(0)} ${yScale(maxC)}`,
+  }));
+  // PPC label — place near bottom-right of curve to avoid C-point
+  const lblColor = country === 'albania' ? '#b05a1f' : '#2d6b90';
+  const pLbl = svgEl('text', {
+    x: xScale(maxW * 0.75), y: yScale(maxC * 0.25) - 4,
+    'text-anchor': 'middle',
+    style: `font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: ${lblColor};`,
+  });
+  pLbl.textContent = 'PPC';
+  plotGroup.appendChild(pLbl);
+
+  // Production point
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(prod.w), cy: yScale(prod.c), r: 6,
+    class: 'dot-prod', stroke: lblColor,
+  }));
+  const pPLbl = svgEl('text', {
+    x: xScale(prod.w) + 8, y: yScale(prod.c) - 6,
+    'text-anchor': 'start',
+    style: `font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: ${lblColor};`,
+  });
+  pPLbl.textContent = 'P (produce)';
+  plotGroup.appendChild(pPLbl);
+
+  // Consumption point (only if different from production)
+  if (showTrade && cons && (cons.w !== prod.w || cons.c !== prod.c)) {
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(cons.w), cy: yScale(cons.c), r: 6,
+      class: 'dot-cons', stroke: '#5d3a99',
+    }));
+    const cLbl = svgEl('text', {
+      x: xScale(cons.w) + 8, y: yScale(cons.c) + 4,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d3a99;",
+    });
+    cLbl.textContent = 'C (consume)';
+    plotGroup.appendChild(cLbl);
+
+    // Trade line from P to C
+    plotGroup.appendChild(svgEl('path', {
+      class: 'trade-line',
+      d: `M ${xScale(prod.w)} ${yScale(prod.c)} L ${xScale(cons.w)} ${yScale(cons.c)}`,
+    }));
+
+    // Shade "trade gain" region — consumption point should be OUTSIDE PPC
+    // Outside means cons.w/maxW + cons.c/maxC > 1
+    // If so, draw a small star or dot indicating gain
+  }
+}
+
+function renderAll() {
+  let albaniaProd, albaniaCons, brazilProd, brazilCons;
+
+  if (state.scenario === 'autarky') {
+    albaniaProd = autarkyProduction(state.aMix, ALBANIA_MAX_W, ALBANIA_MAX_C);
+    albaniaCons = albaniaProd;
+    brazilProd  = autarkyProduction(state.bMix, BRAZIL_MAX_W, BRAZIL_MAX_C);
+    brazilCons  = brazilProd;
+  } else if (state.scenario === 'specialise') {
+    const sp = specialisedProduction();
+    albaniaProd = sp.albania; albaniaCons = sp.albania;
+    brazilProd = sp.brazil;   brazilCons = sp.brazil;
+  } else {
+    const t = tradeConsumption();
+    albaniaProd = { w: t.albania.wProd, c: t.albania.cProd };
+    albaniaCons = { w: t.albania.wCons, c: t.albania.cCons };
+    brazilProd  = { w: t.brazil.wProd, c: t.brazil.cProd };
+    brazilCons  = { w: t.brazil.wCons, c: t.brazil.cCons };
+  }
+
+  renderPanel(state.albaniaPlot, 'albania', '#b05a1f', albaniaProd, albaniaCons, state.scenario === 'trade');
+  renderPanel(state.brazilPlot,  'brazil',  '#2d6b90', brazilProd,  brazilCons,  state.scenario === 'trade');
+
+  // Update right-panel stats
+  document.getElementById('a-w-prod').textContent = albaniaProd.w.toFixed(0);
+  document.getElementById('a-c-prod').textContent = albaniaProd.c.toFixed(0);
+  document.getElementById('a-w-cons').textContent = albaniaCons.w.toFixed(0);
+  document.getElementById('a-c-cons').textContent = albaniaCons.c.toFixed(0);
+  document.getElementById('b-w-prod').textContent = brazilProd.w.toFixed(0);
+  document.getElementById('b-c-prod').textContent = brazilProd.c.toFixed(0);
+  document.getElementById('b-w-cons').textContent = brazilCons.w.toFixed(0);
+  document.getElementById('b-c-cons').textContent = brazilCons.c.toFixed(0);
+
+  // Slider labels
+  document.getElementById('a-mix-val').textContent = `${state.aMix}% wheat`;
+  document.getElementById('b-mix-val').textContent = `${state.bMix}% wheat`;
+
+  // Narration
+  const narr = document.getElementById('narration-text');
+  if (state.scenario === 'autarky') {
+    const totalW = albaniaProd.w + brazilProd.w;
+    const totalC = albaniaProd.c + brazilProd.c;
+    narr.innerHTML = `Autarky: each country consumes what it produces. Total world output: <strong>${totalW.toFixed(0)} wheat</strong> and <strong>${totalC.toFixed(0)} cloth</strong>. Try specialising to see if world output can go up.`;
+  } else if (state.scenario === 'specialise') {
+    narr.innerHTML = `Each country produces only its comparative-advantage good: Albania makes <strong>${ALBANIA_MAX_W} wheat, 0 cloth</strong>; Brazil makes <strong>0 wheat, ${BRAZIL_MAX_C} cloth</strong>. World total: <strong>${ALBANIA_MAX_W} wheat and ${BRAZIL_MAX_C} cloth</strong>. That's generally <em>more</em> than autarky. But each country now produces zero of one good — they have to trade to consume both.`;
+  } else {
+    const wheatTraded = 40;
+    const clothTraded = wheatTraded / TRADE_RATIO;
+    narr.innerHTML = `At a trade ratio of 1 cloth = 1.5 wheat (between the two opp costs), Albania exports ${wheatTraded} wheat for ${clothTraded.toFixed(1)} cloth; Brazil does the opposite. <strong>Albania consumes ${(ALBANIA_MAX_W - wheatTraded).toFixed(0)} wheat + ${clothTraded.toFixed(1)} cloth</strong> — compare to its autarky max of 50 wheat + 25 cloth. Both countries' consumption points sit <em>outside</em> their own PPC. Gains from trade realised.`;
+  }
+}
+
+/* UI */
+document.querySelectorAll('[data-scenario]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.scenario = btn.dataset.scenario;
+    renderAll();
+  });
+});
+document.getElementById('a-mix-slider').addEventListener('input', ev => {
+  state.aMix = Number(ev.target.value);
+  if (state.scenario !== 'autarky') {
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-scenario="autarky"]').classList.add('active');
+    state.scenario = 'autarky';
+  }
+  renderAll();
+});
+document.getElementById('b-mix-slider').addEventListener('input', ev => {
+  state.bMix = Number(ev.target.value);
+  if (state.scenario !== 'autarky') {
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-scenario="autarky"]').classList.add('active');
+    state.scenario = 'autarky';
+  }
+  renderAll();
+});
+
+makePlots();
+renderAll();
+</script>
+
+</body>
+</html>

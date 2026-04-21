@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free trade · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-s { stroke: var(--supply); stroke-width: 2.5; fill: none; }
+    .curve-d { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .pw-line { stroke: #5d3a99; stroke-width: 2; stroke-dasharray: 6 4; }
+    .pw-label { fill: #5d3a99; }
+
+    .area-imports    { fill: #e8ddf6; opacity: 0.6; }
+    .area-exports    { fill: #dff0e3; opacity: 0.6; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .trade-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .trade-pill.importer { background: #e8ddf6; color: #5d3a99; }
+    .trade-pill.exporter { background: #dff0e3; color: #2d6b46; }
+    .trade-pill.autarky { background: var(--paper-deep); color: var(--ink-soft); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">4.1 Free trade · Required</span>
+      <h1>Free trade with imports and exports</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="scenario-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-scenario="autarky">Autarky (no trade)</button>
+        <button class="event-chip" data-scenario="importer">Country imports</button>
+        <button class="event-chip" data-scenario="exporter">Country exports</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="scenario-narration">
+        "Autarky" is the no-trade benchmark: price settles where domestic S = D. This is where the market would sit if the country couldn't trade with anyone. Slide the world price to open up trade.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>World price (Pw) <span class="value" id="pw-val">£50</span></label>
+          <input type="range" id="pw-slider" min="10" max="90" step="1" value="50" />
+          <span class="small muted">Pw below autarky price → country imports. Pw above → country exports. The small-country assumption: the country is a price-taker; its Pw is given by world markets.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="trade-pill autarky" id="status-pill">Autarky (no trade)</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Domestic supply Qs</span>
+          <span class="val" id="qs-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Domestic demand Qd</span>
+          <span class="val" id="qd-val">—</span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl" id="flow-lbl">Quantity traded</span>
+          <span class="val" id="flow-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        At autarky price, domestic S meets domestic D. Both are satisfied within the country with no trade.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Who wins and who loses.</strong> When a country opens up to trade:<br />
+        <strong>If it imports</strong> (Pw &lt; autarky P), consumers win (pay less, get more), domestic producers lose (sell less at lower price), but consumer gain &gt; producer loss — net welfare rises.<br />
+        <strong>If it exports</strong> (Pw &gt; autarky P), producers win (sell more at higher price), domestic consumers lose (buy less at higher price), but producer gain &gt; consumer loss — net welfare rises.<br />
+        Trade always raises total welfare in this model, but it redistributes.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  pw: 50,            // world price
+  plot: null,
+};
+
+/* Curves: linear for simplicity
+   D: P = 100 - Q   →  Q = 100 - P, so Qd at P=50 is 50
+   S: P = Q          →  Q = P, so Qs at P=50 is 50
+   Autarky equilibrium: Q=50, P=50  */
+const P_MAX = 100;
+const Q_MAX = 100;
+const P_AUTARKY = 50;
+
+function qd(P) { return Math.max(0, 100 - P); }
+function qs(P) { return Math.max(0, P); }
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Quantity',
+    yLabel: 'Price (£)',
+    xMax: Q_MAX, yMax: P_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => `£${Math.round(v)}`,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const Pw = state.pw;
+  const Qd_at_pw = qd(Pw);
+  const Qs_at_pw = qs(Pw);
+  const importing = Pw < P_AUTARKY - 0.5;
+  const exporting = Pw > P_AUTARKY + 0.5;
+  const autarkic  = !importing && !exporting;
+
+  // Import or export band (shaded area between Qd and Qs at Pw)
+  if (importing) {
+    // Imports: from Qs (smaller) to Qd (larger) at Pw
+    // Draw a rectangle from (Qs, Pw) horizontally to (Qd, Pw) — but we want a bar not a rect
+    // Actually, draw the "quantity gap" band at Pw: a thin horizontal strip
+    const rect = svgEl('rect', {
+      x: xScale(Qs_at_pw), y: yScale(Pw) - 12,
+      width: xScale(Qd_at_pw) - xScale(Qs_at_pw), height: 24,
+      class: 'area-imports',
+    });
+    plotGroup.appendChild(rect);
+    const lbl = svgEl('text', {
+      x: xScale((Qs_at_pw + Qd_at_pw) / 2), y: yScale(Pw) + 4,
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d3a99; paint-order: stroke; stroke: #fff; stroke-width: 3;",
+    });
+    lbl.textContent = `Imports: ${(Qd_at_pw - Qs_at_pw).toFixed(0)}`;
+    plotGroup.appendChild(lbl);
+  } else if (exporting) {
+    const rect = svgEl('rect', {
+      x: xScale(Qd_at_pw), y: yScale(Pw) - 12,
+      width: xScale(Qs_at_pw) - xScale(Qd_at_pw), height: 24,
+      class: 'area-exports',
+    });
+    plotGroup.appendChild(rect);
+    const lbl = svgEl('text', {
+      x: xScale((Qd_at_pw + Qs_at_pw) / 2), y: yScale(Pw) + 4,
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #2d6b46; paint-order: stroke; stroke: #fff; stroke-width: 3;",
+    });
+    lbl.textContent = `Exports: ${(Qs_at_pw - Qd_at_pw).toFixed(0)}`;
+    plotGroup.appendChild(lbl);
+  }
+
+  // D curve: from (0, 100) to (100, 0)
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-d',
+    d: `M ${xScale(0)} ${yScale(100)} L ${xScale(100)} ${yScale(0)}`,
+  }));
+  const dLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(0) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D';
+  plotGroup.appendChild(dLbl);
+
+  // S curve: from (0, 0) to (100, 100)
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-s',
+    d: `M ${xScale(0)} ${yScale(0)} L ${xScale(100)} ${yScale(100)}`,
+  }));
+  const sLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(100) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  sLbl.textContent = 'S';
+  plotGroup.appendChild(sLbl);
+
+  // Autarky equilibrium point (reference)
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(P_AUTARKY), cy: yScale(P_AUTARKY), r: 4,
+    fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5,
+    'stroke-dasharray': '2 2', opacity: autarkic ? 1 : 0.4,
+  }));
+  if (autarkic) {
+    const pautLbl = svgEl('text', {
+      x: xScale(P_AUTARKY) + 8, y: yScale(P_AUTARKY) - 6,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--ink);",
+    });
+    pautLbl.textContent = 'Autarky eq';
+    plotGroup.appendChild(pautLbl);
+  }
+
+  // World price horizontal line
+  plotGroup.appendChild(svgEl('line', {
+    class: 'pw-line',
+    x1: xScale(0), y1: yScale(Pw),
+    x2: xScale(Q_MAX), y2: yScale(Pw),
+  }));
+  const pwLbl = svgEl('text', {
+    x: xScale(Q_MAX) + 6, y: yScale(Pw) + 4, 'text-anchor': 'start',
+    class: 'pw-label',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d3a99;",
+  });
+  pwLbl.textContent = `Pw = £${Pw}`;
+  plotGroup.appendChild(pwLbl);
+
+  // Dots at Qs and Qd under trade
+  if (!autarkic) {
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qs_at_pw), cy: yScale(Pw), r: 5,
+      fill: '#fff', stroke: 'var(--supply)', 'stroke-width': 2,
+    }));
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qd_at_pw), cy: yScale(Pw), r: 5,
+      fill: '#fff', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+    }));
+    // Qs, Qd labels below x-axis
+    plotGroup.appendChild(svgEl('text', {
+      x: xScale(Qs_at_pw), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--supply);",
+    })).textContent = `Qs = ${Qs_at_pw.toFixed(0)}`;
+    plotGroup.appendChild(svgEl('text', {
+      x: xScale(Qd_at_pw), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--demand-shift);",
+    })).textContent = `Qd = ${Qd_at_pw.toFixed(0)}`;
+    // Drop lines
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(Qs_at_pw), y1: yScale(0), x2: xScale(Qs_at_pw), y2: yScale(Pw),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+    }));
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(Qd_at_pw), y1: yScale(0), x2: xScale(Qd_at_pw), y2: yScale(Pw),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+    }));
+  }
+
+  updateRightPanel({ Pw, Qd_at_pw, Qs_at_pw, importing, exporting, autarkic });
+  updatePwLabel();
+}
+
+function updatePwLabel() {
+  document.getElementById('pw-val').textContent = `£${state.pw}`;
+}
+
+function updateRightPanel(s) {
+  document.getElementById('qs-val').textContent = s.Qs_at_pw.toFixed(0);
+  document.getElementById('qd-val').textContent = s.Qd_at_pw.toFixed(0);
+  const flowLbl = document.getElementById('flow-lbl');
+  const flowVal = document.getElementById('flow-val');
+  const pill = document.getElementById('status-pill');
+  const narr = document.getElementById('narration-text');
+
+  if (s.autarkic) {
+    flowLbl.textContent = 'Quantity traded';
+    flowVal.textContent = `${s.Qs_at_pw.toFixed(0)} (domestic only)`;
+    pill.className = 'trade-pill autarky';
+    pill.textContent = 'Autarky (no trade)';
+    narr.innerHTML = `At Pw = £${state.pw}, which equals the autarky price, there's no incentive to trade. The country produces and consumes ${s.Qs_at_pw.toFixed(0)} units domestically.`;
+  } else if (s.importing) {
+    const imports = s.Qd_at_pw - s.Qs_at_pw;
+    flowLbl.textContent = 'Imports';
+    flowVal.textContent = imports.toFixed(0);
+    pill.className = 'trade-pill importer';
+    pill.textContent = 'Net importer';
+    narr.innerHTML = `World price of £${state.pw} is below autarky price of £${P_AUTARKY}. Domestic producers only supply ${s.Qs_at_pw.toFixed(0)} at this price, but consumers want ${s.Qd_at_pw.toFixed(0)}. The shortfall of <strong>${imports.toFixed(0)} units</strong> is imported from abroad. Consumers gain (more goods, lower price); domestic producers lose (smaller market share). Net welfare rises.`;
+  } else {
+    const exports = s.Qs_at_pw - s.Qd_at_pw;
+    flowLbl.textContent = 'Exports';
+    flowVal.textContent = exports.toFixed(0);
+    pill.className = 'trade-pill exporter';
+    pill.textContent = 'Net exporter';
+    narr.innerHTML = `World price of £${state.pw} is above autarky price of £${P_AUTARKY}. Domestic producers supply ${s.Qs_at_pw.toFixed(0)}, but local consumers only buy ${s.Qd_at_pw.toFixed(0)} at this higher price. The surplus of <strong>${exports.toFixed(0)} units</strong> is exported. Producers gain (bigger market, higher price); domestic consumers lose (less to buy, higher price). Net welfare rises.`;
+  }
+}
+
+/* Scenario presets */
+const scenarios = {
+  autarky:  { pw: 50 },
+  importer: { pw: 30 },
+  exporter: { pw: 70 },
+};
+
+document.querySelectorAll('[data-scenario]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const sc = scenarios[btn.dataset.scenario];
+    if (!sc) return;
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.pw = sc.pw;
+    document.getElementById('pw-slider').value = sc.pw;
+    renderAll();
+  });
+});
+document.getElementById('pw-slider').addEventListener('input', ev => {
+  state.pw = Number(ev.target.value);
+  document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

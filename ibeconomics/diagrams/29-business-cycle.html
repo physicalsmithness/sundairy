@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business cycle · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .trend-line {
+      stroke: #5d7a68;
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+    }
+    .actual-line {
+      stroke: var(--demand-shift);
+      stroke-width: 2.2;
+      fill: none;
+    }
+    .phase-band-expansion { fill: #dff0e3; opacity: 0.25; }
+    .phase-band-contraction { fill: #f6d9d4; opacity: 0.25; }
+    .peak-dot { fill: #8a5a00; stroke: #fff; stroke-width: 1.5; }
+    .trough-dot { fill: var(--welfare-loss); stroke: #fff; stroke-width: 1.5; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+
+    .phase-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .phase-pill.expansion { background: #dff0e3; color: #2d6b46; }
+    .phase-pill.peak { background: #fde8c6; color: #8a5a00; }
+    .phase-pill.contraction { background: #f6d9d4; color: var(--welfare-loss); }
+    .phase-pill.trough { background: var(--paper-deep); color: var(--ink); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.1 Business cycle · Required</span>
+      <h1>The business cycle with trend</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-case="typical">Typical cycle</button>
+        <button class="event-chip" data-case="volatile">Volatile (e.g. emerging market)</button>
+        <button class="event-chip" data-case="smooth">Smooth (e.g. modern advanced economy)</button>
+        <button class="event-chip" data-case="recession-deep">Deep recession (2008-style)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        Real GDP rises over time (trend growth) but not smoothly — it oscillates around the trend in cycles of expansion and contraction. The business cycle is this oscillation; the trend is the underlying long-run growth.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Position on cycle <span class="value" id="t-val">Year 5</span></label>
+          <input type="range" id="t-slider" min="0" max="20" step="0.1" value="5" />
+          <span class="small muted">Slide along the timeline. The right panel tells you which phase of the cycle you're in and how GDP compares to trend.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="phase-pill expansion" id="phase-pill">Expansion</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Year</span>
+          <span class="val" id="year-val">5.0</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Actual GDP</span>
+          <span class="val" id="actual-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Trend GDP</span>
+          <span class="val" id="trend-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Output gap</span>
+          <span class="val" id="gap-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Expansion phase: actual GDP is growing and is above (or approaching) the trend. Unemployment falling, inflation pressure building.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Four phases.</strong> <em>Expansion</em>: GDP rising, unemployment falling, inflation pressure building. <em>Peak</em>: growth slows as capacity constraints bite. <em>Contraction</em> (recession if it lasts two quarters): GDP falling, unemployment rising. <em>Trough</em>: bottom of the cycle. Then another expansion begins. The <em>trend</em> reflects long-run productivity and capacity growth — what LRAS shifts would produce over time.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  caseKey: 'typical',
+  t: 5,
+  plot: null,
+};
+
+const cases = {
+  typical:        { amp: 8,  growth: 2.5, period: 7, narration: 'A typical business cycle in a developed economy: cycles of roughly 7 years, amplitude around 8% of GDP, trend growth of 2.5%/year.' },
+  volatile:       { amp: 18, growth: 5,   period: 5, narration: 'Emerging-market cycles tend to be shorter and more volatile — bigger booms followed by sharper busts. Commodity price swings and capital-flow reversals amplify the cycle.' },
+  smooth:         { amp: 4,  growth: 2,   period: 8, narration: 'Modern advanced economies (US, UK, EU, Japan) have seen smaller cycles since the 1980s — the "Great Moderation". Better monetary policy, bigger service sectors, and global supply chains all contributed, though 2008 reminded us that big crashes still happen.' },
+  'recession-deep': { amp: 15, growth: 1.5, period: 9, narration: 'The 2008 financial crisis produced a "V"-then-"L"-shaped cycle: sharp contraction, then a slow and weak recovery. The trough was deep and long. Output didn\'t return to trend for nearly a decade.' },
+};
+
+const T_MAX = 20;
+const GDP_MAX = 180;
+const GDP_START = 100;   // year 0 GDP index = 100
+
+function trend(t) {
+  const c = cases[state.caseKey];
+  return GDP_START * Math.pow(1 + c.growth / 100, t);
+}
+
+function actual(t) {
+  const c = cases[state.caseKey];
+  // Trend × cosine oscillation
+  const osc = c.amp * Math.sin(2 * Math.PI * t / c.period) / 100;
+  return trend(t) * (1 + osc);
+}
+
+function phaseAt(t) {
+  // Phase based on slope of oscillation:
+  // sin'(2π t / P) = cos(2π t / P)
+  // positive slope: expansion (actual rising relative to trend → but we want
+  //                 raw slope of actual)
+  // Simpler: use the sign and extremum of sin(2π t / P).
+  const c = cases[state.caseKey];
+  const phase = (t / c.period) % 1;  // 0..1 within one cycle
+  // In sin(2πx): 0..0.25 rising (expansion), 0.25 peak, 0.25..0.75 falling (contraction then), 0.75 trough, 0.75..1 rising
+  if (phase < 0.2)  return { key: 'expansion',   label: 'Expansion' };
+  if (phase < 0.3)  return { key: 'peak',        label: 'Peak' };
+  if (phase < 0.7)  return { key: 'contraction', label: 'Contraction' };
+  if (phase < 0.8)  return { key: 'trough',      label: 'Trough' };
+  return { key: 'expansion', label: 'Expansion' };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Time (years)',
+    yLabel: 'Real GDP (index, 100 = year 0)',
+    xMax: T_MAX, yMax: GDP_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  // Sample the trend and actual
+  const steps = 200;
+  const trendPts = [];
+  const actualPts = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * T_MAX;
+    trendPts.push([t, trend(t)]);
+    actualPts.push([t, actual(t)]);
+  }
+
+  // Draw expansion/contraction bands as backgrounds
+  const c = cases[state.caseKey];
+  for (let cyc = 0; cyc * c.period < T_MAX + 2; cyc++) {
+    const startExp = cyc * c.period + 0.75 * c.period;
+    const endExp = (cyc + 1) * c.period + 0.25 * c.period;
+    const startCon = (cyc + 1) * c.period + 0.25 * c.period;
+    const endCon = (cyc + 1) * c.period + 0.75 * c.period;
+    // Expansion band
+    if (endExp <= T_MAX) {
+      const x1 = xScale(Math.max(0, startExp));
+      const x2 = xScale(Math.min(T_MAX, endExp));
+      const y0 = yScale(GDP_MAX);
+      const y1 = yScale(0);
+      plotGroup.appendChild(svgEl('rect', {
+        class: 'phase-band-expansion',
+        x: x1, y: y0, width: x2 - x1, height: y1 - y0,
+      }));
+    }
+    // Contraction band
+    if (endCon <= T_MAX) {
+      const x1 = xScale(Math.max(0, startCon));
+      const x2 = xScale(Math.min(T_MAX, endCon));
+      const y0 = yScale(GDP_MAX);
+      const y1 = yScale(0);
+      plotGroup.appendChild(svgEl('rect', {
+        class: 'phase-band-contraction',
+        x: x1, y: y0, width: x2 - x1, height: y1 - y0,
+      }));
+    }
+  }
+
+  // Trend line
+  plotGroup.appendChild(svgEl('path', {
+    class: 'trend-line',
+    d: trendPts.map(([t, v], i) => `${i === 0 ? 'M' : 'L'} ${xScale(t)} ${yScale(v)}`).join(' '),
+    fill: 'none',
+  }));
+  // Trend label
+  const lastTrend = trendPts[trendPts.length - 1];
+  const trendLbl = svgEl('text', {
+    x: xScale(lastTrend[0]) + 6, y: yScale(lastTrend[1]) + 4,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d7a68;",
+  });
+  trendLbl.textContent = 'Trend';
+  plotGroup.appendChild(trendLbl);
+
+  // Actual line (filter to in-range)
+  const pathData = actualPts
+    .filter(([t, v]) => v <= GDP_MAX)
+    .map(([t, v], i) => `${i === 0 ? 'M' : 'L'} ${xScale(t)} ${yScale(v)}`)
+    .join(' ');
+  plotGroup.appendChild(svgEl('path', {
+    class: 'actual-line',
+    d: pathData, fill: 'none',
+  }));
+  // Actual label
+  const lastActual = actualPts[actualPts.length - 1];
+  if (lastActual[1] <= GDP_MAX) {
+    const actualLbl = svgEl('text', {
+      x: xScale(lastActual[0]) + 6, y: yScale(lastActual[1]) - 4,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+    });
+    actualLbl.textContent = 'Actual';
+    plotGroup.appendChild(actualLbl);
+  }
+
+  // Peaks and troughs as dots
+  for (let cyc = 0; cyc * c.period < T_MAX; cyc++) {
+    const peakT = cyc * c.period + c.period * 0.25;
+    const troughT = cyc * c.period + c.period * 0.75;
+    if (peakT <= T_MAX) {
+      const v = actual(peakT);
+      if (v <= GDP_MAX) {
+        plotGroup.appendChild(svgEl('circle', {
+          class: 'peak-dot',
+          cx: xScale(peakT), cy: yScale(v), r: 4,
+        }));
+      }
+    }
+    if (troughT <= T_MAX) {
+      const v = actual(troughT);
+      if (v <= GDP_MAX) {
+        plotGroup.appendChild(svgEl('circle', {
+          class: 'trough-dot',
+          cx: xScale(troughT), cy: yScale(v), r: 4,
+        }));
+      }
+    }
+  }
+
+  // Current-position marker
+  const curActual = actual(state.t);
+  const curTrend = trend(state.t);
+  if (curActual <= GDP_MAX) {
+    // Vertical line at current t
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(state.t), y1: yScale(0), x2: xScale(state.t), y2: yScale(Math.max(curActual, curTrend)),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    }));
+    // Dot on actual
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(state.t), cy: yScale(curActual), r: 6,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    }));
+  }
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const t = state.t;
+  const a = actual(t);
+  const tr = trend(t);
+  const gap = a - tr;
+  const phase = phaseAt(t);
+
+  document.getElementById('year-val').textContent = t.toFixed(1);
+  document.getElementById('actual-val').textContent = a.toFixed(1);
+  document.getElementById('trend-val').textContent = tr.toFixed(1);
+  const gapEl = document.getElementById('gap-val');
+  if (Math.abs(gap) < 0.3) gapEl.textContent = '0 (at trend)';
+  else gapEl.textContent = (gap > 0 ? '+' : '') + gap.toFixed(1) + (gap > 0 ? ' (above trend)' : ' (below trend)');
+
+  const pill = document.getElementById('phase-pill');
+  pill.className = `phase-pill ${phase.key}`;
+  pill.textContent = phase.label;
+
+  document.getElementById('t-val').textContent = `Year ${t.toFixed(1)}`;
+
+  const phaseNarr = {
+    expansion:   `Expansion phase at year ${t.toFixed(1)}. GDP is growing; firms are hiring; tax receipts rising; confidence building. This is the "feel-good" part of the cycle.`,
+    peak:        `Peak at year ${t.toFixed(1)}. Growth is slowing as the economy hits capacity constraints. Unemployment is near its low; inflation is at its high. Next phase will be contraction.`,
+    contraction: `Contraction at year ${t.toFixed(1)}. GDP is falling. If this lasts two quarters, it's a <strong>recession</strong>. Unemployment rising; firms cutting investment; central bank often cutting rates.`,
+    trough:      `Trough at year ${t.toFixed(1)}. Bottom of the cycle. Unemployment peaks, confidence is at its low. The economy is about to start expanding again.`,
+  };
+  document.getElementById('narration-text').innerHTML = phaseNarr[phase.key];
+}
+
+/* UI */
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.caseKey = btn.dataset.case;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('case-narration').textContent = cases[state.caseKey].narration;
+    renderAll();
+  });
+});
+document.getElementById('t-slider').addEventListener('input', ev => {
+  state.t = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

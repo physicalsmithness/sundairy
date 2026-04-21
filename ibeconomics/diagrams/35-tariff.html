@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tariff · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-s { stroke: var(--supply); stroke-width: 2.5; fill: none; }
+    .curve-d { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .pw-line { stroke: #5d3a99; stroke-width: 1.8; stroke-dasharray: 4 3; opacity: 0.7; }
+    .pwt-line { stroke: #5d3a99; stroke-width: 2; stroke-dasharray: 6 4; }
+
+    .area-imports-pre { fill: #e8ddf6; opacity: 0.35; }
+    .area-tariff-rev { fill: rgba(138, 111, 184, 0.55); }
+    .area-dwl { fill: var(--welfare-loss); opacity: 0.35; }
+    .area-transferred { fill: rgba(60, 160, 100, 0.3); }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+    .totals-grid .bad .val { color: var(--welfare-loss); }
+    .totals-grid .good .val { color: #2d7a50; }
+
+    .legend-area {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.25rem 0.5rem;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      margin: 0.4rem 0 0.8rem;
+    }
+    .legend-swatch { width: 16px; height: 12px; border-radius: 2px; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">4.2 Tariff · Required</span>
+      <h1>Tariff</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="scenario-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-scenario="baseline">Free trade (Pw = £30)</button>
+        <button class="event-chip" data-scenario="small">Small tariff (£10)</button>
+        <button class="event-chip" data-scenario="large">Large tariff (£15)</button>
+        <button class="event-chip" data-scenario="prohibitive">Prohibitive tariff (£25)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="scenario-narration">
+        Starting from free-trade imports at Pw = £30, domestic producers supply 30 and consumers buy 70 (40 imported). A tariff shifts the effective domestic price up.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Tariff <span class="value" id="tariff-val">£0</span></label>
+          <input type="range" id="tariff-slider" min="0" max="25" step="1" value="0" />
+          <span class="small muted">Per-unit tariff on imports. Raises domestic price from Pw to Pw + tariff. £25 matches autarky so all trade ends.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Domestic price</span>
+          <span class="val" id="p-val">£30</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Qs (domestic supply)</span>
+          <span class="val" id="qs-val">30</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Qd (domestic demand)</span>
+          <span class="val" id="qd-val">70</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Imports</span>
+          <span class="val" id="imp-val">40</span>
+        </div>
+        <hr />
+        <div class="row good">
+          <span class="lbl">Producer gain</span>
+          <span class="val" id="pg-val">£0</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Tariff revenue (to govt)</span>
+          <span class="val" id="tr-val">£0</span>
+        </div>
+        <div class="row bad">
+          <span class="lbl">Consumer loss</span>
+          <span class="val" id="cl-val">£0</span>
+        </div>
+        <div class="row bad">
+          <span class="lbl"><strong>Deadweight loss</strong></span>
+          <span class="val" id="dwl-val">£0</span>
+        </div>
+      </div>
+
+      <div class="legend-area">
+        <div class="legend-swatch" style="background: rgba(60,160,100,0.3);"></div>
+        <span>Transferred from consumers to producers</span>
+        <div class="legend-swatch" style="background: rgba(138,111,184,0.55);"></div>
+        <span>Tariff revenue (to government)</span>
+        <div class="legend-swatch" style="background: var(--welfare-loss); opacity: 0.4;"></div>
+        <span>Deadweight loss (burned)</span>
+      </div>
+
+      <p class="prose" id="narration-text">
+        A tariff protects domestic producers by raising the effective price of imports. Consumers pay more, consume less; producers sell more at a higher price; government collects tariff revenue. But two triangles of welfare are lost completely.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Who wins and who loses from a tariff.</strong> Producers <em>win</em> (higher price, more market share). Government <em>wins</em> (tariff revenue). Consumers <em>lose</em> (higher price, less to consume). And there are two DWL triangles — welfare that simply vanishes: the <em>production DWL</em> (domestic producers making what foreigners could make cheaper) and the <em>consumption DWL</em> (consumers who valued the good between the two prices and now can't afford it).</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  tariff: 0,
+  plot: null,
+};
+
+const Pw = 30;
+const P_AUTARKY = 50;
+const P_MAX = 100;
+const Q_MAX = 100;
+
+function qd(P) { return Math.max(0, 100 - P); }
+function qs(P) { return Math.max(0, P); }
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Quantity',
+    yLabel: 'Price (£)',
+    xMax: Q_MAX, yMax: P_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => `£${Math.round(v)}`,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const t = state.tariff;
+  const Pt = Math.min(Pw + t, P_AUTARKY);
+  const actualTariff = Pt - Pw;
+
+  const Qs0 = qs(Pw), Qd0 = qd(Pw);
+  const Qs1 = qs(Pt), Qd1 = qd(Pt);
+  const prohibitive = Qs1 >= Qd1 - 0.5;
+  const imports_post = Math.max(0, Qd1 - Qs1);
+
+  const producerGain = (Qs0 + Qs1) / 2 * actualTariff;
+  const tariffRevenue = imports_post * actualTariff;
+  const dwlProduction = (Qs1 - Qs0) * actualTariff / 2;
+  const dwlConsumption = (Qd0 - Qd1) * actualTariff / 2;
+  const dwl = dwlProduction + dwlConsumption;
+  const consumerLoss = producerGain + tariffRevenue + dwl;
+
+  // Pre-tariff imports band (thin)
+  if (!prohibitive && actualTariff > 0) {
+    plotGroup.appendChild(svgEl('rect', {
+      x: xScale(Qs0), y: yScale(Pw) - 3,
+      width: xScale(Qd0) - xScale(Qs0), height: 6,
+      class: 'area-imports-pre',
+    }));
+  }
+
+  // Producer gain trapezoid
+  if (actualTariff > 0) {
+    const gainPath = `M ${xScale(0)} ${yScale(Pw)} ` +
+                     `L ${xScale(0)} ${yScale(Pt)} ` +
+                     `L ${xScale(Qs1)} ${yScale(Pt)} ` +
+                     `L ${xScale(Qs0)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-transferred', d: gainPath }));
+  }
+
+  // Tariff revenue rectangle
+  if (actualTariff > 0 && imports_post > 0.5) {
+    plotGroup.appendChild(svgEl('rect', {
+      x: xScale(Qs1), y: yScale(Pt),
+      width: xScale(Qd1) - xScale(Qs1), height: yScale(Pw) - yScale(Pt),
+      class: 'area-tariff-rev',
+    }));
+    const tLbl = svgEl('text', {
+      x: xScale((Qs1 + Qd1) / 2), y: yScale((Pw + Pt) / 2) + 4,
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #fff;",
+    });
+    tLbl.textContent = `£${tariffRevenue.toFixed(0)}`;
+    plotGroup.appendChild(tLbl);
+  }
+
+  // DWL production triangle
+  if (actualTariff > 0 && Qs1 > Qs0 + 0.5) {
+    const dwlProdPath = `M ${xScale(Qs0)} ${yScale(Pw)} ` +
+                        `L ${xScale(Qs1)} ${yScale(Pt)} ` +
+                        `L ${xScale(Qs1)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-dwl', d: dwlProdPath }));
+  }
+  // DWL consumption triangle
+  if (actualTariff > 0 && Qd0 > Qd1 + 0.5) {
+    const dwlConsPath = `M ${xScale(Qd1)} ${yScale(Pt)} ` +
+                        `L ${xScale(Qd0)} ${yScale(Pw)} ` +
+                        `L ${xScale(Qd1)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-dwl', d: dwlConsPath }));
+  }
+
+  // D, S
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-d',
+    d: `M ${xScale(0)} ${yScale(100)} L ${xScale(100)} ${yScale(0)}`,
+  }));
+  const dLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(0) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D';
+  plotGroup.appendChild(dLbl);
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-s',
+    d: `M ${xScale(0)} ${yScale(0)} L ${xScale(100)} ${yScale(100)}`,
+  }));
+  const sLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(100) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  sLbl.textContent = 'S';
+  plotGroup.appendChild(sLbl);
+
+  // Pw line
+  plotGroup.appendChild(svgEl('line', {
+    class: 'pw-line',
+    x1: xScale(0), y1: yScale(Pw), x2: xScale(Q_MAX), y2: yScale(Pw),
+  }));
+  const pwLbl = svgEl('text', {
+    x: xScale(Q_MAX) + 6, y: yScale(Pw) + 4, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d3a99; opacity: 0.7;",
+  });
+  pwLbl.textContent = `Pw = £${Pw}`;
+  plotGroup.appendChild(pwLbl);
+
+  // Pw+t line
+  if (actualTariff > 0) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'pwt-line',
+      x1: xScale(0), y1: yScale(Pt), x2: xScale(Q_MAX), y2: yScale(Pt),
+    }));
+    const ptLbl = svgEl('text', {
+      x: xScale(Q_MAX) + 6, y: yScale(Pt) + 4, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d3a99;",
+    });
+    ptLbl.textContent = prohibitive ? `Pt = £${Pt} (= autarky)` : `Pw + t = £${Pt}`;
+    plotGroup.appendChild(ptLbl);
+  }
+
+  // Markers
+  if (actualTariff > 0 && !prohibitive) {
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qs1), cy: yScale(Pt), r: 5,
+      fill: '#fff', stroke: 'var(--supply)', 'stroke-width': 2,
+    }));
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qd1), cy: yScale(Pt), r: 5,
+      fill: '#fff', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+    }));
+  }
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(Qs0), cy: yScale(Pw), r: 4,
+    fill: 'none', stroke: 'var(--supply)', 'stroke-width': 1.5, opacity: 0.6,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(Qd0), cy: yScale(Pw), r: 4,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 1.5, opacity: 0.6,
+  }));
+
+  updateRightPanel({ Pt, Qs1, Qd1, imports_post, producerGain, tariffRevenue, dwl, consumerLoss, actualTariff });
+  updateTariffLabel();
+}
+
+function updateTariffLabel() {
+  document.getElementById('tariff-val').textContent = state.tariff === 0 ? 'None' : `£${state.tariff}`;
+}
+
+function updateRightPanel(s) {
+  document.getElementById('p-val').textContent = `£${s.Pt.toFixed(0)}`;
+  document.getElementById('qs-val').textContent = s.Qs1.toFixed(0);
+  document.getElementById('qd-val').textContent = s.Qd1.toFixed(0);
+  document.getElementById('imp-val').textContent = s.imports_post.toFixed(0);
+  document.getElementById('pg-val').textContent = `+£${s.producerGain.toFixed(0)}`;
+  document.getElementById('tr-val').textContent = `+£${s.tariffRevenue.toFixed(0)}`;
+  document.getElementById('cl-val').textContent = `−£${s.consumerLoss.toFixed(0)}`;
+  document.getElementById('dwl-val').textContent = `£${s.dwl.toFixed(0)}`;
+
+  const narr = document.getElementById('narration-text');
+  if (s.actualTariff === 0) {
+    narr.innerHTML = `Free trade baseline. Pw = £${Pw}, imports = ${s.imports_post.toFixed(0)} units. Domestic producers supply ${s.Qs1.toFixed(0)}; consumers buy ${s.Qd1.toFixed(0)}. No DWL, maximum welfare.`;
+  } else if (s.imports_post < 0.5) {
+    narr.innerHTML = `Prohibitive tariff (£${s.actualTariff}) has pushed the price up to autarky (£${P_AUTARKY}). Imports have stopped completely. DWL = £${s.dwl.toFixed(0)}. No tariff revenue — nothing is imported to tax.`;
+  } else {
+    narr.innerHTML = `A £${s.actualTariff} tariff raises the domestic price to £${s.Pt}. Imports shrink from 40 to ${s.imports_post.toFixed(0)}. Producers gain £${s.producerGain.toFixed(0)}; government raises £${s.tariffRevenue.toFixed(0)}. But consumers lose <strong>£${s.consumerLoss.toFixed(0)}</strong> and £${s.dwl.toFixed(0)} of welfare is simply destroyed.`;
+  }
+}
+
+const scenarios = { baseline: 0, small: 10, large: 15, prohibitive: 25 };
+document.querySelectorAll('[data-scenario]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tariff = scenarios[btn.dataset.scenario] || 0;
+    document.getElementById('tariff-slider').value = state.tariff;
+    renderAll();
+  });
+});
+document.getElementById('tariff-slider').addEventListener('input', ev => {
+  state.tariff = Number(ev.target.value);
+  document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

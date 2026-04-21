@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crowding-out effect · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .panel-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.6rem 0.3rem;
+    }
+    .panel-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-soft);
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .curve-md { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .curve-md-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; fill: none; }
+    .curve-ms { stroke: var(--supply); stroke-width: 2.5; }
+
+    .curve-ad { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .curve-ad-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; fill: none; }
+    .curve-ad-gross { stroke: var(--demand-shift); stroke-width: 1.6; stroke-dasharray: 2 3; opacity: 0.65; fill: none; }
+    .curve-sras { stroke: var(--supply); stroke-width: 2.5; fill: none; }
+    .curve-lras { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+
+    .mechanism-chain {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      margin-bottom: 0.7rem;
+      line-height: 1.6;
+    }
+    .mechanism-chain .step { color: var(--ink); }
+    .mechanism-chain .arrow { color: var(--ink-soft); margin: 0 0.3rem; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+    .totals-grid .bad .val { color: var(--welfare-loss); }
+
+    .severity-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .severity-pill.negligible { background: #dff0e3; color: #2d6b46; }
+    .severity-pill.modest     { background: #fde8c6; color: #8a5a00; }
+    .severity-pill.substantial { background: #f6d9d4; color: var(--welfare-loss); }
+    .severity-pill.complete   { background: var(--welfare-loss); color: #fff; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.6 Crowding-out effect · HL Required</span>
+      <h1>Crowding-out effect</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="event-narration baseline visible">
+        The government expands fiscal policy (G↑ or T↓), but it has to borrow to finance this. The borrowing raises interest rates, which reduces private investment. The net effect on AD is smaller than the "intended" increase: this is crowding-out.
+      </div>
+
+      <div class="panel-wrap">
+        <div class="panel">
+          <div class="panel-title">Money market</div>
+          <div id="mm-plot"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">AD-AS (goods market)</div>
+          <div id="adas-plot"></div>
+        </div>
+      </div>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Fiscal-expansion size <span class="value" id="gsize-val">Moderate</span></label>
+          <input type="range" id="gsize-slider" min="0" max="100" step="1" value="60" />
+          <span class="small muted">How big is G↑ / T↓? This is the "intended" AD shift before crowding-out offsets it.</span>
+        </div>
+
+        <div class="control">
+          <label>Investment sensitivity to i <span class="value" id="isens-val">Moderate</span></label>
+          <input type="range" id="isens-slider" min="0" max="100" step="1" value="50" />
+          <span class="small muted">How responsive is investment to interest rates? High sensitivity → strong crowding-out. Low sensitivity → weak crowding-out.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="severity-pill modest" id="severity-pill">Modest crowding-out</span>
+      </div>
+
+      <div class="mechanism-chain" id="mechanism">
+        <strong>Mechanism:</strong><br />
+        <span class="step">Government borrows to finance G↑</span><span class="arrow">→</span>
+        <span class="step">Md shifts right</span><span class="arrow">→</span>
+        <span class="step">i rises</span><span class="arrow">→</span>
+        <span class="step">private investment falls (I↓)</span><span class="arrow">→</span>
+        <span class="step">net AD increase &lt; intended AD increase</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Intended AD shift (G effect)</span>
+          <span class="val" id="gross-ad">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Interest rate rise</span>
+          <span class="val" id="irise">—</span>
+        </div>
+        <div class="row bad">
+          <span class="lbl">Investment fall (crowded out)</span>
+          <span class="val" id="ifall">—</span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl"><strong>Net AD shift</strong></span>
+          <span class="val" id="net-ad">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Crowding-out ratio</span>
+          <span class="val" id="co-ratio">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        With moderate fiscal expansion and moderate investment sensitivity, crowding-out reduces the effective AD shift by around a third. Fiscal policy still works, but less than its face value suggests.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>When crowding-out is weak or strong.</strong> Crowding-out is <em>weak</em> when the economy is in a liquidity trap (interest rates near zero and can't rise much), when investment isn't very interest-sensitive (firms invest based on demand expectations more than rates), or when the economy has lots of slack. It's <em>strong</em> when the economy is near full capacity, interest rates have room to rise, and firms are highly sensitive to borrowing costs. This is why Keynesians and new-classical economists often disagree about the effectiveness of fiscal policy.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  gSize: 60,       // 0-100: size of fiscal expansion (max translates to 50-unit intended AD shift)
+  iSens: 50,       // 0-100: investment sensitivity to interest rate
+  mmPlot: null,
+  adasPlot: null,
+};
+
+/* Money market constants */
+const M_MAX = 200;   // money supply axis max
+const I_MAX = 14;    // interest rate axis max (%)
+const MS_POS = 100;  // fixed money supply
+const i0 = 5;        // baseline interest rate at Ms=100
+const mdSlope = -0.07;  // dMd/di (softly sloping)
+
+/* AD-AS constants (match other macro diagrams for continuity) */
+const Yf = 120;
+const Y_MAX = 240;
+const PL_MAX = 200;
+const adSlope = -50 / 60;
+const srasSlope = 50 / 60;
+
+/* Derived magnitudes ------------------------------------------------- */
+/* Intended AD shift: scales with gSize. Max intended = 50 units. */
+function intendedAdShift() {
+  return (state.gSize / 100) * 50;
+}
+/* Interest-rate rise from fiscal expansion: proportional to gSize.
+   This represents the Md shift from government borrowing. */
+function iRise() {
+  // Shift Md right by (gSize/100)*40 units. New i at new Md ∩ Ms.
+  // Md(i) = baseline + shift - i/abs(mdSlope)
+  // Actually, simpler: shift Md right by mdShift at constant i, so
+  // at Ms=100 the new i satisfies: 100 = md0(i) + mdShift
+  // So new i where md0(i) = 100 - mdShift, i.e. further right on md0 curve.
+  // md0 is linear, so i_new - i0 = -mdShift * mdSlope (since mdSlope is -ve, i rises).
+  const mdShift = (state.gSize / 100) * 40;
+  return -mdShift * mdSlope;  // positive
+}
+/* Investment fall: proportional to iRise and investment sensitivity */
+function iFall() {
+  // Max iFall at gSize=100, iSens=100 should be about 30 units
+  // iFall = iRise * iSensMultiplier * sensParam
+  const sensMult = (state.iSens / 50);  // 0 at iSens=0, 1 at iSens=50, 2 at iSens=100
+  return iRise() * sensMult * 6;
+}
+function netAdShift() {
+  return Math.max(0, intendedAdShift() - iFall());
+}
+function crowdingOutRatio() {
+  const intended = intendedAdShift();
+  if (intended < 0.01) return 0;
+  return iFall() / intended;
+}
+
+/* Md curve (for plotting) */
+function mdCurve(i, shift = 0) {
+  // Md0 passes through (MS_POS=100, i0=5) with slope mdSlope.
+  // i = i0 + mdSlope * (M - 100)  →  M = 100 + (i - i0) / mdSlope
+  return 100 + (i - i0) / mdSlope + shift;
+}
+
+/* AD / SRAS / LRAS same as macro equilibrium */
+function adInverse(PL, dY = 0) {
+  return (PL - 100) / adSlope + Yf + dY;
+}
+function findEq(adShift, srasShift = 0) {
+  const Y = (adSlope * (Yf + adShift) - srasSlope * (Yf + srasShift)) / (adSlope - srasSlope);
+  const PL = 100 + adSlope * (Y - Yf - adShift);
+  return { Y, PL };
+}
+
+function makePlots() {
+  state.mmPlot = createAxes({
+    container: document.getElementById('mm-plot'),
+    width: 360, height: 340,
+    margin: { top: 20, right: 40, bottom: 52, left: 52 },
+    xLabel: 'Quantity of money (M)',
+    yLabel: 'Interest rate i (%)',
+    xMax: M_MAX, yMax: I_MAX,
+    nxTicks: 8, nyTicks: 7, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => v.toFixed(0),
+  });
+  state.adasPlot = createAxes({
+    container: document.getElementById('adas-plot'),
+    width: 360, height: 340,
+    margin: { top: 20, right: 40, bottom: 52, left: 52 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX, yMax: PL_MAX,
+    nxTicks: 6, nyTicks: 6, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function renderAll() {
+  renderMoneyMarket();
+  renderAdAs();
+  updateRightPanel();
+  updateSliders();
+}
+
+function renderMoneyMarket() {
+  const { plotGroup, xScale, yScale } = state.mmPlot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const mdShift = (state.gSize / 100) * 40;
+
+  // Ms vertical
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-ms',
+    x1: xScale(MS_POS), y1: yScale(0),
+    x2: xScale(MS_POS), y2: yScale(I_MAX),
+  }));
+  const msLbl = svgEl('text', {
+    x: xScale(MS_POS), y: yScale(I_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--supply);",
+  });
+  msLbl.textContent = 'Ms';
+  plotGroup.appendChild(msLbl);
+
+  // Md ghost (baseline) if shifted
+  if (mdShift > 0.5) {
+    const md0Start = { i: I_MAX - 1, M: mdCurve(I_MAX - 1, 0) };
+    const md0End   = { i: 0.5, M: mdCurve(0.5, 0) };
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-md-ghost',
+      d: `M ${xScale(Math.max(0, md0Start.M))} ${yScale(md0Start.i)} L ${xScale(Math.min(M_MAX, md0End.M))} ${yScale(md0End.i)}`,
+    }));
+    const ghostLbl = svgEl('text', {
+      x: xScale(Math.min(M_MAX, md0End.M)) - 4, y: yScale(0.5) - 4, 'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    ghostLbl.textContent = 'Md₀';
+    plotGroup.appendChild(ghostLbl);
+  }
+  // Current Md
+  const mdStart = { i: I_MAX - 1, M: mdCurve(I_MAX - 1, mdShift) };
+  const mdEnd   = { i: 0.5, M: mdCurve(0.5, mdShift) };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-md',
+    d: `M ${xScale(Math.max(0, mdStart.M))} ${yScale(mdStart.i)} L ${xScale(Math.min(M_MAX, mdEnd.M))} ${yScale(mdEnd.i)}`,
+  }));
+  const mdLbl = svgEl('text', {
+    x: xScale(Math.min(M_MAX, mdEnd.M)) - 4, y: yScale(0.5) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  mdLbl.textContent = mdShift > 0.5 ? 'Md₁' : 'Md';
+  plotGroup.appendChild(mdLbl);
+
+  // Equilibrium dot(s): baseline at (MS_POS, i0); new at (MS_POS, i0 + iRise)
+  const iNew = i0 + iRise();
+  if (mdShift > 0.5) {
+    // Baseline as faint
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(MS_POS), cy: yScale(i0), r: 4,
+      fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': '2 2', opacity: 0.5,
+    }));
+  }
+  // Current eq
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(MS_POS), cy: yScale(iNew), r: 5,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  // i-label on y-axis
+  const iLbl = svgEl('text', {
+    x: xScale(0) - 6, y: yScale(iNew) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  iLbl.textContent = `i = ${iNew.toFixed(1)}%`;
+  plotGroup.appendChild(iLbl);
+  // Drop line
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(iNew), x2: xScale(MS_POS), y2: yScale(iNew),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+  }));
+  // i-rise arrow
+  if (iNew - i0 > 0.2) {
+    const midX = xScale(MS_POS) + 10;
+    plotGroup.appendChild(svgEl('line', {
+      x1: midX, y1: yScale(i0), x2: midX, y2: yScale(iNew),
+      stroke: 'var(--welfare-loss)', 'stroke-width': 2,
+      'marker-end': 'url(#arrow-mm)',
+    }));
+  }
+
+  // Arrow marker def
+  if (!state.mmPlot.svg.querySelector('#arrow-mm')) {
+    const defs = svgEl('defs', {});
+    const m = svgEl('marker', { id: 'arrow-mm', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' });
+    m.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--welfare-loss)' }));
+    defs.appendChild(m);
+    state.mmPlot.svg.insertBefore(defs, state.mmPlot.svg.firstChild);
+  }
+}
+
+function renderAdAs() {
+  const { plotGroup, xScale, yScale } = state.adasPlot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const intended = intendedAdShift();
+  const net = netAdShift();
+  const hasShift = intended > 0.5;
+
+  // LRAS vertical
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-lras',
+    x1: xScale(Yf), y1: yScale(0),
+    x2: xScale(Yf), y2: yScale(PL_MAX),
+  }));
+  const lrasLbl = svgEl('text', {
+    x: xScale(Yf), y: yScale(PL_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; fill: #5d7a68;",
+  });
+  lrasLbl.textContent = 'LRAS';
+  plotGroup.appendChild(lrasLbl);
+
+  // SRAS
+  const s1 = { Y: (20 - 100) / srasSlope + Yf, PL: 20 };
+  const s2 = { Y: (180 - 100) / srasSlope + Yf, PL: 180 };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-sras',
+    d: `M ${xScale(s1.Y)} ${yScale(s1.PL)} L ${xScale(s2.Y)} ${yScale(s2.PL)}`,
+  }));
+  const srasLbl = svgEl('text', {
+    x: xScale(s2.Y) - 4, y: yScale(s2.PL) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--supply);",
+  });
+  srasLbl.textContent = 'SRAS';
+  plotGroup.appendChild(srasLbl);
+
+  // AD₀ ghost
+  if (hasShift) {
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ad-ghost',
+      d: `M ${xScale(adInverse(180))} ${yScale(180)} L ${xScale(adInverse(20))} ${yScale(20)}`,
+    }));
+    const g = svgEl('text', {
+      x: xScale(adInverse(50)) - 4, y: yScale(50) - 4, 'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    g.textContent = 'AD₀';
+    plotGroup.appendChild(g);
+  }
+
+  // AD-gross (intended, no crowding-out) — dashed
+  if (hasShift && intended > net + 0.5) {
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ad-gross',
+      d: `M ${xScale(adInverse(180, intended))} ${yScale(180)} L ${xScale(adInverse(20, intended))} ${yScale(20)}`,
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale(adInverse(35, intended)) + 4, y: yScale(35) + 14, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500; fill: var(--demand-shift); opacity: 0.75;",
+    });
+    gLbl.textContent = 'AD (intended)';
+    plotGroup.appendChild(gLbl);
+  }
+
+  // AD-net (what actually happens)
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ad',
+    d: `M ${xScale(adInverse(180, net))} ${yScale(180)} L ${xScale(adInverse(20, net))} ${yScale(20)}`,
+  }));
+  const netLbl = svgEl('text', {
+    x: xScale(adInverse(50, net)) + 4, y: yScale(50) - 4, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  netLbl.textContent = hasShift ? 'AD (net)' : 'AD';
+  plotGroup.appendChild(netLbl);
+
+  // Equilibrium
+  const eq = findEq(net);
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(eq.Y), cy: yScale(eq.PL), r: 5,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  const yLbl = svgEl('text', {
+    x: xScale(eq.Y), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; fill: var(--ink);",
+  });
+  yLbl.textContent = `Y = ${eq.Y.toFixed(0)}`;
+  plotGroup.appendChild(yLbl);
+}
+
+function updateSliders() {
+  const gLbl = document.getElementById('gsize-val');
+  const iLbl = document.getElementById('isens-val');
+  if (state.gSize < 20) gLbl.textContent = 'Small';
+  else if (state.gSize < 50) gLbl.textContent = 'Moderate';
+  else if (state.gSize < 80) gLbl.textContent = 'Large';
+  else gLbl.textContent = 'Very large';
+  if (state.iSens < 20) iLbl.textContent = 'Very low';
+  else if (state.iSens < 45) iLbl.textContent = 'Low';
+  else if (state.iSens < 65) iLbl.textContent = 'Moderate';
+  else if (state.iSens < 85) iLbl.textContent = 'High';
+  else iLbl.textContent = 'Very high';
+}
+
+function updateRightPanel() {
+  const intended = intendedAdShift();
+  const net = netAdShift();
+  const iR = iRise();
+  const iF = iFall();
+  const ratio = crowdingOutRatio();
+
+  document.getElementById('gross-ad').textContent = `+${intended.toFixed(0)} units`;
+  document.getElementById('irise').textContent = `+${iR.toFixed(2)} pp`;
+  document.getElementById('ifall').textContent = `−${iF.toFixed(0)} units`;
+  document.getElementById('net-ad').textContent = `+${net.toFixed(0)} units`;
+  document.getElementById('co-ratio').textContent = `${(ratio * 100).toFixed(0)}%`;
+
+  // Severity
+  const pill = document.getElementById('severity-pill');
+  const narr = document.getElementById('narration-text');
+  if (intended < 0.5) {
+    pill.className = 'severity-pill negligible';
+    pill.textContent = 'No fiscal action';
+    narr.innerHTML = 'Set a fiscal-expansion size to see how crowding-out reduces the effective AD shift.';
+    return;
+  }
+  if (ratio < 0.15) {
+    pill.className = 'severity-pill negligible';
+    pill.textContent = 'Negligible crowding-out';
+    narr.innerHTML = `Investment barely responds to the interest-rate rise. Net AD shift <strong>+${net.toFixed(0)}</strong> is almost the full intended <strong>+${intended.toFixed(0)}</strong>. This is what Keynesians argue happens in a deep recession or a liquidity trap.`;
+  } else if (ratio < 0.40) {
+    pill.className = 'severity-pill modest';
+    pill.textContent = 'Modest crowding-out';
+    narr.innerHTML = `A ${iR.toFixed(2)} percentage-point rise in interest rates shaves <strong>${iF.toFixed(0)}</strong> units off the intended <strong>${intended.toFixed(0)}</strong>-unit AD shift. Net AD rises by <strong>${net.toFixed(0)}</strong> units — fiscal policy still effective, just less than its sticker value.`;
+  } else if (ratio < 0.80) {
+    pill.className = 'severity-pill substantial';
+    pill.textContent = 'Substantial crowding-out';
+    narr.innerHTML = `Investment is very interest-sensitive and/or the fiscal expansion is pushing up rates sharply. <strong>${(ratio*100).toFixed(0)}%</strong> of the intended AD shift is offset by falling private investment. Net AD: <strong>+${net.toFixed(0)}</strong> units from an intended <strong>+${intended.toFixed(0)}</strong>.`;
+  } else {
+    pill.className = 'severity-pill complete';
+    pill.textContent = 'Near-complete crowding-out';
+    narr.innerHTML = `Nearly all the fiscal expansion is cancelled out by falling investment. This is what new-classical economists predict near full employment: fiscal policy mostly redirects spending from private to public hands, with little net AD effect.`;
+  }
+}
+
+/* UI */
+document.getElementById('gsize-slider').addEventListener('input', ev => {
+  state.gSize = Number(ev.target.value);
+  renderAll();
+});
+document.getElementById('isens-slider').addEventListener('input', ev => {
+  state.iSens = Number(ev.target.value);
+  renderAll();
+});
+
+makePlots();
+renderAll();
+</script>
+
+</body>
+</html>

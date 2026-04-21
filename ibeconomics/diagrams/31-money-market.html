@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equilibrium interest rate · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-md { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .curve-md-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; opacity: 0.55; }
+    .curve-ms { stroke: var(--supply); stroke-width: 2.5; }
+    .curve-ms-ghost { stroke: var(--supply); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.5; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: var(--welfare-loss); font-weight: 600; }
+    .totals-grid .delta.down { color: #2d7a50; font-weight: 600; }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .action-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .action-pill.ms-up { background: #dff0e3; color: #2d6b46; }
+    .action-pill.ms-down { background: #f6d9d4; color: var(--welfare-loss); }
+    .action-pill.md { background: #fde8c6; color: #8a5a00; }
+    .action-pill.none { background: var(--paper-deep); color: var(--ink-soft); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.5 Equilibrium interest rate · HL Required</span>
+      <h1>The money market: equilibrium interest rate</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="shift-row">
+        <span class="events-label">What happens</span>
+        <button class="event-chip active" data-shift="none">Baseline</button>
+        <button class="event-chip" data-shift="ms-up">Central bank buys bonds <span class="term-badge">Ms ↑</span></button>
+        <button class="event-chip" data-shift="ms-down">Central bank sells bonds <span class="term-badge">Ms ↓</span></button>
+        <button class="event-chip" data-shift="md-up">Incomes rise <span class="term-badge">Md ↑</span></button>
+        <button class="event-chip" data-shift="md-down">Better payment tech <span class="term-badge">Md ↓</span></button>
+      </div>
+
+      <div class="event-narration baseline visible" id="shift-narration">
+        The money market determines the short-run nominal interest rate. Money supply (Ms) is vertical — set by the central bank. Money demand (Md) slopes down — at higher interest rates, the opportunity cost of holding money rather than bonds is higher, so people hold less cash.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+        <div class="control">
+          <label>Shift magnitude <span class="value" id="mag-val">25</span></label>
+          <input type="range" id="mag-slider" min="0" max="50" step="1" value="25" />
+          <span class="small muted">How large is the central bank's operation or the shift in money demand?</span>
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="action-pill none" id="action-pill">Baseline equilibrium</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Interest rate i</span>
+          <span class="val" id="i-val">5.0%</span>
+          <span class="delta" id="i-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Money stock M</span>
+          <span class="val" id="m-val">200</span>
+          <span class="delta" id="m-delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        At the baseline equilibrium, Ms = Md at i = 5%. The central bank has fixed the money supply at 200. Any deviation from i = 5% creates excess demand or supply for money and pushes i back to equilibrium.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>How monetary policy works.</strong> When the central bank wants to lower interest rates, it <em>buys</em> government bonds from the public, paying with newly created money — Ms shifts right, i falls. When it wants to raise rates, it <em>sells</em> bonds, sucking money out — Ms shifts left, i rises. The interest rate then transmits to borrowing costs across the economy, affecting investment, consumption, and (through exchange rates) net exports.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  shift: 'none',
+  mag: 25,
+  plot: null,
+};
+
+const M_MAX = 400;
+const I_MAX = 12;
+
+const shifts = {
+  none:      { dMs: 0, dMd: 0 },
+  'ms-up':   { dMs: 1, dMd: 0 },
+  'ms-down': { dMs: -1, dMd: 0 },
+  'md-up':   { dMs: 0, dMd: 1 },
+  'md-down': { dMs: 0, dMd: -1 },
+};
+
+const narrations = {
+  none:     'Market at equilibrium at i* = 5%, M = 200. No shift applied.',
+  'ms-up':  'The central bank buys government bonds from banks and investors, paying with newly created money. The money supply expands (Ms shifts right). With more money available, i falls — this is expansionary monetary policy working through the money market.',
+  'ms-down':'The central bank sells government bonds, taking money out of circulation. The money supply contracts (Ms shifts left). With less money available, i rises — contractionary monetary policy.',
+  'md-up':  'A rise in real incomes (or the price level) increases the demand for money — people need more cash for transactions. Md shifts right. With unchanged Ms, i rises to ration the fixed money supply.',
+  'md-down':'Financial innovation (debit cards, mobile payments, instant transfers) reduces the need to hold cash. Md shifts left. With unchanged Ms, i falls.',
+};
+
+/* Baseline equilibrium: i = 5%, M = 200 */
+const i_eq = 5;
+const M_eq = 200;
+
+function ms(dShift = 0) {
+  // Vertical line at M_eq + dShift * mag
+  return M_eq + dShift * state.mag;
+}
+function md_at(i, dShift = 0) {
+  // Md: downward-sloping linear. At baseline, slope so that at i=5%, M=200; at i=10%, M=100 (slope = -20/1pp)
+  // Md(i) = 300 - 20i (intercept at i=0 is M=300, at i=15 is M=0)
+  return (300 - 20 * i) + dShift * state.mag;
+}
+function i_at_md(m, dShift = 0) {
+  // Inverse: i = (300 + dShift*mag - m) / 20
+  return (300 + dShift * state.mag - m) / 20;
+}
+
+function findEq() {
+  const s = shifts[state.shift];
+  const M = ms(s.dMs);
+  const i = i_at_md(M, s.dMd);
+  return { i, M };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Money stock (M)',
+    yLabel: 'Interest rate (i, %)',
+    xMax: M_MAX, yMax: I_MAX,
+    nxTicks: 8, nyTicks: 6, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => v.toFixed(0),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const s = shifts[state.shift];
+  const hasShift = s.dMs !== 0 || s.dMd !== 0;
+
+  // Draw Ms ghost if shifted
+  if (s.dMs !== 0) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'curve-ms-ghost',
+      x1: xScale(M_eq), y1: yScale(0),
+      x2: xScale(M_eq), y2: yScale(I_MAX),
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale(M_eq), y: yScale(I_MAX) - 20, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; fill: var(--supply); opacity: 0.7;",
+    });
+    gLbl.textContent = 'Ms₀';
+    plotGroup.appendChild(gLbl);
+  }
+  // Current Ms
+  const msNow = ms(s.dMs);
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-ms',
+    x1: xScale(msNow), y1: yScale(0),
+    x2: xScale(msNow), y2: yScale(I_MAX),
+  }));
+  const msLbl = svgEl('text', {
+    x: xScale(msNow), y: yScale(I_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  msLbl.textContent = s.dMs !== 0 ? 'Ms₁' : 'Ms';
+  plotGroup.appendChild(msLbl);
+
+  // Draw Md ghost if shifted
+  if (s.dMd !== 0) {
+    // Baseline md: intercepts i=0 at M=300, i=15 at M=0
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-md-ghost',
+      d: `M ${xScale(300)} ${yScale(0)} L ${xScale(0)} ${yScale(15)}`,
+      fill: 'none',
+    }));
+  }
+  // Current Md
+  // Md line passes through (300 + dMd*mag, 0) and (dMd*mag, 15)
+  const mdX1 = 300 + s.dMd * state.mag; // at i=0
+  const mdX2 = 0 + s.dMd * state.mag;   // at i=15
+  // Clamp to plot bounds
+  const mdStartX = Math.max(0, Math.min(M_MAX, mdX1));
+  const mdEndX = Math.max(0, Math.min(M_MAX, mdX2));
+  const mdStartI = ((300 + s.dMd * state.mag) - mdStartX) / 20;
+  const mdEndI = ((300 + s.dMd * state.mag) - mdEndX) / 20;
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-md',
+    d: `M ${xScale(mdStartX)} ${yScale(mdStartI)} L ${xScale(mdEndX)} ${yScale(mdEndI)}`,
+  }));
+  const mdLbl = svgEl('text', {
+    x: xScale(mdStartX) - 4, y: yScale(mdStartI) - 6, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  mdLbl.textContent = s.dMd !== 0 ? 'Md₁' : 'Md';
+  plotGroup.appendChild(mdLbl);
+
+  // Equilibrium
+  const eq = findEq();
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(eq.M), y1: yScale(0), x2: xScale(eq.M), y2: yScale(eq.i),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(eq.i), x2: xScale(eq.M), y2: yScale(eq.i),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(eq.M), cy: yScale(eq.i), r: 6,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  // Labels
+  const mLbl = svgEl('text', {
+    x: xScale(eq.M), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  mLbl.textContent = `M = ${eq.M.toFixed(0)}`;
+  plotGroup.appendChild(mLbl);
+  const iLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(eq.i) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  iLbl.textContent = `i = ${eq.i.toFixed(1)}%`;
+  plotGroup.appendChild(iLbl);
+
+  updateRightPanel(eq);
+}
+
+function updateRightPanel(eq) {
+  const s = shifts[state.shift];
+  document.getElementById('i-val').textContent = eq.i.toFixed(2) + '%';
+  document.getElementById('m-val').textContent = eq.M.toFixed(0);
+  document.getElementById('mag-val').textContent = state.mag.toString();
+
+  const di = eq.i - i_eq;
+  const dm = eq.M - M_eq;
+  const setDelta = (id, v, isRate) => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.05) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + Math.abs(v).toFixed(isRate ? 2 : 0) + (isRate ? 'pp' : '');
+    el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDelta('i-delta', di, true);
+  setDelta('m-delta', dm, false);
+
+  const pill = document.getElementById('action-pill');
+  if (state.shift === 'none') {
+    pill.className = 'action-pill none';
+    pill.textContent = 'Baseline equilibrium';
+  } else if (state.shift.startsWith('ms-up')) {
+    pill.className = 'action-pill ms-up';
+    pill.textContent = 'Expansionary (Ms ↑, i ↓)';
+  } else if (state.shift === 'ms-down') {
+    pill.className = 'action-pill ms-down';
+    pill.textContent = 'Contractionary (Ms ↓, i ↑)';
+  } else {
+    pill.className = 'action-pill md';
+    pill.textContent = 'Money demand shift';
+  }
+
+  document.getElementById('narration-text').textContent = narrations[state.shift];
+  document.getElementById('shift-narration').textContent = narrations[state.shift];
+}
+
+document.querySelectorAll('[data-shift]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.shift = btn.dataset.shift;
+    document.querySelectorAll('[data-shift]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('mag-slider').addEventListener('input', ev => {
+  state.mag = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

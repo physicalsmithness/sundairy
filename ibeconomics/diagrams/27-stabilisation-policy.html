@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stabilisation policy · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ad        { stroke: var(--demand-shift); stroke-width: 2.5; }
+    .curve-ad-ghost  { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; }
+    .curve-sras      { stroke: var(--supply); stroke-width: 2.5; }
+    .curve-sras-ghost { stroke: var(--supply); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.45; }
+    .curve-lras      { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+    .curve-lras-ghost { stroke: #5d7a68; stroke-width: 1.5; stroke-dasharray: 2 3; opacity: 0.5; }
+
+    .policy-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.4rem 0.8rem;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .policy-grid .label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+    .policy-buttons {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+    }
+    .policy-buttons button {
+      padding: 0.3rem 0.65rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      background: #fff;
+      color: var(--ink-soft);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .policy-buttons button.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .transmission-chain {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      margin-bottom: 0.7rem;
+      line-height: 1.6;
+    }
+    .transmission-chain .chain-step {
+      color: var(--ink);
+    }
+    .transmission-chain .chain-arrow {
+      color: var(--ink-soft);
+      margin: 0 0.4rem;
+    }
+
+    .side-effects {
+      background: var(--paper-deep);
+      padding: 0.55rem 0.7rem;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+      margin-bottom: 0.7rem;
+    }
+    .side-effects strong { color: var(--ink); }
+
+    .outcome-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .outcome-pill.closing-gap { background: #dff0e3; color: #2d6b46; }
+    .outcome-pill.overshooting { background: #fde8c6; color: #8a5a00; }
+    .outcome-pill.no-policy { background: var(--paper-deep); color: var(--ink-soft); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.5, 3.6, 3.7 Stabilisation policy · Required</span>
+      <h1>Stabilisation policy: monetary, fiscal, supply-side</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="starting-row">
+        <span class="events-label">Starting condition</span>
+        <button class="event-chip active" data-start="recessionary">Recessionary gap (Y &lt; Yf)</button>
+        <button class="event-chip" data-start="inflationary">Inflationary gap (Y &gt; Yf)</button>
+        <button class="event-chip" data-start="lr">At Yf (no gap)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="start-narration">
+        The economy starts in a recessionary gap: Y is below Yf and unemployment is elevated. Pick a policy below to see which curve moves and how the gap closes.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="policy-grid" style="grid-column: span 2;">
+          <div class="label">Policy</div>
+          <div class="policy-buttons" id="policy-picker">
+            <button data-policy="none" class="active">None</button>
+            <button data-policy="monetary">Monetary</button>
+            <button data-policy="fiscal">Fiscal</button>
+            <button data-policy="supply-side">Supply-side</button>
+          </div>
+          <div class="label">Direction</div>
+          <div class="policy-buttons" id="direction-picker">
+            <button data-direction="expansionary" class="active">Expansionary</button>
+            <button data-direction="contractionary">Contractionary</button>
+          </div>
+          <div class="label">Strength</div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="range" id="strength-slider" min="0" max="100" step="1" value="60" style="flex: 1;" />
+            <span class="value" id="strength-val">Moderate</span>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="outcome-pill no-policy" id="outcome-pill">No policy applied yet</span>
+      </div>
+
+      <div class="transmission-chain" id="transmission" style="display: none;">
+        <strong>Transmission:</strong><br />
+        <span id="transmission-text">—</span>
+      </div>
+
+      <div class="side-effects" id="side-effects" style="display: none;">
+        <span id="side-effects-text">—</span>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Stabilisation policy tries to close an output gap. Expansionary policies shift AD right (or LRAS right for supply-side). Contractionary policies shift AD left. The three policy families — monetary, fiscal, supply-side — differ in who wields them, how quickly they work, and what side effects they have.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The policy dilemma.</strong> Monetary policy works through interest rates — fast to change but weak when rates hit zero ("the liquidity trap") or when banks won't lend. Fiscal policy works through direct government spending or taxes — more reliable in a deep recession, but slow (political delays), and adds to public debt. Supply-side policy takes years to work but is the only way to raise Yf itself rather than just moving AD around a fixed Yf.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  startingGap: 'recessionary',   // 'recessionary' | 'inflationary' | 'lr'
+  policy: 'none',                // 'none' | 'monetary' | 'fiscal' | 'supply-side'
+  direction: 'expansionary',     // 'expansionary' | 'contractionary'
+  strength: 60,                  // 0..100
+  plot: null,
+};
+
+const Yf0 = 120;
+const Y_MAX = 240;
+const PL_MAX = 200;
+const adSlope = -50 / 60;
+const srasSlope = 50 / 60;
+
+/* Starting conditions — the economy is already in some state, and THEN
+   the policy is applied. */
+function startShocks() {
+  if (state.startingGap === 'recessionary')   return { ad0: -30, sras0: 0 };
+  if (state.startingGap === 'inflationary')   return { ad0:  30, sras0: 0 };
+  return { ad0: 0, sras0: 0 };
+}
+
+/* Policy shifts — how much the curves move, scaled by strength.
+   Expansionary means "heating the economy up"; contractionary means cooling.
+*/
+function policyShifts() {
+  if (state.policy === 'none') return { adDelta: 0, lrasDelta: 0, srasDelta: 0 };
+  const mag = (state.strength / 100) * 35;  // max 35 units of shift
+  const sign = state.direction === 'expansionary' ? 1 : -1;
+  if (state.policy === 'monetary') return { adDelta: sign * mag, lrasDelta: 0, srasDelta: 0 };
+  if (state.policy === 'fiscal')   return { adDelta: sign * mag, lrasDelta: 0, srasDelta: 0 };
+  if (state.policy === 'supply-side') {
+    // Supply-side: shifts LRAS (and SRAS matches). Expansionary only really makes sense.
+    return { adDelta: 0, lrasDelta: sign * mag, srasDelta: sign * mag };
+  }
+  return { adDelta: 0, lrasDelta: 0, srasDelta: 0 };
+}
+
+function currentShifts() {
+  const s = startShocks();
+  const p = policyShifts();
+  return {
+    adShift:   s.ad0 + p.adDelta,
+    srasShift: s.sras0 + p.srasDelta,
+    lrasShift: p.lrasDelta,
+  };
+}
+
+function Yf() { return Yf0 + currentShifts().lrasShift; }
+
+function adInverse(PL) {
+  const { adShift } = currentShifts();
+  return (PL - 100) / adSlope + Yf0 + adShift;
+}
+
+function findEq() {
+  const { adShift, srasShift, lrasShift } = currentShifts();
+  const Y = (adSlope * (Yf0 + adShift) - srasSlope * (Yf0 + lrasShift + srasShift)) / (adSlope - srasSlope);
+  const PL = 100 + adSlope * (Y - Yf0 - adShift);
+  return { Y, PL };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Real output (Y)',
+    yLabel: 'Price level (PL)',
+    xMax: Y_MAX, yMax: PL_MAX,
+    nxTicks: 12, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const { adShift, srasShift, lrasShift } = currentShifts();
+  const yfNow = Yf();
+
+  // 1. LRAS (with ghost if it shifted)
+  if (lrasShift !== 0) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'curve-lras-ghost',
+      x1: xScale(Yf0), y1: yScale(0),
+      x2: xScale(Yf0), y2: yScale(PL_MAX),
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale(Yf0), y: yScale(PL_MAX) - 20, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; fill: #5d7a68; opacity: 0.75;",
+    });
+    gLbl.textContent = 'LRAS₀';
+    plotGroup.appendChild(gLbl);
+  }
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-lras',
+    x1: xScale(yfNow), y1: yScale(0),
+    x2: xScale(yfNow), y2: yScale(PL_MAX),
+  }));
+  const lrasLbl = svgEl('text', {
+    x: xScale(yfNow), y: yScale(PL_MAX) - 6, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;",
+  });
+  lrasLbl.textContent = lrasShift !== 0 ? 'LRAS₁' : 'LRAS';
+  plotGroup.appendChild(lrasLbl);
+
+  // 2. SRAS (always draw current; ghost if starting-sras != 0 or if LRAS shifted)
+  // Ghost SRAS: pre-policy position = SRAS shifted only by start-shocks
+  const s0 = startShocks();
+  const pGhostShift = s0.sras0;
+  if (pGhostShift !== srasShift) {
+    const g1 = { Y: (20 - 100) / srasSlope + Yf0 + pGhostShift, PL: 20 };
+    const g2 = { Y: (180 - 100) / srasSlope + Yf0 + pGhostShift, PL: 180 };
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-sras-ghost',
+      d: `M ${xScale(g1.Y)} ${yScale(g1.PL)} L ${xScale(g2.Y)} ${yScale(g2.PL)}`,
+      fill: 'none',
+    }));
+  }
+  // Current SRAS
+  const s1 = { Y: (20 - 100) / srasSlope + Yf0 + srasShift, PL: 20 };
+  const s2 = { Y: (180 - 100) / srasSlope + Yf0 + srasShift, PL: 180 };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-sras',
+    d: `M ${xScale(s1.Y)} ${yScale(s1.PL)} L ${xScale(s2.Y)} ${yScale(s2.PL)}`,
+    fill: 'none',
+  }));
+  const srasLbl = svgEl('text', {
+    x: xScale(s2.Y) + 6, y: yScale(s2.PL) + 3, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  srasLbl.textContent = srasShift !== 0 ? 'SRAS₁' : 'SRAS';
+  plotGroup.appendChild(srasLbl);
+
+  // 3. AD (ghost if starting-ad != adShift)
+  const pGhostAd = s0.ad0;
+  if (pGhostAd !== adShift) {
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ad-ghost',
+      d: `M ${xScale((180 - 100) / adSlope + Yf0 + pGhostAd)} ${yScale(180)} L ${xScale((20 - 100) / adSlope + Yf0 + pGhostAd)} ${yScale(20)}`,
+      fill: 'none',
+    }));
+    const gL = svgEl('text', {
+      x: xScale((55 - 100) / adSlope + Yf0 + pGhostAd) - 6, y: yScale(55) - 4,
+      'text-anchor': 'end',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    gL.textContent = 'AD₀';
+    plotGroup.appendChild(gL);
+  }
+  // Current AD
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ad',
+    d: `M ${xScale(adInverse(180))} ${yScale(180)} L ${xScale(adInverse(20))} ${yScale(20)}`,
+    fill: 'none',
+  }));
+  const adLbl = svgEl('text', {
+    x: xScale(adInverse(55)) + 6, y: yScale(55) - 4,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  adLbl.textContent = adShift !== pGhostAd ? 'AD₁' : (adShift !== 0 ? 'AD' : 'AD');
+  plotGroup.appendChild(adLbl);
+
+  // 4. Equilibrium
+  const eq = findEq();
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(eq.Y), y1: yScale(0), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(eq.PL), x2: xScale(eq.Y), y2: yScale(eq.PL),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(eq.Y), cy: yScale(eq.PL), r: 6,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  }));
+  const yLbl = svgEl('text', {
+    x: xScale(eq.Y), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  yLbl.textContent = `Y = ${eq.Y.toFixed(0)}`;
+  plotGroup.appendChild(yLbl);
+  const plLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(eq.PL) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  plLbl.textContent = `PL = ${eq.PL.toFixed(0)}`;
+  plotGroup.appendChild(plLbl);
+
+  // Gap bar (if any gap relative to current Yf)
+  const gap = eq.Y - yfNow;
+  if (Math.abs(gap) > 0.5) {
+    const barY = yScale(12);
+    const x1 = xScale(Math.min(eq.Y, yfNow));
+    const x2 = xScale(Math.max(eq.Y, yfNow));
+    plotGroup.appendChild(svgEl('line', {
+      x1, y1: barY, x2, y2: barY,
+      stroke: gap > 0 ? '#8a5a00' : 'var(--welfare-loss)', 'stroke-width': 2.5,
+    }));
+    [x1, x2].forEach(x => {
+      plotGroup.appendChild(svgEl('line', {
+        x1: x, x2: x, y1: barY - 4, y2: barY + 4,
+        stroke: gap > 0 ? '#8a5a00' : 'var(--welfare-loss)', 'stroke-width': 2,
+      }));
+    });
+    const lbl = svgEl('text', {
+      x: (x1 + x2) / 2, y: barY - 8, 'text-anchor': 'middle',
+      style: `font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: ${gap > 0 ? '#8a5a00' : 'var(--welfare-loss)'}; paint-order: stroke; stroke: #fff; stroke-width: 3;`,
+    });
+    lbl.textContent = (gap > 0 ? 'Inflationary gap: ' : 'Recessionary gap: ') + Math.abs(gap).toFixed(0);
+    plotGroup.appendChild(lbl);
+  }
+
+  updateRightPanel(eq, gap);
+  updateSliderLabel();
+}
+
+function updateSliderLabel() {
+  const v = state.strength;
+  let lbl;
+  if (v < 20) lbl = 'Mild';
+  else if (v < 50) lbl = 'Moderate';
+  else if (v < 80) lbl = 'Strong';
+  else lbl = 'Aggressive';
+  document.getElementById('strength-val').textContent = lbl;
+}
+
+function updateRightPanel(eq, gap) {
+  const pill = document.getElementById('outcome-pill');
+  const narr = document.getElementById('narration-text');
+  const transmission = document.getElementById('transmission');
+  const transmissionText = document.getElementById('transmission-text');
+  const sideEffects = document.getElementById('side-effects');
+  const sideEffectsText = document.getElementById('side-effects-text');
+
+  if (state.policy === 'none') {
+    pill.className = 'outcome-pill no-policy';
+    pill.textContent = 'No policy applied yet';
+    transmission.style.display = 'none';
+    sideEffects.style.display = 'none';
+    narr.innerHTML = {
+      recessionary: 'The economy sits in a recessionary gap: Y is below Yf. Unemployment is elevated. Without policy intervention, wages should (eventually) fall, SRAS will shift right, and the economy will return to Yf at a lower PL — but this may take years. Pick a policy to speed things up.',
+      inflationary: 'The economy sits in an inflationary gap: Y is above Yf. The labour market is overheating, prices are rising. Without intervention, wages will rise, SRAS will shift left, and the economy will return to Yf at a higher PL. A central bank might prefer to cool things down now with contractionary policy.',
+      lr: 'The economy is at Yf with no output gap. No stabilisation policy is needed, though a government might still pursue supply-side policy to raise Yf itself.',
+    }[state.startingGap];
+    return;
+  }
+
+  // Policy selected — describe transmission
+  transmission.style.display = 'block';
+  sideEffects.style.display = 'block';
+
+  // Compute gap at starting condition (pre-policy) for comparison
+  const s0 = startShocks();
+  // Y-without-policy: eq of AD (with start shock only) and SRAS (with start shock only)
+  const yPre = (adSlope * (Yf0 + s0.ad0) - srasSlope * (Yf0 + s0.sras0)) / (adSlope - srasSlope);
+  const gapBefore = yPre - Yf0;  // pre-policy gap (relative to original Yf)
+  const gapAfter = gap;
+  const closing = Math.abs(gapAfter) < Math.abs(gapBefore);
+  const overshoot = gapBefore !== 0 && Math.sign(gapAfter) !== Math.sign(gapBefore) && Math.abs(gapAfter) > 2;
+
+  if (overshoot) {
+    pill.className = 'outcome-pill overshooting';
+    pill.textContent = 'Policy overshoots — gap flips';
+  } else if (closing) {
+    pill.className = 'outcome-pill closing-gap';
+    pill.textContent = Math.abs(gapAfter) < 1 ? 'Gap closed' : 'Gap closing';
+  } else {
+    pill.className = 'outcome-pill no-policy';
+    pill.textContent = 'Policy direction wrong for this gap';
+  }
+
+  const dir = state.direction;
+  const tchains = {
+    monetary: {
+      expansionary: 'Central bank cuts interest rates <span class="chain-arrow">→</span> borrowing gets cheaper <span class="chain-arrow">→</span> firms invest more (I↑), households take on credit (C↑) <span class="chain-arrow">→</span> exchange rate depreciates (X−M↑) <span class="chain-arrow">→</span> AD shifts right',
+      contractionary: 'Central bank raises interest rates <span class="chain-arrow">→</span> borrowing gets expensive <span class="chain-arrow">→</span> I and C fall <span class="chain-arrow">→</span> currency appreciates (X−M↓) <span class="chain-arrow">→</span> AD shifts left',
+    },
+    fiscal: {
+      expansionary: 'Government cuts taxes or raises spending <span class="chain-arrow">→</span> G rises directly and/or disposable income rises (C↑) <span class="chain-arrow">→</span> multiplier kicks in (others earn, spend, and so on) <span class="chain-arrow">→</span> AD shifts right',
+      contractionary: 'Government raises taxes or cuts spending <span class="chain-arrow">→</span> G falls directly and/or disposable income falls (C↓) <span class="chain-arrow">→</span> AD shifts left',
+    },
+    'supply-side': {
+      expansionary: 'Investment in education, infrastructure, deregulation, tax incentives for investment <span class="chain-arrow">→</span> labour force more productive, more capital <span class="chain-arrow">→</span> LRAS (and SRAS) shift right <span class="chain-arrow">→</span> Yf rises',
+      contractionary: 'Rarely contractionary in practice — supply-side policies are almost always framed as growth-enhancing. Technically, raising taxes on capital or restricting labour supply could shift LRAS left.',
+    },
+  };
+  transmissionText.innerHTML = tchains[state.policy][dir];
+
+  const schains = {
+    monetary: {
+      expansionary: '<strong>Side effects.</strong> Fast to implement (rate decisions are immediate), but transmission takes 12-18 months. Weak when rates near zero (liquidity trap) or when banks won\'t lend (credit crunch). Can inflate asset bubbles.',
+      contractionary: '<strong>Side effects.</strong> Blunt instrument — affects all borrowers. Risk of tipping weak sectors into recession. Raises currency value (hurts exporters). But very effective against inflation.',
+    },
+    fiscal: {
+      expansionary: '<strong>Side effects.</strong> Adds to government debt. Slow (political decisions take months). Can <em>crowd out</em> private investment if government borrowing raises interest rates. Multiplier depends on marginal propensity to consume — higher in recessions.',
+      contractionary: '<strong>Side effects.</strong> Politically unpopular. In a fragile economy, can tip into recession (the "austerity trap"). But reduces debt and inflation pressure.',
+    },
+    'supply-side': {
+      expansionary: '<strong>Side effects.</strong> Takes years or decades to work (training a workforce, building infrastructure). Distributional effects may be regressive (tax cuts often benefit top earners). But the only policy that raises Yf rather than just moving AD around it.',
+      contractionary: '—',
+    },
+  };
+  sideEffectsText.innerHTML = schains[state.policy][dir];
+
+  // Main narration
+  const gapDir = gapBefore < -0.5 ? 'recessionary' : gapBefore > 0.5 ? 'inflationary' : 'neutral';
+  const policyFits = (gapDir === 'recessionary' && dir === 'expansionary') ||
+                     (gapDir === 'inflationary' && dir === 'contractionary') ||
+                     (gapDir === 'neutral' && state.policy === 'supply-side');
+  if (policyFits) {
+    narr.innerHTML = `The ${dir} ${state.policy.replace('-', ' ')} policy is moving the economy toward Yf. Current output ${eq.Y.toFixed(0)}, price level ${eq.PL.toFixed(0)}. ${Math.abs(gapAfter) < 1 ? 'Gap fully closed.' : `${Math.abs(gapAfter).toFixed(0)} units of gap remaining.`}`;
+  } else {
+    narr.innerHTML = `This policy is <strong>worsening</strong> the output gap. ${dir} policy in ${gapDir} conditions pushes the economy further from Yf. Try the opposite direction.`;
+  }
+}
+
+/* UI wiring */
+document.querySelectorAll('[data-start]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.startingGap = btn.dataset.start;
+    document.querySelectorAll('[data-start]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.querySelectorAll('[data-policy]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.policy = btn.dataset.policy;
+    document.querySelectorAll('[data-policy]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.querySelectorAll('[data-direction]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.direction = btn.dataset.direction;
+    document.querySelectorAll('[data-direction]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('strength-slider').addEventListener('input', ev => {
+  state.strength = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

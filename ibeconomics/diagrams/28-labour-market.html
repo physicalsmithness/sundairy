@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Labour market · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-ld { stroke: var(--demand-shift); stroke-width: 2.5; }
+    .curve-ld-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; }
+    .curve-ls { stroke: var(--supply); stroke-width: 2.5; }
+    .wage-line { stroke: var(--ink); stroke-width: 1.8; stroke-dasharray: 4 3; }
+    .unemployment-bar {
+      stroke: var(--welfare-loss);
+      stroke-width: 2.5;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: #2d7a50; font-weight: 600; }
+    .totals-grid .delta.down { color: var(--welfare-loss); font-weight: 600; }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+    .totals-grid .unemployment .lbl { color: var(--welfare-loss); }
+    .totals-grid .unemployment .val { color: var(--welfare-loss); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.3, 3.7 Labour market · Required</span>
+      <h1>Labour market: minimum wage &amp; demand shocks</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="scenario-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-scenario="equilibrium">Free-market equilibrium</button>
+        <button class="event-chip" data-scenario="min-wage">Binding minimum wage</button>
+        <button class="event-chip" data-scenario="demand-fall">Fall in demand for labour</button>
+        <button class="event-chip" data-scenario="both">Minimum wage + demand fall</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="scenario-narration">
+        The labour market equilibrium sets the wage W* at which hours-demanded equals hours-supplied. Pick a scenario to see how minimum-wage laws or demand shocks disrupt this.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Minimum wage <span class="value" id="min-wage-val">—</span></label>
+          <input type="range" id="min-wage-slider" min="0" max="18" step="0.1" value="0" />
+          <span class="small muted">Set a minimum wage. Non-binding if below equilibrium; binding above, creating unemployment.</span>
+        </div>
+
+        <div class="control">
+          <label>Labour demand shift <span class="value" id="demand-shift-val">0</span></label>
+          <input type="range" id="demand-shift-slider" min="-40" max="40" step="1" value="0" />
+          <span class="small muted">Negative: fall in labour demand (recession, automation). Positive: rise in labour demand (boom, new industry).</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Wage W</span>
+          <span class="val" id="w-val">—</span>
+          <span class="delta" id="w-delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Hours demanded</span>
+          <span class="val" id="qd-val">—</span>
+          <span class="delta"></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Hours supplied</span>
+          <span class="val" id="qs-val">—</span>
+          <span class="delta"></span>
+        </div>
+        <hr />
+        <div class="row unemployment" id="unemp-row" style="display: none;">
+          <span class="lbl">Unemployment</span>
+          <span class="val" id="unemp-val">—</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        The labour market works like any other market — wage W is the price of an hour of labour, and quantity is hours worked (or jobs). D_L slopes down: firms hire less labour at higher wages. S_L slopes up: more workers want to work at higher wages. At W*, the market clears.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Minimum wage trade-off.</strong> A binding minimum wage <em>raises wages for those who keep their jobs</em> (a distributional win) but <em>creates unemployment among those who would have been hired at the lower wage</em> (an efficiency loss). How big the unemployment effect is depends on how elastic labour demand is. Empirical studies in the UK and US have found surprisingly small effects — labour demand appears to be quite inelastic at current minimum-wage levels.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, linearCurve, svgEl } from '../js/common.js';
+
+const state = {
+  scenario: 'equilibrium',
+  minWage: 0,           // £/hour — 0 means no min wage
+  demandShift: 0,       // horizontal shift of labour demand
+  plot: null,
+};
+
+// Labour market: W on y-axis (£10/hr at baseline eq), Q on x-axis (150 hrs at eq)
+const W_MAX = 20;
+const Q_MAX = 300;
+const W_EQ = 10;
+const Q_EQ = 150;
+
+function ls(Q) {
+  // Labour supply: through (30, 0) and (150, 10); slope 10/120 = 0.083
+  return 0.083 * (Q - 30);
+}
+function ls_inv(W) { return W / 0.083 + 30; }
+
+function ld(Q) {
+  // Labour demand: through (0, 20) and (300, 0); slope -20/300 = -0.0667
+  // Passes through (150, 10) — the baseline equilibrium point
+  const dY = state.demandShift;
+  return 20 * (1 - (Q - dY) / 300);
+}
+function ld_inv(W) { return state.demandShift + 300 * (1 - W / 20); }
+
+function eq() {
+  // ls(Q) = ld(Q):  0.0833*(Q-30) = 20 - (20/300)*(Q - dY)
+  // 0.0833Q - 2.5 = 20 - 0.0667Q + 0.0667 dY
+  // 0.15 Q = 22.5 + 0.0667 dY
+  const Q = (22.5 + 0.0667 * state.demandShift) / 0.15;
+  const W = ls(Q);
+  return { Q, W };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Hours of labour (Q)',
+    yLabel: 'Wage (W, £/hour)',
+    xMax: Q_MAX, yMax: W_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => v.toFixed(0),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const e = eq();
+  const hasMinWage = state.minWage > e.W + 0.05;
+  const W = hasMinWage ? state.minWage : e.W;
+  const qd = Math.max(0, Math.min(Q_MAX, ld_inv(W)));
+  const qs = Math.max(0, Math.min(Q_MAX, ls_inv(W)));
+  const qTrade = hasMinWage ? Math.min(qd, qs) : e.Q;
+  const unemployment = hasMinWage ? Math.max(0, qs - qd) : 0;
+
+  // Draw ghost demand if shifted
+  if (state.demandShift !== 0) {
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-ld-ghost',
+      d: `M ${xScale(0)} ${yScale(20)} L ${xScale(300)} ${yScale(0)}`,
+      fill: 'none',
+    }));
+  }
+  // Current LD (shifted)
+  const ldStart = { Q: state.demandShift, W: 20 };
+  const ldEnd = { Q: state.demandShift + 300, W: 0 };
+  const clampedStart = { Q: Math.max(0, ldStart.Q), W: ldStart.Q >= 0 ? 20 : ld(0) };
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ld',
+    d: `M ${xScale(clampedStart.Q)} ${yScale(clampedStart.W)} L ${xScale(Math.min(Q_MAX, ldEnd.Q))} ${yScale(Math.max(0, ld(Math.min(Q_MAX, ldEnd.Q))))}`,
+    fill: 'none',
+  }));
+  // LD label
+  const ldLbl = svgEl('text', {
+    x: xScale(Math.min(Q_MAX, ldEnd.Q)) - 4, y: yScale(0) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  ldLbl.textContent = state.demandShift !== 0 ? 'D_L₁' : 'D_L';
+  plotGroup.appendChild(ldLbl);
+
+  // LS
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-ls',
+    d: `M ${xScale(30)} ${yScale(0)} L ${xScale(Q_MAX)} ${yScale(ls(Q_MAX))}`,
+    fill: 'none',
+  }));
+  const lsLbl = svgEl('text', {
+    x: xScale(Q_MAX) - 4, y: yScale(ls(Q_MAX)) + 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  lsLbl.textContent = 'S_L';
+  plotGroup.appendChild(lsLbl);
+
+  // Minimum wage line (if present)
+  if (hasMinWage) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'wage-line',
+      x1: xScale(0), y1: yScale(W), x2: xScale(Q_MAX), y2: yScale(W),
+    }));
+    // Label
+    const mwLbl = svgEl('text', {
+      x: xScale(Q_MAX) + 4, y: yScale(W) + 4, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    mwLbl.textContent = `W_min = £${W.toFixed(2)}`;
+    plotGroup.appendChild(mwLbl);
+
+    // Unemployment bar (between qd and qs at the minimum wage)
+    if (unemployment > 0.5) {
+      plotGroup.appendChild(svgEl('line', {
+        class: 'unemployment-bar',
+        x1: xScale(qd), y1: yScale(W), x2: xScale(qs), y2: yScale(W),
+      }));
+      const ulbl = svgEl('text', {
+        x: xScale((qd + qs) / 2), y: yScale(W) - 8, 'text-anchor': 'middle',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--welfare-loss); paint-order: stroke; stroke: #fff; stroke-width: 3;",
+      });
+      ulbl.textContent = `Unemployment: ${unemployment.toFixed(0)} hrs`;
+      plotGroup.appendChild(ulbl);
+    }
+  }
+
+  // Equilibrium dot (natural equilibrium, shown as reference)
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(e.Q), cy: yScale(e.W), r: 5,
+    fill: hasMinWage ? 'none' : '#fff', stroke: 'var(--ink)', 'stroke-width': 1.8,
+    'stroke-dasharray': hasMinWage ? '2 2' : '0',
+    opacity: hasMinWage ? 0.55 : 1,
+  }));
+
+  // Actual operating point (where the market actually trades)
+  if (hasMinWage) {
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(qTrade), cy: yScale(W), r: 5,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    }));
+  }
+
+  // Drop lines
+  const yShow = hasMinWage ? W : e.W;
+  const qShow = hasMinWage ? qTrade : e.Q;
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(qShow), y1: yScale(0), x2: xScale(qShow), y2: yScale(yShow),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: yScale(yShow), x2: xScale(qShow), y2: yScale(yShow),
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+  }));
+
+  updateRightPanel({ W, qd, qs, qTrade, e, hasMinWage, unemployment });
+  updateSliderLabels(W);
+}
+
+function updateSliderLabels(W) {
+  document.getElementById('min-wage-val').textContent = state.minWage === 0 ? 'none' : `£${state.minWage.toFixed(2)}`;
+  document.getElementById('demand-shift-val').textContent = state.demandShift === 0 ? '—' : (state.demandShift > 0 ? `+${state.demandShift}` : `${state.demandShift}`);
+}
+
+function updateRightPanel(s) {
+  document.getElementById('w-val').textContent = `£${s.W.toFixed(2)}`;
+  document.getElementById('qd-val').textContent = s.qd.toFixed(0);
+  document.getElementById('qs-val').textContent = s.qs.toFixed(0);
+
+  const dW = s.W - 10;
+  const el = document.getElementById('w-delta');
+  if (Math.abs(dW) < 0.1) { el.textContent = ''; el.className = 'delta'; }
+  else {
+    el.textContent = (dW >= 0 ? '+' : '−') + '£' + Math.abs(dW).toFixed(2);
+    el.className = 'delta ' + (dW >= 0 ? 'up' : 'down');
+  }
+
+  const unempRow = document.getElementById('unemp-row');
+  if (s.hasMinWage && s.unemployment > 0.5) {
+    unempRow.style.display = 'contents';
+    document.getElementById('unemp-val').textContent = s.unemployment.toFixed(0) + ' hrs';
+  } else {
+    unempRow.style.display = 'none';
+  }
+
+  // Narration
+  const narr = document.getElementById('narration-text');
+  if (state.minWage === 0 && state.demandShift === 0) {
+    narr.innerHTML = 'Free-market equilibrium: wage <strong>£10/hour</strong>, 150 hours employed. No unemployment — the market clears.';
+  } else if (state.minWage > 0 && !s.hasMinWage) {
+    narr.innerHTML = `The minimum wage is set below equilibrium, so it's <strong>non-binding</strong>. The market clears at W* = £${s.e.W.toFixed(2)}, Q* = ${s.e.Q.toFixed(0)}.`;
+  } else if (s.hasMinWage && state.demandShift === 0) {
+    narr.innerHTML = `Binding minimum wage of <strong>£${s.W.toFixed(2)}/hour</strong>. Workers who find jobs earn more, but employers only hire <strong>${s.qd.toFixed(0)} hours</strong> (down from 150). At the same time <strong>${s.qs.toFixed(0)} hours</strong> are offered — the gap of <strong>${s.unemployment.toFixed(0)} hours</strong> is unemployment.`;
+  } else if (state.minWage === 0 && state.demandShift !== 0) {
+    if (state.demandShift < 0) {
+      narr.innerHTML = `Labour demand has fallen (recession, automation, or shift to cheaper offshore labour). D_L shifts left. New equilibrium: wage <strong>£${s.W.toFixed(2)}</strong> (down from £10), quantity <strong>${s.e.Q.toFixed(0)} hours</strong> (down from 150). Workers\' wages fall and fewer hours are worked overall — but there\'s no "unemployment" in the S-D sense because everyone willing to work at the new wage can.`;
+    } else {
+      narr.innerHTML = `Labour demand has risen (boom, new industry, skills shortage). D_L shifts right. New equilibrium: wage <strong>£${s.W.toFixed(2)}</strong> (up from £10), quantity <strong>${s.e.Q.toFixed(0)} hours</strong> (up from 150). Classic labour-market tightening.`;
+    }
+  } else {
+    // Both
+    narr.innerHTML = `Combined case: labour demand has ${state.demandShift < 0 ? 'fallen' : 'risen'} AND a minimum wage of £${s.W.toFixed(2)} is binding. ${state.demandShift < 0 ? `The fall in demand lowered the equilibrium wage further below the minimum, so the minimum wage bites harder — unemployment of ${s.unemployment.toFixed(0)} hours. This is why minimum-wage critics argue the policy hurts most during recessions.` : `Even with rising demand, if the minimum wage is above the new equilibrium, there\'s still ${s.unemployment.toFixed(0)} hours of unemployment.`}`;
+  }
+}
+
+/* Scenario presets */
+const scenarios = {
+  equilibrium: { minWage: 0, demandShift: 0 },
+  'min-wage':  { minWage: 13, demandShift: 0 },
+  'demand-fall': { minWage: 0, demandShift: -30 },
+  both: { minWage: 13, demandShift: -30 },
+};
+
+document.querySelectorAll('[data-scenario]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const s = scenarios[btn.dataset.scenario];
+    if (!s) return;
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.minWage = s.minWage;
+    state.demandShift = s.demandShift;
+    document.getElementById('min-wage-slider').value = s.minWage;
+    document.getElementById('demand-shift-slider').value = s.demandShift;
+    renderAll();
+  });
+});
+document.getElementById('min-wage-slider').addEventListener('input', ev => {
+  state.minWage = Number(ev.target.value);
+  renderAll();
+});
+document.getElementById('demand-shift-slider').addEventListener('input', ev => {
+  state.demandShift = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

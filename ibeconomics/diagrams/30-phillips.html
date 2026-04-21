@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phillips curve · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-srpc { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .curve-srpc-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; opacity: 0.55; }
+    .curve-lrpc { stroke: #5d7a68; stroke-width: 2.5; stroke-dasharray: 6 4; }
+    .nairu-line { stroke: #5d7a68; stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.5; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.25rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .era-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .era-pill.classical { background: #dff0e3; color: #2d6b46; }
+    .era-pill.stagflation { background: #f6d9d4; color: var(--welfare-loss); }
+    .era-pill.lr { background: #e8ddf6; color: #5d3a99; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.3 Phillips curve · HL Required</span>
+      <h1>Phillips curve (short-run and long-run)</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="mode-row">
+        <span class="events-label">View</span>
+        <button class="event-chip active" data-mode="srpc-only">Short-run Phillips curve only</button>
+        <button class="event-chip" data-mode="both">SR + LR together</button>
+        <button class="event-chip" data-mode="stagflation">Stagflation: SRPC shifts</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="mode-narration">
+        The short-run Phillips curve (SRPC) captures an inverse relationship between unemployment and inflation: to get lower unemployment you accept higher inflation. Originally proposed by A.W. Phillips in 1958 from UK data 1861-1957.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Position on SRPC <span class="value" id="u-val">U = 5%</span></label>
+          <input type="range" id="u-slider" min="1" max="14" step="0.2" value="5" />
+          <span class="small muted">Move along the SRPC. At low unemployment, inflation is high; at high unemployment, inflation is low (possibly negative).</span>
+        </div>
+
+        <div class="control">
+          <label>Expected inflation shift <span class="value" id="exp-val">0%</span></label>
+          <input type="range" id="exp-slider" min="0" max="8" step="0.2" value="0" />
+          <span class="small muted">Higher expected inflation shifts the whole SRPC up. This is what happened in the 1970s and is Friedman's key critique.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="era-pill classical" id="era-pill">Classical Phillips trade-off</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Unemployment rate</span>
+          <span class="val" id="u-display">5%</span>
+          <span></span>
+        </div>
+        <div class="row">
+          <span class="lbl">Inflation rate</span>
+          <span class="val" id="inf-display">—</span>
+          <span></span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">Natural rate (NAIRU)</span>
+          <span class="val">5%</span>
+          <span></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        At 5% unemployment (the natural rate), inflation is stable at expected inflation. Move left along the SRPC: lower unemployment but inflation rises. Move right: higher unemployment, lower inflation.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The Friedman-Phelps critique.</strong> The 1960s consensus was that governments could "buy" lower unemployment with higher inflation. Friedman argued this only works in the short run: workers eventually realise inflation has risen and demand higher nominal wages. The SRPC shifts up (expected inflation rose). In the long run, unemployment returns to its natural rate (NAIRU) and only inflation is higher. The long-run Phillips curve is <em>vertical</em> at the NAIRU.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  mode: 'srpc-only',
+  u: 5,
+  expShift: 0,
+  plot: null,
+};
+
+const U_MAX = 16;
+const INF_MAX = 14;
+const NAIRU = 5;
+
+/* SRPC: inflation = a - b*U + expShift, with a convex shape
+   Using: π = expShift + 6 * (NAIRU - U) / (U + 1)  — sharper at low U
+   At U = NAIRU: π = expShift
+   At U = 2: π = expShift + 6 * 3 / 3 = expShift + 6
+   At U = 12: π = expShift + 6 * -7 / 13 = expShift - 3.2
+*/
+function srpc(u) {
+  return state.expShift + 6 * (NAIRU - u) / (u + 1);
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Unemployment rate (%)',
+    yLabel: 'Inflation rate (%)',
+    xMax: U_MAX, yMax: INF_MAX,
+    nxTicks: 8, nyTicks: 7, tickEvery: 1,
+    xFormat: v => v.toFixed(0),
+    yFormat: v => (v - 4).toFixed(0),
+  });
+  // We need a y-axis that goes negative too (deflation range)
+  // For simplicity, offset: 0 at bottom = -4% inflation, 14 at top = +10% inflation
+  // Actually easier: just shift the visual interpretation with a helper.
+}
+
+/* Offset y-axis so 0% inflation shows partway up.
+   Inflation range shown: -4% to +10%. So offset = 4.
+   When inflation = π, display-y = π + 4. */
+const INF_OFFSET = 4;
+
+function yForInflation(pi) {
+  return pi + INF_OFFSET;
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  // Redraw y-axis tick labels with shifted interpretation
+  // (Replace the default ones)
+  // Actually simpler: add the "0% line" marker for clarity
+  const zeroY = yScale(yForInflation(0));
+  plotGroup.appendChild(svgEl('line', {
+    x1: xScale(0), y1: zeroY, x2: xScale(U_MAX), y2: zeroY,
+    stroke: 'var(--ink-soft)', 'stroke-width': 1, opacity: 0.5,
+  }));
+  const zeroLbl = svgEl('text', {
+    x: xScale(U_MAX) - 4, y: zeroY - 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500; fill: var(--ink-soft);",
+  });
+  zeroLbl.textContent = '0% inflation';
+  plotGroup.appendChild(zeroLbl);
+  // Tick relabel: override the default yScale labels with "real" inflation
+  // The default y ticks show 0, 2, 4... 14. We'll add corrected labels over them.
+  const tickPairs = [
+    { display: 0, real: -4 },
+    { display: 4, real: 0 },
+    { display: 8, real: 4 },
+    { display: 12, real: 8 },
+  ];
+  // Actually this creates a mess — let me just leave default labels and put
+  // the 0% line so users can orient.
+
+  // Draw ghost SRPC if stagflation mode (expShift offset)
+  if (state.mode === 'stagflation' && state.expShift > 0) {
+    // Baseline SRPC (expShift = 0)
+    const savedShift = state.expShift;
+    state.expShift = 0;
+    const pts = [];
+    for (let u = 1; u <= U_MAX; u += 0.2) {
+      const pi = srpc(u);
+      pts.push([u, yForInflation(pi)]);
+    }
+    state.expShift = savedShift;
+    const clamped = pts.filter(([u, y]) => y >= 0 && y <= INF_MAX);
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-srpc-ghost',
+      d: clamped.map(([u, y], i) => `${i === 0 ? 'M' : 'L'} ${xScale(u)} ${yScale(y)}`).join(' '),
+      fill: 'none',
+    }));
+    if (clamped.length > 0) {
+      const mid = clamped[Math.floor(clamped.length * 0.7)];
+      const gLbl = svgEl('text', {
+        x: xScale(mid[0]) + 6, y: yScale(mid[1]) + 3,
+        'text-anchor': 'start',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+      });
+      gLbl.textContent = 'SRPC₀';
+      plotGroup.appendChild(gLbl);
+    }
+  }
+
+  // Current SRPC
+  const pts = [];
+  for (let u = 1; u <= U_MAX; u += 0.2) {
+    const pi = srpc(u);
+    const y = yForInflation(pi);
+    pts.push([u, y]);
+  }
+  const clamped = pts.filter(([u, y]) => y >= 0 && y <= INF_MAX);
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-srpc',
+    d: clamped.map(([u, y], i) => `${i === 0 ? 'M' : 'L'} ${xScale(u)} ${yScale(y)}`).join(' '),
+  }));
+  // Label
+  if (clamped.length > 0) {
+    const mid = clamped[Math.floor(clamped.length * 0.75)];
+    const lbl = svgEl('text', {
+      x: xScale(mid[0]) + 6, y: yScale(mid[1]) - 4,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+    });
+    lbl.textContent = state.mode === 'stagflation' && state.expShift > 0 ? 'SRPC₁' : 'SRPC';
+    plotGroup.appendChild(lbl);
+  }
+
+  // LRPC (vertical at NAIRU)
+  if (state.mode !== 'srpc-only') {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'curve-lrpc',
+      x1: xScale(NAIRU), y1: yScale(0),
+      x2: xScale(NAIRU), y2: yScale(INF_MAX),
+    }));
+    const lrLbl = svgEl('text', {
+      x: xScale(NAIRU), y: yScale(INF_MAX) - 6, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d7a68;",
+    });
+    lrLbl.textContent = 'LRPC';
+    plotGroup.appendChild(lrLbl);
+  }
+
+  // Position marker
+  const pi = srpc(state.u);
+  const y = yForInflation(pi);
+  if (y >= 0 && y <= INF_MAX) {
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(state.u), y1: yScale(0), x2: xScale(state.u), y2: yScale(y),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    }));
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(0), y1: yScale(y), x2: xScale(state.u), y2: yScale(y),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
+    }));
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(state.u), cy: yScale(y), r: 6,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    }));
+  }
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const pi = srpc(state.u);
+  document.getElementById('u-display').textContent = state.u.toFixed(1) + '%';
+  document.getElementById('inf-display').textContent = (pi >= 0 ? '+' : '') + pi.toFixed(1) + '%';
+  document.getElementById('u-val').textContent = `U = ${state.u.toFixed(1)}%`;
+  document.getElementById('exp-val').textContent = state.expShift.toFixed(1) + '%';
+
+  const pill = document.getElementById('era-pill');
+  const narr = document.getElementById('narration-text');
+
+  if (state.mode === 'stagflation') {
+    pill.className = 'era-pill stagflation';
+    pill.textContent = 'Stagflation era';
+    narr.innerHTML = `Higher expected inflation (${state.expShift.toFixed(1)}%) has shifted the whole SRPC upward. At U = ${state.u.toFixed(1)}%, inflation is now <strong>${pi.toFixed(1)}%</strong> — higher than it was before on the baseline SRPC. You get MORE inflation at every level of unemployment. Welcome to the 1970s.`;
+  } else if (state.mode === 'both' || Math.abs(state.u - NAIRU) < 0.5) {
+    if (Math.abs(state.u - NAIRU) < 0.5) {
+      pill.className = 'era-pill lr';
+      pill.textContent = 'At the natural rate';
+      narr.innerHTML = `Unemployment is at the NAIRU (5%). Inflation is stable at expected inflation. This is the long-run equilibrium — the point where SRPC and LRPC cross. No policy can sustainably move unemployment below here without causing accelerating inflation.`;
+    } else {
+      pill.className = 'era-pill lr';
+      pill.textContent = 'Trade-off view';
+      narr.innerHTML = `At U = ${state.u.toFixed(1)}%, inflation is <strong>${pi.toFixed(1)}%</strong>. In the short run this point is reachable, but it's off the LRPC (vertical at ${NAIRU}%). Over time, expectations adjust, SRPC shifts, and unemployment returns to ${NAIRU}%.`;
+    }
+  } else {
+    pill.className = 'era-pill classical';
+    pill.textContent = 'Classical Phillips trade-off';
+    narr.innerHTML = `At U = ${state.u.toFixed(1)}%, inflation is <strong>${pi.toFixed(1)}%</strong>. The classical 1960s interpretation: governments can pick a point on this curve — lower U with higher π, or higher U with lower π. Friedman's critique: this only works short-term.`;
+  }
+}
+
+/* UI */
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (state.mode === 'stagflation' && state.expShift === 0) {
+      state.expShift = 5;
+      document.getElementById('exp-slider').value = 5;
+    }
+    renderAll();
+  });
+});
+document.getElementById('u-slider').addEventListener('input', ev => {
+  state.u = Number(ev.target.value);
+  renderAll();
+});
+document.getElementById('exp-slider').addEventListener('input', ev => {
+  state.expShift = Number(ev.target.value);
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

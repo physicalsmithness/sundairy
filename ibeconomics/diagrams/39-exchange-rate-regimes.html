@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exchange rate regimes · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-d-pound { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .curve-d-pound-ghost { stroke: var(--demand); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.5; fill: none; }
+    .curve-s-pound { stroke: var(--supply); stroke-width: 2.5; fill: none; }
+    .curve-s-pound-ghost { stroke: var(--supply); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.45; fill: none; }
+
+    .fixed-line {
+      stroke: #5d3a99;
+      stroke-width: 2.2;
+      stroke-dasharray: 6 4;
+    }
+    .band-line {
+      stroke: #5d3a99;
+      stroke-width: 1.5;
+      stroke-dasharray: 3 3;
+      opacity: 0.7;
+    }
+    .band-fill {
+      fill: #e8ddf6;
+      opacity: 0.3;
+    }
+
+    .intervention-arrow {
+      stroke: var(--welfare-loss);
+      stroke-width: 2.2;
+      marker-end: url(#arrow-int);
+    }
+    .intervention-arrow.buying {
+      stroke: #2d7a50;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+    .totals-grid .up .val { color: #2d7a50; }
+    .totals-grid .down .val { color: var(--welfare-loss); }
+
+    .regime-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .regime-pill.floating { background: var(--paper-deep); color: var(--ink); }
+    .regime-pill.fixed    { background: #e8ddf6; color: #5d3a99; }
+    .regime-pill.managed  { background: #dff0e3; color: #2d6b46; }
+
+    .action-note {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      margin-bottom: 0.7rem;
+      line-height: 1.5;
+    }
+    .action-note .highlight {
+      color: var(--welfare-loss);
+      font-weight: 600;
+    }
+    .action-note .highlight.green {
+      color: #2d7a50;
+    }
+
+    .regime-controls {
+      margin-top: 0.5rem;
+      padding: 0.5rem 0;
+      border-top: 1px solid var(--rule);
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">4.5 Exchange rate regimes · Required</span>
+      <h1>Exchange rate regimes: floating, fixed, managed</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="regime-row">
+        <span class="events-label">Regime</span>
+        <button class="event-chip active" data-regime="floating">Floating</button>
+        <button class="event-chip" data-regime="fixed">Fixed</button>
+        <button class="event-chip" data-regime="managed">Managed float</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="regime-narration">
+        Under a floating exchange rate, the market clears: the exchange rate is wherever supply of £ meets demand for £. Use the shift chip row to apply a shock and see the rate adjust.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control" style="grid-column: span 2;">
+          <label>Shock the demand for £</label>
+          <div class="events-row" id="shock-row" style="margin: 0.2rem 0 0;">
+            <button class="event-chip active" data-shock="none">No shock</button>
+            <button class="event-chip" data-shock="uk-rates-up">UK interest rates ↑</button>
+            <button class="event-chip" data-shock="uk-rates-down">UK interest rates ↓</button>
+            <button class="event-chip" data-shock="export-boom">UK export boom</button>
+            <button class="event-chip" data-shock="recession">Global recession hits UK</button>
+          </div>
+        </div>
+
+        <div class="control" id="fixed-controls" style="display: none;">
+          <label>Target rate <span class="value" id="target-val">$1.40</span></label>
+          <input type="range" id="target-slider" min="1.0" max="1.8" step="0.01" value="1.40" />
+          <span class="small muted">Central bank commits to maintain £1 = this many $. Must intervene if market would clear elsewhere.</span>
+        </div>
+
+        <div class="control" id="managed-controls" style="display: none;">
+          <label>Target band <span class="value" id="band-val">$1.30 – $1.50</span></label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="range" id="band-low-slider" min="1.0" max="1.5" step="0.01" value="1.30" style="flex: 1;" />
+            <input type="range" id="band-high-slider" min="1.3" max="1.8" step="0.01" value="1.50" style="flex: 1;" />
+          </div>
+          <span class="small muted">CB lets the rate float within the band. Intervenes only when it hits an edge.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="regime-pill floating" id="regime-pill">Floating (market-clearing)</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Market-clearing rate</span>
+          <span class="val" id="mkt-rate-val">£1 = $1.40</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Actual rate</span>
+          <span class="val" id="actual-rate-val">£1 = $1.40</span>
+        </div>
+        <hr />
+        <div class="row" id="intervention-row" style="display: none;">
+          <span class="lbl">Central bank action</span>
+          <span class="val" id="intervention-val">—</span>
+        </div>
+        <div class="row" id="reserves-row" style="display: none;">
+          <span class="lbl">Reserves effect</span>
+          <span class="val" id="reserves-val">—</span>
+        </div>
+      </div>
+
+      <div class="action-note" id="action-note" style="display: none;">
+        <span id="action-note-text">—</span>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Under a floating exchange rate regime, the market determines the exchange rate. The central bank doesn't intervene. Shifts in demand or supply simply move the rate to a new clearing level.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The trilemma of exchange rates.</strong> A country can pick two of: (1) a fixed exchange rate, (2) independent monetary policy, (3) free capital movement. It can't have all three. Fixed regimes (like China's peg) sacrifice monetary independence. Floating regimes (like the UK and US) accept volatility in the exchange rate. Managed regimes try to split the difference — usually with limited success in extreme stress.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  regime: 'floating',
+  shock: 'none',
+  target: 1.40,
+  bandLow: 1.30,
+  bandHigh: 1.50,
+  plot: null,
+};
+
+const ER_MAX = 2.0;  // exchange rate axis max
+const Q_MAX = 200;   // quantity of £ axis max
+const BASELINE_EQ = { er: 1.40, q: 100 };
+
+/* Supply and demand for £.
+   D slopes down: higher $ per £ → foreigners demand less £.
+   S slopes up: higher $ per £ → UK residents want to sell more £ (they can buy more $ worth of foreign stuff).
+   Baseline equilibrium at (100, 1.40).
+
+   D(q) = 2.40 - q/100  →  at q=100, D = 1.40 ✓
+   S(q) = q/100 + 0.40  →  at q=100, S = 1.40 ✓  */
+
+function dBase(q) { return 2.40 - q / 100; }
+function sBase(q) { return q / 100 + 0.40; }
+function dInv(er) { return (2.40 - er) * 100; }
+function sInv(er) { return (er - 0.40) * 100; }
+
+/* Shock shifts demand for £ (the most common IB-taught cause of ER changes) */
+const shocks = {
+  'none':         { dShift: 0 },
+  'uk-rates-up':  { dShift: 30 },      // foreign investors want £ assets → D rises
+  'uk-rates-down': { dShift: -30 },
+  'export-boom':  { dShift: 25 },       // foreigners buying UK goods → need £
+  'recession':    { dShift: -30 },
+};
+
+const shockNarrations = {
+  'none':         'No shock applied.',
+  'uk-rates-up':  'UK interest rates rise. Foreign investors rush to buy gilts and UK bonds — they need £ to do so. Demand for £ shifts right.',
+  'uk-rates-down': 'UK interest rates fall. Capital flows out of UK assets into higher-yielding foreign markets. Demand for £ shifts left.',
+  'export-boom':  'UK goods are in hot demand abroad. Foreigners need £ to pay UK exporters. Demand for £ shifts right.',
+  'recession':    'A trading partner enters recession. Foreign consumers and firms buy less from the UK. Demand for £ falls — shifts left.',
+};
+
+function d(q) { return dBase(q - shocks[state.shock].dShift); }
+function dInvCurrent(er) { return dInv(er) + shocks[state.shock].dShift; }
+
+function marketEq() {
+  // Solve: d(q) = s(q)
+  // 2.40 - (q - dShift)/100 = q/100 + 0.40
+  // 2.40 - q/100 + dShift/100 = q/100 + 0.40
+  // 2.00 + dShift/100 = 2q/100
+  // q = (200 + dShift) / 2 = 100 + dShift/2
+  const dShift = shocks[state.shock].dShift;
+  const q = 100 + dShift / 2;
+  const er = sBase(q);
+  return { q, er };
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 80, bottom: 62, left: 80 },
+    xLabel: 'Quantity of £',
+    yLabel: 'Exchange rate ($ per £)',
+    xMax: Q_MAX, yMax: ER_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => `$${v.toFixed(2)}`,
+  });
+
+  // Arrow marker for intervention
+  const defs = svgEl('defs', {});
+  const m = svgEl('marker', {
+    id: 'arrow-int', viewBox: '0 0 10 10', refX: 8, refY: 5,
+    markerWidth: 6, markerHeight: 6, orient: 'auto',
+  });
+  m.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'currentColor' }));
+  defs.appendChild(m);
+  state.plot.svg.insertBefore(defs, state.plot.svg.firstChild);
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const dShift = shocks[state.shock].dShift;
+  const mEq = marketEq();
+
+  // Fixed / managed rate visualisation ------------------
+  let actualRate = mEq.er;
+  let interventionQ = 0;
+  let interventionType = null;   // 'buy' (CB buys £ from reserves), 'sell'
+
+  if (state.regime === 'fixed') {
+    actualRate = state.target;
+    // If target > market equilibrium → CB must BUY £ to push rate up
+    // (shifts demand for £ right — CB uses foreign reserves to buy £)
+    // If target < market → CB must SELL £ from reserves (shifts S right)
+    if (state.target > mEq.er + 0.005) {
+      interventionType = 'buy';
+      // CB buys enough £ to raise rate to target. How many?
+      // At target, market supply is sInv(target), market demand is dInvCurrent(target).
+      // CB needs to buy (market supply - market demand) to clear the market.
+      interventionQ = sInv(state.target) - dInvCurrent(state.target);
+    } else if (state.target < mEq.er - 0.005) {
+      interventionType = 'sell';
+      interventionQ = dInvCurrent(state.target) - sInv(state.target);
+    }
+  } else if (state.regime === 'managed') {
+    if (mEq.er < state.bandLow - 0.005) {
+      // Rate would fall below band: CB buys £
+      actualRate = state.bandLow;
+      interventionType = 'buy';
+      interventionQ = sInv(state.bandLow) - dInvCurrent(state.bandLow);
+    } else if (mEq.er > state.bandHigh + 0.005) {
+      actualRate = state.bandHigh;
+      interventionType = 'sell';
+      interventionQ = dInvCurrent(state.bandHigh) - sInv(state.bandHigh);
+    } else {
+      // Within band — floats freely
+      actualRate = mEq.er;
+    }
+  }
+
+  // Draw band (managed regime)
+  if (state.regime === 'managed') {
+    const bandY1 = yScale(state.bandHigh);
+    const bandY2 = yScale(state.bandLow);
+    plotGroup.appendChild(svgEl('rect', {
+      x: xScale(0), y: bandY1,
+      width: xScale(Q_MAX) - xScale(0), height: bandY2 - bandY1,
+      class: 'band-fill',
+    }));
+    // Band edges
+    plotGroup.appendChild(svgEl('line', {
+      class: 'band-line',
+      x1: xScale(0), y1: yScale(state.bandHigh),
+      x2: xScale(Q_MAX), y2: yScale(state.bandHigh),
+    }));
+    plotGroup.appendChild(svgEl('line', {
+      class: 'band-line',
+      x1: xScale(0), y1: yScale(state.bandLow),
+      x2: xScale(Q_MAX), y2: yScale(state.bandLow),
+    }));
+    // Band labels
+    plotGroup.appendChild(Object.assign(svgEl('text', {
+      x: xScale(Q_MAX) + 4, y: yScale(state.bandHigh) + 3, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; fill: #5d3a99;",
+    }), { textContent: `$${state.bandHigh.toFixed(2)} (ceiling)` }));
+    plotGroup.appendChild(Object.assign(svgEl('text', {
+      x: xScale(Q_MAX) + 4, y: yScale(state.bandLow) + 3, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; fill: #5d3a99;",
+    }), { textContent: `$${state.bandLow.toFixed(2)} (floor)` }));
+  }
+
+  // Fixed rate line
+  if (state.regime === 'fixed') {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'fixed-line',
+      x1: xScale(0), y1: yScale(state.target),
+      x2: xScale(Q_MAX), y2: yScale(state.target),
+    }));
+    const fLbl = svgEl('text', {
+      x: xScale(Q_MAX) + 4, y: yScale(state.target) + 3, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d3a99;",
+    });
+    fLbl.textContent = `$${state.target.toFixed(2)} (fixed)`;
+    plotGroup.appendChild(fLbl);
+  }
+
+  // Demand for £ (ghost if shifted, current solid)
+  if (dShift !== 0) {
+    // Ghost baseline
+    plotGroup.appendChild(svgEl('path', {
+      class: 'curve-d-pound-ghost',
+      d: `M ${xScale(dInv(0.40))} ${yScale(0.40)} L ${xScale(dInv(2.0))} ${yScale(2.0)}`,
+    }));
+    const gLbl = svgEl('text', {
+      x: xScale(dInv(0.55)) + 4, y: yScale(0.55) + 14, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: var(--demand); opacity: 0.8;",
+    });
+    gLbl.textContent = 'D₀';
+    plotGroup.appendChild(gLbl);
+  }
+  // Current D
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-d-pound',
+    d: `M ${xScale(dInvCurrent(0.40))} ${yScale(0.40)} L ${xScale(dInvCurrent(2.0))} ${yScale(2.0)}`,
+  }));
+  const dLbl = svgEl('text', {
+    x: xScale(dInvCurrent(0.55)) - 4, y: yScale(0.55) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = dShift !== 0 ? 'D₁(£)' : 'D(£)';
+  plotGroup.appendChild(dLbl);
+
+  // Supply of £
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-s-pound',
+    d: `M ${xScale(sInv(0.40))} ${yScale(0.40)} L ${xScale(sInv(1.9))} ${yScale(1.9)}`,
+  }));
+  const sLbl = svgEl('text', {
+    x: xScale(sInv(1.9)) - 4, y: yScale(1.9) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  sLbl.textContent = 'S(£)';
+  plotGroup.appendChild(sLbl);
+
+  // Market equilibrium dot (always show)
+  const mktDotFill = (state.regime === 'floating' || (state.regime === 'managed' && interventionType === null)) ? '#fff' : 'none';
+  const mktStrokeDash = (state.regime === 'fixed' || interventionType !== null) ? '2 2' : '0';
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(mEq.q), cy: yScale(mEq.er), r: 5,
+    fill: mktDotFill, stroke: 'var(--ink)', 'stroke-width': 2,
+    'stroke-dasharray': mktStrokeDash,
+    opacity: (state.regime === 'fixed' || interventionType !== null) ? 0.55 : 1,
+  }));
+
+  // Actual operating point (if different from market)
+  if (actualRate !== mEq.er) {
+    // Find Q at actual rate: use s curve (CB will supply or absorb the difference)
+    const qAtActual = sInv(actualRate);
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(qAtActual), cy: yScale(actualRate), r: 6,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2.5,
+    }));
+    // Drop lines to axes
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(qAtActual), y1: yScale(0), x2: xScale(qAtActual), y2: yScale(actualRate),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+    }));
+    plotGroup.appendChild(svgEl('line', {
+      x1: xScale(0), y1: yScale(actualRate), x2: xScale(qAtActual), y2: yScale(actualRate),
+      stroke: 'var(--ink-soft)', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.6,
+    }));
+
+    // Intervention visualisation: horizontal arrow from market quantity to CB-adjusted quantity
+    if (interventionType === 'buy') {
+      // CB buys £ — shifts demand curve right; show arrow pointing right at the actual rate
+      const qSrc = dInvCurrent(actualRate);  // where D would be without intervention
+      const qDst = sInv(actualRate);          // where S is (= supply met by CB)
+      plotGroup.appendChild(svgEl('line', {
+        class: 'intervention-arrow buying',
+        x1: xScale(qSrc), y1: yScale(actualRate),
+        x2: xScale(qDst), y2: yScale(actualRate),
+      }));
+      const aLbl = svgEl('text', {
+        x: xScale((qSrc + qDst) / 2), y: yScale(actualRate) - 10,
+        'text-anchor': 'middle',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #2d7a50; paint-order: stroke; stroke: #fff; stroke-width: 3;",
+      });
+      aLbl.textContent = `CB buys £${interventionQ.toFixed(0)} (uses reserves)`;
+      plotGroup.appendChild(aLbl);
+    } else if (interventionType === 'sell') {
+      const qSrc = sInv(actualRate);
+      const qDst = dInvCurrent(actualRate);
+      plotGroup.appendChild(svgEl('line', {
+        class: 'intervention-arrow',
+        x1: xScale(qSrc), y1: yScale(actualRate),
+        x2: xScale(qDst), y2: yScale(actualRate),
+      }));
+      const aLbl = svgEl('text', {
+        x: xScale((qSrc + qDst) / 2), y: yScale(actualRate) - 10,
+        'text-anchor': 'middle',
+        style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--welfare-loss); paint-order: stroke; stroke: #fff; stroke-width: 3;",
+      });
+      aLbl.textContent = `CB sells £${interventionQ.toFixed(0)} (gains reserves)`;
+      plotGroup.appendChild(aLbl);
+    }
+  }
+
+  // ER label on y-axis
+  const erLblVal = actualRate;
+  plotGroup.appendChild(Object.assign(svgEl('text', {
+    x: xScale(0) - 8, y: yScale(erLblVal) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  }), { textContent: `$${erLblVal.toFixed(2)}` }));
+
+  updateRightPanel({ mEq, actualRate, interventionType, interventionQ, dShift });
+  updateSliderVisibility();
+}
+
+function updateSliderVisibility() {
+  document.getElementById('fixed-controls').style.display = state.regime === 'fixed' ? '' : 'none';
+  document.getElementById('managed-controls').style.display = state.regime === 'managed' ? '' : 'none';
+  document.getElementById('target-val').textContent = `$${state.target.toFixed(2)}`;
+  document.getElementById('band-val').textContent = `$${state.bandLow.toFixed(2)} – $${state.bandHigh.toFixed(2)}`;
+}
+
+function updateRightPanel(s) {
+  const pill = document.getElementById('regime-pill');
+  const narr = document.getElementById('narration-text');
+  const actionNote = document.getElementById('action-note');
+  const actionText = document.getElementById('action-note-text');
+  const interventionRow = document.getElementById('intervention-row');
+  const reservesRow = document.getElementById('reserves-row');
+
+  document.getElementById('mkt-rate-val').textContent = `£1 = $${s.mEq.er.toFixed(2)}`;
+  document.getElementById('actual-rate-val').textContent = `£1 = $${s.actualRate.toFixed(2)}`;
+
+  if (state.regime === 'floating') {
+    pill.className = 'regime-pill floating';
+    pill.textContent = 'Floating (market-clearing)';
+    interventionRow.style.display = 'none';
+    reservesRow.style.display = 'none';
+    actionNote.style.display = 'none';
+    if (s.dShift === 0) {
+      narr.innerHTML = 'Market at equilibrium. No shifts, no intervention. Exchange rate = $1.40.';
+    } else {
+      const direction = s.dShift > 0 ? 'appreciation (stronger £)' : 'depreciation (weaker £)';
+      narr.innerHTML = `The demand shock has caused an <strong>${direction}</strong>. Market clears at a new rate: £1 = $${s.mEq.er.toFixed(2)} (was $${BASELINE_EQ.er}). Under a floating regime the central bank does nothing — the rate just moves.`;
+    }
+  } else if (state.regime === 'fixed') {
+    pill.className = 'regime-pill fixed';
+    pill.textContent = 'Fixed exchange rate';
+    if (s.interventionType === null) {
+      interventionRow.style.display = 'none';
+      reservesRow.style.display = 'none';
+      actionNote.style.display = 'none';
+      narr.innerHTML = `The target rate ($${state.target.toFixed(2)}) happens to match the market rate. No intervention needed today — but that's the easy case.`;
+    } else {
+      interventionRow.style.display = 'contents';
+      reservesRow.style.display = 'contents';
+      actionNote.style.display = 'block';
+      if (s.interventionType === 'buy') {
+        document.getElementById('intervention-val').textContent = `Buy £${s.interventionQ.toFixed(0)}`;
+        document.getElementById('reserves-val').textContent = 'Uses foreign reserves';
+        actionText.innerHTML = `Market would clear below target. CB must <span class="highlight green">buy £</span> using foreign-currency reserves to push the rate up. Every period this imbalance persists, the CB runs down its reserves — <strong>this can only go on so long</strong>.`;
+        narr.innerHTML = `Target rate is above where the market would clear. CB buys £ using $ reserves to prop up the rate. If the imbalance persists, reserves deplete and eventually the peg has to be abandoned (or revalued).`;
+      } else {
+        document.getElementById('intervention-val').textContent = `Sell £${s.interventionQ.toFixed(0)}`;
+        document.getElementById('reserves-val').textContent = 'Gains foreign reserves';
+        actionText.innerHTML = `Market would clear above target. CB must <span class="highlight">sell £</span> (printing more, or releasing from balance sheet) to push the rate down. This is easier than buying — CB can always create more £. But it expands the money supply and risks inflation.`;
+        narr.innerHTML = `Target rate is below where the market would clear. CB sells £ (acquiring foreign reserves in exchange). No limit on how long this can continue, but the growing money supply risks inflation.`;
+      }
+    }
+  } else {
+    pill.className = 'regime-pill managed';
+    pill.textContent = 'Managed float';
+    if (s.interventionType === null) {
+      interventionRow.style.display = 'none';
+      reservesRow.style.display = 'none';
+      actionNote.style.display = 'none';
+      narr.innerHTML = `The market-clearing rate is <strong>within the band</strong> [$${state.bandLow.toFixed(2)}, $${state.bandHigh.toFixed(2)}] — no intervention needed. The rate floats freely.`;
+    } else {
+      interventionRow.style.display = 'contents';
+      reservesRow.style.display = 'contents';
+      actionNote.style.display = 'block';
+      if (s.interventionType === 'buy') {
+        document.getElementById('intervention-val').textContent = `Buy £${s.interventionQ.toFixed(0)}`;
+        document.getElementById('reserves-val').textContent = 'Uses foreign reserves';
+        actionText.innerHTML = `Rate would fall below band floor ($${state.bandLow.toFixed(2)}). CB <span class="highlight green">buys £</span> to push it up to the floor. Smaller intervention than a full peg — CB only acts when the band edge is threatened.`;
+        narr.innerHTML = `Market rate would fall below the band floor. CB buys £ to keep it within range. Less aggressive than a fixed peg: lets the rate move within [$${state.bandLow.toFixed(2)}, $${state.bandHigh.toFixed(2)}].`;
+      } else {
+        document.getElementById('intervention-val').textContent = `Sell £${s.interventionQ.toFixed(0)}`;
+        document.getElementById('reserves-val').textContent = 'Gains foreign reserves';
+        actionText.innerHTML = `Rate would rise above band ceiling ($${state.bandHigh.toFixed(2)}). CB <span class="highlight">sells £</span> to push it down to the ceiling.`;
+        narr.innerHTML = `Market rate would rise above the band ceiling. CB sells £ to push it down to the ceiling.`;
+      }
+    }
+  }
+
+  document.getElementById('regime-narration').textContent = shockNarrations[state.shock];
+}
+
+/* UI wiring */
+document.querySelectorAll('[data-regime]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.regime = btn.dataset.regime;
+    document.querySelectorAll('[data-regime]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.querySelectorAll('[data-shock]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.shock = btn.dataset.shock;
+    document.querySelectorAll('[data-shock]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('target-slider').addEventListener('input', ev => {
+  state.target = Number(ev.target.value);
+  renderAll();
+});
+document.getElementById('band-low-slider').addEventListener('input', ev => {
+  state.bandLow = Number(ev.target.value);
+  if (state.bandLow > state.bandHigh - 0.05) state.bandLow = state.bandHigh - 0.05;
+  renderAll();
+});
+document.getElementById('band-high-slider').addEventListener('input', ev => {
+  state.bandHigh = Number(ev.target.value);
+  if (state.bandHigh < state.bandLow + 0.05) state.bandHigh = state.bandLow + 0.05;
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quota · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-s { stroke: var(--supply); stroke-width: 2.5; fill: none; }
+    .curve-d { stroke: var(--demand-shift); stroke-width: 2.5; fill: none; }
+    .pw-line { stroke: #5d3a99; stroke-width: 1.8; stroke-dasharray: 4 3; opacity: 0.7; }
+    .pwt-line { stroke: #5d3a99; stroke-width: 2; stroke-dasharray: 6 4; }
+
+    .area-imports-pre { fill: #e8ddf6; opacity: 0.35; }
+    .area-tariff-rev { fill: rgba(138, 111, 184, 0.55); }
+    .area-dwl { fill: var(--welfare-loss); opacity: 0.35; }
+    .area-transferred { fill: rgba(60, 160, 100, 0.3); }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+    .totals-grid .bad .val { color: var(--welfare-loss); }
+    .totals-grid .good .val { color: #2d7a50; }
+
+    .legend-area {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.25rem 0.5rem;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      margin: 0.4rem 0 0.8rem;
+    }
+    .legend-swatch { width: 16px; height: 12px; border-radius: 2px; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">4.2 Quota · Required</span>
+      <h1>Import quota</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="scenario-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-scenario="baseline">Free trade (no quota)</button>
+        <button class="event-chip" data-scenario="loose">Generous quota (30 units)</button>
+        <button class="event-chip" data-scenario="tight">Tight quota (10 units)</button>
+        <button class="event-chip" data-scenario="zero">Full ban (0 units)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="scenario-narration">
+        An import quota caps the quantity of imports. Domestic price then rises to whatever level clears the reduced supply. A quota of 40 does nothing; tighter quotas bite.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Quota (imports allowed) <span class="value" id="tariff-val">40 units</span></label>
+          <input type="range" id="tariff-slider" min="0" max="40" step="1" value="40" />
+          <span class="small muted">Max quantity of imports allowed. At 40 the quota is non-binding. Below 40, it bites — domestic price rises.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Domestic price</span>
+          <span class="val" id="p-val">£30</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Qs (domestic supply)</span>
+          <span class="val" id="qs-val">30</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Qd (domestic demand)</span>
+          <span class="val" id="qd-val">70</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Imports</span>
+          <span class="val" id="imp-val">40</span>
+        </div>
+        <hr />
+        <div class="row good">
+          <span class="lbl">Producer gain</span>
+          <span class="val" id="pg-val">£0</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Quota rent (to licence-holders)</span>
+          <span class="val" id="tr-val">£0</span>
+        </div>
+        <div class="row bad">
+          <span class="lbl">Consumer loss</span>
+          <span class="val" id="cl-val">£0</span>
+        </div>
+        <div class="row bad">
+          <span class="lbl"><strong>Deadweight loss</strong></span>
+          <span class="val" id="dwl-val">£0</span>
+        </div>
+      </div>
+
+      <div class="legend-area">
+        <div class="legend-swatch" style="background: rgba(60,160,100,0.3);"></div>
+        <span>Transferred from consumers to producers</span>
+        <div class="legend-swatch" style="background: rgba(138,111,184,0.55);"></div>
+        <span>Quota rent (usually to foreign exporters / licence-holders)</span>
+        <div class="legend-swatch" style="background: var(--welfare-loss); opacity: 0.4;"></div>
+        <span>Deadweight loss (burned)</span>
+      </div>
+
+      <p class="prose" id="narration-text">
+        An import quota caps the number of units that can be imported. The domestic price rises to clear what remains. Visually similar to a tariff — the shapes on the diagram are the same — but the purple rectangle is <em>quota rent</em> and goes to whoever holds the import licences (often foreign exporters who raise their prices), not to the home government.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Quota vs tariff.</strong> A quota and a tariff can produce the <em>same</em> domestic price, quantities, and welfare losses. The difference is who gets the "middle rectangle". With a tariff, it's government tax revenue. With a quota, it's rent captured by whoever holds the import licences — often foreign exporters raising their own prices to capture the scarcity rent. That's one reason economists generally prefer tariffs to quotas: at least the revenue stays in the country.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  quota: 40,   // imports allowed; 40 is non-binding
+  plot: null,
+};
+
+const Pw = 30;
+const P_AUTARKY = 50;
+const P_MAX = 100;
+const Q_MAX = 100;
+const FREE_TRADE_IMPORTS = 40;  // Qd(Pw) - Qs(Pw) at Pw=30
+
+function qd(P) { return Math.max(0, 100 - P); }
+function qs(P) { return Math.max(0, P); }
+
+/* Price at which Qd - Qs = quota (given linear curves):
+   (100 - P) - P = quota  →  P = (100 - quota) / 2
+   Bounded below by Pw (quota > free-trade imports → non-binding). */
+function pqFromQuota(q) {
+  return Math.max(Pw, Math.min(P_AUTARKY, (100 - q) / 2));
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    margin: { top: 30, right: 60, bottom: 62, left: 80 },
+    xLabel: 'Quantity',
+    yLabel: 'Price (£)',
+    xMax: Q_MAX, yMax: P_MAX,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => `£${Math.round(v)}`,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const q = state.quota;
+  const Pt = pqFromQuota(q);
+  const actualWedge = Pt - Pw;   // the "tariff-equivalent"
+  const quotaBinding = q < FREE_TRADE_IMPORTS - 0.5;
+
+  const Qs0 = qs(Pw), Qd0 = qd(Pw);
+  const Qs1 = qs(Pt), Qd1 = qd(Pt);
+  const prohibitive = Qs1 >= Qd1 - 0.5;
+  const imports_post = Math.max(0, Qd1 - Qs1);
+
+  const producerGain = (Qs0 + Qs1) / 2 * actualWedge;
+  const quotaRent = imports_post * actualWedge;
+  const dwlProduction = (Qs1 - Qs0) * actualWedge / 2;
+  const dwlConsumption = (Qd0 - Qd1) * actualWedge / 2;
+  const dwl = dwlProduction + dwlConsumption;
+  const consumerLoss = producerGain + quotaRent + dwl;
+
+  // Pre-tariff imports band (thin)
+  if (!prohibitive && actualWedge > 0) {
+    plotGroup.appendChild(svgEl('rect', {
+      x: xScale(Qs0), y: yScale(Pw) - 3,
+      width: xScale(Qd0) - xScale(Qs0), height: 6,
+      class: 'area-imports-pre',
+    }));
+  }
+
+  // Producer gain trapezoid
+  if (actualWedge > 0) {
+    const gainPath = `M ${xScale(0)} ${yScale(Pw)} ` +
+                     `L ${xScale(0)} ${yScale(Pt)} ` +
+                     `L ${xScale(Qs1)} ${yScale(Pt)} ` +
+                     `L ${xScale(Qs0)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-transferred', d: gainPath }));
+  }
+
+  // Tariff revenue rectangle
+  if (actualWedge > 0 && imports_post > 0.5) {
+    plotGroup.appendChild(svgEl('rect', {
+      x: xScale(Qs1), y: yScale(Pt),
+      width: xScale(Qd1) - xScale(Qs1), height: yScale(Pw) - yScale(Pt),
+      class: 'area-tariff-rev',
+    }));
+    const tLbl = svgEl('text', {
+      x: xScale((Qs1 + Qd1) / 2), y: yScale((Pw + Pt) / 2) + 4,
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #fff;",
+    });
+    tLbl.textContent = `£${quotaRent.toFixed(0)}`;
+    plotGroup.appendChild(tLbl);
+  }
+
+  // DWL production triangle
+  if (actualWedge > 0 && Qs1 > Qs0 + 0.5) {
+    const dwlProdPath = `M ${xScale(Qs0)} ${yScale(Pw)} ` +
+                        `L ${xScale(Qs1)} ${yScale(Pt)} ` +
+                        `L ${xScale(Qs1)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-dwl', d: dwlProdPath }));
+  }
+  // DWL consumption triangle
+  if (actualWedge > 0 && Qd0 > Qd1 + 0.5) {
+    const dwlConsPath = `M ${xScale(Qd1)} ${yScale(Pt)} ` +
+                        `L ${xScale(Qd0)} ${yScale(Pw)} ` +
+                        `L ${xScale(Qd1)} ${yScale(Pw)} Z`;
+    plotGroup.appendChild(svgEl('path', { class: 'area-dwl', d: dwlConsPath }));
+  }
+
+  // D, S
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-d',
+    d: `M ${xScale(0)} ${yScale(100)} L ${xScale(100)} ${yScale(0)}`,
+  }));
+  const dLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(0) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D';
+  plotGroup.appendChild(dLbl);
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-s',
+    d: `M ${xScale(0)} ${yScale(0)} L ${xScale(100)} ${yScale(100)}`,
+  }));
+  const sLbl = svgEl('text', {
+    x: xScale(100) - 4, y: yScale(100) + 14, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--supply);",
+  });
+  sLbl.textContent = 'S';
+  plotGroup.appendChild(sLbl);
+
+  // Pw line
+  plotGroup.appendChild(svgEl('line', {
+    class: 'pw-line',
+    x1: xScale(0), y1: yScale(Pw), x2: xScale(Q_MAX), y2: yScale(Pw),
+  }));
+  const pwLbl = svgEl('text', {
+    x: xScale(Q_MAX) + 6, y: yScale(Pw) + 4, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d3a99; opacity: 0.7;",
+  });
+  pwLbl.textContent = `Pw = £${Pw}`;
+  plotGroup.appendChild(pwLbl);
+
+  // Pw+t line
+  if (actualWedge > 0) {
+    plotGroup.appendChild(svgEl('line', {
+      class: 'pwt-line',
+      x1: xScale(0), y1: yScale(Pt), x2: xScale(Q_MAX), y2: yScale(Pt),
+    }));
+    const ptLbl = svgEl('text', {
+      x: xScale(Q_MAX) + 6, y: yScale(Pt) + 4, 'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: #5d3a99;",
+    });
+    ptLbl.textContent = prohibitive ? `Pq = £${Pt} (= autarky)` : `Pq = £${Pt} (quota-cleared)`;
+    plotGroup.appendChild(ptLbl);
+  }
+
+  // Markers
+  if (actualWedge > 0 && !prohibitive) {
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qs1), cy: yScale(Pt), r: 5,
+      fill: '#fff', stroke: 'var(--supply)', 'stroke-width': 2,
+    }));
+    plotGroup.appendChild(svgEl('circle', {
+      cx: xScale(Qd1), cy: yScale(Pt), r: 5,
+      fill: '#fff', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+    }));
+  }
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(Qs0), cy: yScale(Pw), r: 4,
+    fill: 'none', stroke: 'var(--supply)', 'stroke-width': 1.5, opacity: 0.6,
+  }));
+  plotGroup.appendChild(svgEl('circle', {
+    cx: xScale(Qd0), cy: yScale(Pw), r: 4,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 1.5, opacity: 0.6,
+  }));
+
+  updateRightPanel({ Pt, Qs1, Qd1, imports_post, producerGain, quotaRent, dwl, consumerLoss, actualWedge });
+  updateTariffLabel();
+}
+
+function updateTariffLabel() {
+  const q = state.quota;
+  const el = document.getElementById('tariff-val');
+  if (q >= 40) el.textContent = 'Non-binding (40+ units)';
+  else if (q === 0) el.textContent = 'Ban (0 units)';
+  else el.textContent = `${q} units`;
+}
+
+function updateRightPanel(s) {
+  document.getElementById('p-val').textContent = `£${s.Pt.toFixed(0)}`;
+  document.getElementById('qs-val').textContent = s.Qs1.toFixed(0);
+  document.getElementById('qd-val').textContent = s.Qd1.toFixed(0);
+  document.getElementById('imp-val').textContent = s.imports_post.toFixed(0);
+  document.getElementById('pg-val').textContent = `+£${s.producerGain.toFixed(0)}`;
+  document.getElementById('tr-val').textContent = `+£${s.quotaRent.toFixed(0)}`;
+  document.getElementById('cl-val').textContent = `−£${s.consumerLoss.toFixed(0)}`;
+  document.getElementById('dwl-val').textContent = `£${s.dwl.toFixed(0)}`;
+
+  const narr = document.getElementById('narration-text');
+  if (s.actualWedge === 0) {
+    narr.innerHTML = `Non-binding quota — imports below the cap. Pw = £${Pw}, imports = ${s.imports_post.toFixed(0)} units. Free-trade welfare.`;
+  } else if (s.imports_post < 0.5) {
+    narr.innerHTML = `Complete ban / zero quota. Domestic price = autarky (£${P_AUTARKY}). No imports, no quota rent to capture. DWL = £${s.dwl.toFixed(0)} — the total damage of cutting off trade.`;
+  } else {
+    narr.innerHTML = `Quota of ${state.quota} units pushes domestic price to £${s.Pt.toFixed(0)}. Producers gain <strong>£${s.producerGain.toFixed(0)}</strong>. Import licence-holders capture <strong>£${s.quotaRent.toFixed(0)}</strong> of quota rent. Consumers lose <strong>£${s.consumerLoss.toFixed(0)}</strong>, and £${s.dwl.toFixed(0)} of welfare is destroyed.`;
+  }
+}
+
+const scenarios = { baseline: 40, loose: 30, tight: 10, zero: 0 };
+document.querySelectorAll('[data-scenario]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.quota = scenarios[btn.dataset.scenario] ?? 40;
+    document.getElementById('tariff-slider').value = state.quota;
+    renderAll();
+  });
+});
+document.getElementById('tariff-slider').addEventListener('input', ev => {
+  state.quota = Number(ev.target.value);
+  document.querySelectorAll('[data-scenario]').forEach(b => b.classList.remove('active'));
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

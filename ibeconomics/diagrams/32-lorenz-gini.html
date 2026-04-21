@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lorenz curve and Gini · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-lorenz {
+      stroke: var(--demand-shift);
+      stroke-width: 2.5;
+      fill: none;
+    }
+    .curve-equality {
+      stroke: #5d7a68;
+      stroke-width: 2;
+      stroke-dasharray: 6 4;
+    }
+    .area-a { fill: var(--welfare-loss); opacity: 0.20; }
+    .area-b { fill: var(--supply); opacity: 0.12; }
+
+    .country-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .country-chip {
+      padding: 0.3rem 0.7rem;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+    .country-chip.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .gini-scale {
+      display: flex;
+      height: 22px;
+      border-radius: 11px;
+      overflow: hidden;
+      margin: 0.6rem 0 0.3rem;
+      background: linear-gradient(90deg, #dff0e3 0%, #fde8c6 50%, #f6d9d4 100%);
+      position: relative;
+    }
+    .gini-scale .marker {
+      position: absolute;
+      top: -4px;
+      width: 3px;
+      height: 30px;
+      background: var(--ink);
+    }
+    .gini-scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5px;
+      color: var(--ink-soft);
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">3.4 Income distribution · Required</span>
+      <h1>Lorenz curve and Gini coefficient</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="country-row">
+        <span class="events-label">Real-world Gini</span>
+        <div class="country-chips">
+          <button class="country-chip active" data-alpha="0.85">Slovakia G=25</button>
+          <button class="country-chip" data-alpha="1.1">UK G=33</button>
+          <button class="country-chip" data-alpha="1.35">USA G=40</button>
+          <button class="country-chip" data-alpha="1.8">Brazil G=50</button>
+          <button class="country-chip" data-alpha="2.2">South Africa G=60</button>
+        </div>
+      </div>
+
+      <div class="event-narration baseline visible" id="country-narration">
+        Slovakia has one of the most equal income distributions in the world (Gini ≈ 25). The Lorenz curve sits close to the line of equality — each slice of the population earns a similar share of total income.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Inequality parameter <span class="value" id="alpha-val">0.85</span></label>
+          <input type="range" id="alpha-slider" min="0.0" max="3.0" step="0.05" value="0.85" />
+          <span class="small muted">Higher values = more unequal. 0 is perfect equality; 3+ is extreme concentration. Real-world countries sit between 0.5 and 2.5.</span>
+        </div>
+
+        <div class="control">
+          <label>Show area-A shading</label>
+          <div style="display: flex; gap: 0.3rem;">
+            <button id="show-shading-on" class="country-chip active">Shade</button>
+            <button id="show-shading-off" class="country-chip">Plain</button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Bottom 20% earn</span>
+          <span class="val" id="bottom20">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Middle 60% earn</span>
+          <span class="val" id="middle60">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Top 20% earn</span>
+          <span class="val" id="top20">—</span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">Top 1% earn</span>
+          <span class="val" id="top1">—</span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl"><strong>Gini coefficient</strong></span>
+          <span class="val" id="gini-val">—</span>
+        </div>
+      </div>
+
+      <div class="gini-scale">
+        <div class="marker" id="gini-marker" style="left: 0%;"></div>
+      </div>
+      <div class="gini-scale-labels">
+        <span>0 (equal)</span>
+        <span>50 (moderate)</span>
+        <span>100 (one person has it all)</span>
+      </div>
+
+      <p class="prose" id="narration-text">
+        The Lorenz curve plots the cumulative share of income (y) against the cumulative share of the population (x), both from poorest to richest. Perfect equality would be a straight 45° line — bottom 10% earn 10% of income, bottom half earn half. Any actual economy bows below this line; the bigger the bow, the worse the inequality.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Gini = A / (A + B).</strong> A is the area between the line of equality and the Lorenz curve (coral shading); B is the area below the Lorenz curve (green). If the Lorenz curve coincides with the equality line, A=0 → Gini=0 (perfect equality). If it hugs the x-axis until the last person and then spikes to 100%, A fills the whole triangle → Gini=1 (one person has everything). Real Gini values are reported as either 0-1 or 0-100.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl } from '../js/common.js';
+
+const state = {
+  alpha: 0.85,
+  showShading: true,
+  plot: null,
+};
+
+/* Use the functional form L(p) = p^(1+alpha) for alpha >= 0.
+   alpha = 0 gives L(p) = p — perfect equality.
+   alpha = 1 gives L(p) = p² — moderate inequality (Gini = 1/3).
+   Higher alpha = more inequality.  */
+function lorenz(p) {
+  return Math.pow(p, 1 + state.alpha);
+}
+
+/* Gini = 1 - 2 * integral from 0 to 1 of L(p) dp
+   For L(p) = p^(1+alpha):  integral = 1 / (2+alpha)
+   So Gini = 1 - 2/(2+alpha) = alpha / (2+alpha) */
+function gini() {
+  return state.alpha / (2 + state.alpha);
+}
+
+function makePlot() {
+  state.plot = createAxes({
+    container: document.getElementById('plot'),
+    width: 540, height: 540,
+    margin: { top: 30, right: 80, bottom: 62, left: 80 },
+    xLabel: 'Cumulative share of population (%)',
+    yLabel: 'Cumulative share of income (%)',
+    xMax: 100, yMax: 100,
+    nxTicks: 10, nyTicks: 10, tickEvery: 2,
+    xFormat: v => Math.round(v),
+    yFormat: v => Math.round(v),
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  // Generate polyline points (100 segments)
+  const N = 100;
+  const pts = [];
+  for (let i = 0; i <= N; i++) {
+    const p = i / N;
+    pts.push([p * 100, lorenz(p) * 100]);
+  }
+
+  // Area A: between equality line and Lorenz curve
+  if (state.showShading) {
+    // Path: equality line (0,0) → (100,100) down along Lorenz back to origin
+    const equalityPath = 'M 0 100 ' + pts.map(([x, y]) => `L ${x} ${100 - y}`).join(' ').replace(/^L/, '') + ' Z';
+    // That's wrong syntactically. Let's do it carefully:
+    // Start at (0, 0) in plot coords (which is yScale(100) in SVG terms — top-left)
+    // Actually easier: build paths in plot coordinates, convert each to SVG.
+    const svgPts = pts.map(([x, y]) => [xScale(x), yScale(y)]);
+    const equalityLinePts = [
+      [xScale(0), yScale(0)],
+      [xScale(100), yScale(100)],
+    ];
+    // Area A: polygon going equality from (0,0) to (100,100), then back along Lorenz
+    let aPath = `M ${equalityLinePts[0][0]} ${equalityLinePts[0][1]} `;
+    aPath += `L ${equalityLinePts[1][0]} ${equalityLinePts[1][1]} `;
+    // reverse through Lorenz back to origin
+    for (let i = svgPts.length - 1; i >= 0; i--) {
+      aPath += `L ${svgPts[i][0]} ${svgPts[i][1]} `;
+    }
+    aPath += 'Z';
+    plotGroup.appendChild(svgEl('path', {
+      class: 'area-a',
+      d: aPath, fill: 'var(--welfare-loss)', opacity: 0.20,
+    }));
+    // Area B: polygon below Lorenz (x-axis)
+    let bPath = `M ${xScale(0)} ${yScale(0)} `;
+    for (const [x, y] of svgPts) bPath += `L ${x} ${y} `;
+    bPath += `L ${xScale(100)} ${yScale(0)} Z`;
+    plotGroup.appendChild(svgEl('path', {
+      class: 'area-b',
+      d: bPath, fill: 'var(--supply)', opacity: 0.12,
+    }));
+  }
+
+  // Line of equality
+  plotGroup.appendChild(svgEl('line', {
+    class: 'curve-equality',
+    x1: xScale(0), y1: yScale(0),
+    x2: xScale(100), y2: yScale(100),
+  }));
+  // Label
+  const eqLbl = svgEl('text', {
+    x: xScale(85), y: yScale(90),
+    'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; fill: #5d7a68;",
+  });
+  eqLbl.textContent = 'Line of equality';
+  plotGroup.appendChild(eqLbl);
+
+  // Lorenz curve
+  const lorenzPath = 'M ' + pts.map(([x, y], i) => `${i === 0 ? '' : 'L '}${xScale(x)} ${yScale(y)}`).join(' ');
+  plotGroup.appendChild(svgEl('path', {
+    class: 'curve-lorenz',
+    d: lorenzPath, fill: 'none',
+  }));
+  // Lorenz label
+  const lorenzLbl = svgEl('text', {
+    x: xScale(72), y: yScale(lorenz(0.72) * 100) + 18,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  lorenzLbl.textContent = 'Lorenz';
+  plotGroup.appendChild(lorenzLbl);
+
+  // Area labels if shading
+  if (state.showShading) {
+    // A label
+    const aLbl = svgEl('text', {
+      x: xScale(45), y: yScale(65),
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; fill: var(--welfare-loss); opacity: 0.7;",
+    });
+    aLbl.textContent = 'A';
+    plotGroup.appendChild(aLbl);
+    // B label (below curve)
+    const bLbl = svgEl('text', {
+      x: xScale(75), y: yScale(20),
+      'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; fill: var(--supply); opacity: 0.7;",
+    });
+    bLbl.textContent = 'B';
+    plotGroup.appendChild(bLbl);
+  }
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const g = gini();
+  const giniPercent = g * 100;
+  document.getElementById('gini-val').textContent = giniPercent.toFixed(1);
+
+  // Gini marker position on scale
+  document.getElementById('gini-marker').style.left = `${giniPercent}%`;
+
+  // Income shares
+  const bottom20 = (lorenz(0.20) * 100).toFixed(1);
+  const bottom80 = (lorenz(0.80) * 100).toFixed(1);
+  const top20 = (100 - parseFloat(bottom80)).toFixed(1);
+  const middle60 = (parseFloat(bottom80) - parseFloat(bottom20)).toFixed(1);
+  const bottom99 = (lorenz(0.99) * 100).toFixed(1);
+  const top1 = (100 - parseFloat(bottom99)).toFixed(1);
+
+  document.getElementById('bottom20').textContent = `${bottom20}%`;
+  document.getElementById('middle60').textContent = `${middle60}%`;
+  document.getElementById('top20').textContent = `${top20}%`;
+  document.getElementById('top1').textContent = `${top1}%`;
+
+  // Alpha readout
+  document.getElementById('alpha-val').textContent = state.alpha.toFixed(2);
+
+  // Narration interpretation
+  const narr = document.getElementById('narration-text');
+  let interp;
+  if (giniPercent < 25) {
+    interp = 'Very egalitarian society. Income is fairly evenly distributed.';
+  } else if (giniPercent < 35) {
+    interp = 'Moderately equal — typical of Nordic countries and some European nations.';
+  } else if (giniPercent < 45) {
+    interp = 'Moderately unequal — typical of the US and UK in recent decades.';
+  } else if (giniPercent < 55) {
+    interp = 'Highly unequal — typical of many Latin American countries.';
+  } else {
+    interp = 'Extreme inequality — typical of South Africa and some other countries with strong historical divisions.';
+  }
+  narr.innerHTML = `At this level of inequality, the bottom 20% of the population earn only <strong>${bottom20}%</strong> of total income, while the top 20% take <strong>${top20}%</strong>. The top 1% alone earn <strong>${top1}%</strong>. ${interp}`;
+}
+
+/* UI */
+document.querySelectorAll('[data-alpha]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.alpha = Number(btn.dataset.alpha);
+    document.getElementById('alpha-slider').value = state.alpha;
+    document.querySelectorAll('[data-alpha]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const narrMap = {
+      '0.85': 'Slovakia has one of the most equal income distributions in the world (Gini ≈ 25). The Lorenz curve sits close to the line of equality — each slice of the population earns a similar share of total income.',
+      '1.1':  'UK Gini is around 33. Moderate inequality; the top 20% earn roughly 4× what the bottom 20% earn.',
+      '1.35': 'US Gini is around 40, higher than most developed countries. Significant income concentration at the top.',
+      '1.8':  'Brazil has had persistent high inequality (Gini ≈ 50), though it has fallen since the 2000s thanks to programmes like Bolsa Família.',
+      '2.2':  'South Africa has one of the highest Gini coefficients in the world (~60), reflecting the economic legacy of apartheid. Top decile earns many times more than bottom decile.',
+    };
+    document.getElementById('country-narration').textContent = narrMap[btn.dataset.alpha] || '';
+    renderAll();
+  });
+});
+document.getElementById('alpha-slider').addEventListener('input', ev => {
+  state.alpha = Number(ev.target.value);
+  document.querySelectorAll('[data-alpha]').forEach(b => b.classList.remove('active'));
+  renderAll();
+});
+document.getElementById('show-shading-on').addEventListener('click', () => {
+  state.showShading = true;
+  document.getElementById('show-shading-on').classList.add('active');
+  document.getElementById('show-shading-off').classList.remove('active');
+  renderAll();
+});
+document.getElementById('show-shading-off').addEventListener('click', () => {
+  state.showShading = false;
+  document.getElementById('show-shading-off').classList.add('active');
+  document.getElementById('show-shading-on').classList.remove('active');
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>
