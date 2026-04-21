@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Natural monopoly · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-atc { stroke: #5d7a68; stroke-width: 2; }
+    .curve-mc { stroke: var(--supply); stroke-width: 2; }
+    .curve-ar { stroke: var(--demand-shift); stroke-width: 2; }
+    .curve-mr { stroke: var(--demand-shift); stroke-width: 1.7; stroke-dasharray: 4 3; opacity: 0.85; }
+    .price-line { stroke: var(--ink-soft); stroke-width: 1.2; stroke-dasharray: 3 3; }
+    .profit-rect { fill: rgba(60, 160, 100, 0.24); stroke: #2d7a50; stroke-width: 0.5; }
+    .loss-rect { fill: rgba(200, 80, 60, 0.22); stroke: var(--welfare-loss); stroke-width: 0.5; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .positive .val { color: #2d7a50; }
+    .totals-grid .negative .val { color: var(--welfare-loss); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .state-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .state-pill.unreg { background: #f6d9d4; color: var(--welfare-loss); }
+    .state-pill.mc    { background: #e8ddf6; color: #5d3a99; }
+    .state-pill.atc   { background: #dff0e3; color: #2d6b46; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.11 Natural monopoly · HL Required</span>
+      <h1>Natural monopoly</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Regulation</span>
+        <button class="event-chip active" data-regime="unreg">Unregulated (MR = MC)</button>
+        <button class="event-chip" data-regime="mc">P = MC (allocatively efficient)</button>
+        <button class="event-chip" data-regime="atc">P = ATC (fair-return)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        In a natural monopoly, ATC declines over the whole relevant range — huge fixed costs spread over more and more units. One big firm is always cheaper than many small ones. Examples: water supply, rail networks, electricity distribution.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Fixed cost <span class="value" id="fc-val">£50</span></label>
+          <input type="range" id="fc-slider" min="20" max="100" step="1" value="50" />
+          <span class="small muted">How big is the unavoidable fixed cost? Water-pipe networks have enormous fixed costs relative to flow.</span>
+        </div>
+
+        <div class="control">
+          <label>Marginal cost <span class="value" id="mc-val">£0.20</span></label>
+          <input type="range" id="mc-slider" min="0.05" max="0.50" step="0.01" value="0.20" />
+          <span class="small muted">Per-unit cost of supplying one more unit once the infrastructure is in place.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="state-pill unreg" id="state-pill">Unregulated monopoly</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Quantity supplied</span>
+          <span class="val" id="q-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price charged</span>
+          <span class="val" id="p-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Average total cost</span>
+          <span class="val" id="atc-val">—</span>
+        </div>
+        <hr />
+        <div class="row" id="profit-row">
+          <span class="lbl">Economic profit</span>
+          <span class="val" id="profit-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Unregulated, the natural monopolist picks q where MR = MC — a small quantity at a high price, extracting large profit. The huge ATC at low q means consumers face very high prices.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The regulation dilemma.</strong> <strong>P = MC</strong> is allocatively efficient — but ATC > MC here, so the firm would make a loss and need a subsidy (taxpayers cover the fixed costs). <strong>P = ATC</strong> ("fair-return") lets the firm break even without a subsidy, closer to but not quite at the allocatively efficient quantity. Both beat the unregulated outcome. Which to pick is a political and practical question.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createCostAxes, drawCurveFn, drawRect } from '../js/cost-curves.js';
+import { svgEl } from '../js/common.js';
+
+const state = {
+  FC: 50,
+  mc: 0.20,     // constant marginal cost
+  dMax: 2.0,    // demand intercept
+  qMax: 400,    // demand reaches 0 here
+  regime: 'unreg',
+  plot: null,
+};
+
+/* For natural monopoly, the simplest is:
+     MC(q) = state.mc       (constant)
+     TC(q) = FC + mc*q
+     ATC(q) = mc + FC/q     (declining monotonically)
+*/
+const mcFn  = (q) => state.mc;
+const atcFn = (q) => state.mc + state.FC / q;
+const demand = (q) => state.dMax * (1 - q / state.qMax);
+const mr     = (q) => state.dMax * (1 - 2 * q / state.qMax);
+
+/* Find q where MR = MC (unregulated profit-max) */
+function findQMRMC() {
+  // dMax*(1 - 2q/qMax) = mc
+  // q = qMax * (1 - mc/dMax) / 2
+  return state.qMax * (1 - state.mc / state.dMax) / 2;
+}
+/* Find q where D = MC (allocatively efficient) */
+function findQDMC() {
+  return state.qMax * (1 - state.mc / state.dMax);
+}
+/* Find q where D = ATC (fair-return). Solve dMax*(1-q/qMax) = mc + FC/q
+   → dMax - dMax·q/qMax - mc - FC/q = 0
+   → q·dMax - dMax·q²/qMax - mc·q - FC = 0
+   → (dMax/qMax)·q² - (dMax - mc)·q + FC = 0
+   Quadratic in q. Take the larger root (want the intersection to the right
+   of the high-ATC region). */
+function findQDATC() {
+  const A = state.dMax / state.qMax;
+  const B = -(state.dMax - state.mc);
+  const C = state.FC;
+  const disc = B * B - 4 * A * C;
+  if (disc < 0) return null;
+  const sq = Math.sqrt(disc);
+  const q1 = (-B - sq) / (2 * A);
+  const q2 = (-B + sq) / (2 * A);
+  // Take the larger root (lower price / fair-return)
+  return Math.max(q1, q2);
+}
+
+function makePlot() {
+  state.plot = createCostAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    xLabel: 'Quantity',
+    yLabel: 'Price / Cost (£)',
+    xMax: 400,
+    yMax: 2.0,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const xMax = 400, yMax = 2.0;
+
+  // Pick q and p based on regime
+  let q, p;
+  if (state.regime === 'unreg')     { q = findQMRMC();   p = demand(q); }
+  else if (state.regime === 'mc')   { q = findQDMC();    p = state.mc; }
+  else                              { q = findQDATC();   p = atcFn(q); }
+
+  const atcAtQ = atcFn(q);
+  const profit = (p - atcAtQ) * q;
+
+  // Layer 1: profit / loss rectangle
+  if (state.regime !== 'atc' && Math.abs(profit) > 0.5) {
+    if (profit > 0) {
+      drawRect(plotGroup, 0, atcAtQ, q, p, {
+        xScale, yScale, className: 'profit-rect',
+        label: `π = £${profit.toFixed(0)}`, labelColor: '#2d6b46',
+      });
+    } else {
+      drawRect(plotGroup, 0, p, q, atcAtQ, {
+        xScale, yScale, className: 'loss-rect',
+        label: `Loss: £${Math.abs(profit).toFixed(0)}`, labelColor: 'var(--welfare-loss)',
+      });
+    }
+  }
+
+  // Curves
+  drawCurveFn(plotGroup, qv => atcFn(qv), {
+    xStart: 20, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-atc', label: 'ATC', strokeColor: '#5d7a68',
+  });
+  drawCurveFn(plotGroup, qv => mcFn(qv), {
+    xStart: 1, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-mc', label: 'MC', strokeColor: 'var(--supply)',
+  });
+  // Demand
+  const dPath = svgEl('path', {
+    class: 'curve curve-ar',
+    d: `M ${xScale(0)} ${yScale(state.dMax)} L ${xScale(state.qMax)} ${yScale(0)}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(dPath);
+  const dLbl = svgEl('text', {
+    x: xScale(state.qMax) - 4, y: yScale(0) - 4, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D = AR';
+  plotGroup.appendChild(dLbl);
+  // MR (only relevant for unregulated regime)
+  const mrXEnd = state.qMax / 2;
+  const mrPath = svgEl('path', {
+    class: 'curve curve-mr',
+    d: `M ${xScale(0)} ${yScale(state.dMax)} L ${xScale(mrXEnd)} ${yScale(0)}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 1.7,
+    'stroke-dasharray': '4 3', opacity: 0.75,
+  });
+  plotGroup.appendChild(mrPath);
+  const mrLbl = svgEl('text', {
+    x: xScale(mrXEnd) + 4, y: yScale(0) - 4, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; fill: var(--demand-shift);",
+  });
+  mrLbl.textContent = 'MR';
+  plotGroup.appendChild(mrLbl);
+
+  // Drop-lines
+  const vLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(q), y1: yScale(0), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(vLine);
+  const hLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(0), y1: yScale(p), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(hLine);
+  const pDot = svgEl('circle', {
+    cx: xScale(q), cy: yScale(p), r: 5,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(pDot);
+
+  // Labels
+  const qLbl = svgEl('text', {
+    x: xScale(q), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  qLbl.textContent = `q = ${q.toFixed(0)}`;
+  plotGroup.appendChild(qLbl);
+  const pLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(p) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  pLbl.textContent = `P = £${p.toFixed(2)}`;
+  plotGroup.appendChild(pLbl);
+
+  updateRightPanel({ q, p, atcAtQ, profit });
+}
+
+function updateRightPanel(s) {
+  document.getElementById('q-val').textContent = s.q.toFixed(0);
+  document.getElementById('p-val').textContent = `£${s.p.toFixed(2)}`;
+  document.getElementById('atc-val').textContent = `£${s.atcAtQ.toFixed(2)}`;
+  const profitRow = document.getElementById('profit-row');
+  const profitEl  = document.getElementById('profit-val');
+  if (s.profit > 0.5) {
+    profitRow.className = 'row positive';
+    profitEl.textContent = `+£${s.profit.toFixed(2)}`;
+  } else if (s.profit < -0.5) {
+    profitRow.className = 'row negative';
+    profitEl.textContent = `−£${Math.abs(s.profit).toFixed(2)} (needs subsidy)`;
+  } else {
+    profitRow.className = 'row';
+    profitEl.textContent = '£0.00 (break-even)';
+  }
+
+  const pill = document.getElementById('state-pill');
+  const narr = document.getElementById('narration-text');
+  if (state.regime === 'unreg') {
+    pill.className = 'state-pill unreg';
+    pill.textContent = 'Unregulated monopoly';
+    narr.innerHTML = `Profit-max at MR = MC. Quantity <strong>${s.q.toFixed(0)}</strong>, price <strong>£${s.p.toFixed(2)}</strong>, profit <strong>£${s.profit.toFixed(0)}</strong>. This is the worst outcome for consumers: high prices, restricted quantity, huge monopoly profit. Most governments don't tolerate this in natural-monopoly industries.`;
+  } else if (state.regime === 'mc') {
+    pill.className = 'state-pill mc';
+    pill.textContent = 'Marginal-cost pricing';
+    narr.innerHTML = `Price set to MC = £${s.p.toFixed(2)}. Quantity rises to <strong>${s.q.toFixed(0)}</strong>, allocatively efficient (P = MC). But since ATC &gt; MC here, the firm makes a loss of <strong>£${Math.abs(s.profit).toFixed(0)}</strong> every period. Government must subsidise this loss, or the firm goes bust. Taxpayers effectively cover the fixed costs.`;
+  } else {
+    pill.className = 'state-pill atc';
+    pill.textContent = 'Fair-return pricing';
+    narr.innerHTML = `Price set to ATC at q = ${s.q.toFixed(0)}, so the firm exactly breaks even. Not quite allocatively efficient (P &gt; MC) but better than the unregulated outcome and doesn't need a subsidy. Most real-world regulated utilities use this approach (or a variant called "rate-of-return regulation").`;
+  }
+}
+
+/* UI wiring */
+document.querySelectorAll('[data-regime]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.regime = btn.dataset.regime;
+    document.querySelectorAll('[data-regime]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+document.getElementById('fc-slider').addEventListener('input', ev => {
+  state.FC = Number(ev.target.value);
+  document.getElementById('fc-val').textContent = `£${state.FC}`;
+  renderAll();
+});
+document.getElementById('mc-slider').addEventListener('input', ev => {
+  state.mc = Number(ev.target.value);
+  document.getElementById('mc-val').textContent = `£${state.mc.toFixed(2)}`;
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

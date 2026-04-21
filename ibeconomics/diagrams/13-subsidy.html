@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subsidy · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Tax revenue rectangle — violet (distinct from CS amber, PS teal, DWL coral) */
+    .graph-area svg .region.tax-revenue {
+      fill: #8a6fb8;
+      fill-opacity: 0.32;
+      stroke: #6a4d99;
+      stroke-width: 0.5;
+    }
+    /* Incidence split bar */
+    .incidence-bar {
+      display: flex;
+      height: 20px;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.3rem;
+      border: 1px solid var(--rule);
+    }
+    .incidence-bar .consumer-share {
+      background: var(--demand);
+    }
+    .incidence-bar .producer-share {
+      background: var(--supply-fill);
+    }
+    .incidence-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 0.2rem;
+    }
+    .incidence-labels .c { color: var(--demand-shift); font-weight: 500; }
+    .incidence-labels .p { color: var(--supply); font-weight: 500; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.2rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); text-align: right; }
+    .totals-grid .delta { font-variant-numeric: tabular-nums; font-size: 11.5px; text-align: right; min-width: 46px; }
+    .totals-grid .delta.up { color: #2d7a50; }
+    .totals-grid .delta.down { color: var(--welfare-loss); }
+    .totals-grid hr { grid-column: span 3; border: none; border-top: 1px solid var(--rule); margin: 0.25rem 0 0.1rem; }
+    .totals-grid .cs .lbl { color: var(--demand-shift); }
+    .totals-grid .ps .lbl { color: var(--supply); }
+    .totals-grid .gov .lbl { color: #6a4d99; }
+    .totals-grid .dwl .lbl { color: var(--welfare-loss); }
+    .totals-grid .dwl .val { color: var(--welfare-loss); }
+
+    /* Tax type toggle */
+    .tax-type-toggle {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-right: 1rem;
+    }
+    .tax-type-toggle button {
+      padding: 0.3rem 0.7rem;
+      background: #fff;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+    .tax-type-toggle button.active {
+      background: #8a6fb8;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.7 Subsidy · Required</span>
+      <h1>Subsidy</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer" selected>Apple market (St Andrews)</option>
+        <option value="smartphones">Mobile phones</option>
+        <option value="albania_wheat">Wheat market (Albania)</option>
+        <option value="danny">Danny's lemonade</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Real-world case</span>
+        <button class="event-chip active" data-case="default">Generic (start here)</button>
+        <button class="event-chip" data-case="solar">Solar panels <span class="term-badge">merit good</span></button>
+        <button class="event-chip" data-case="ev">Electric vehicles <span class="term-badge">offsets externality</span></button>
+        <button class="event-chip" data-case="farm">Farm subsidies (CAP) <span class="term-badge">political support</span></button>
+        <button class="event-chip" data-case="tuition">University tuition <span class="term-badge">positive externality</span></button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        A subsidy is a per-unit payment from the government to producers. Slide the subsidy rate up and watch the supply curve shift down, price to consumers fall, quantity rise.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control" style="grid-column: span 2;">
+          <label>Subsidy</label>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+            <div class="tax-type-toggle" role="group" aria-label="Subsidy type">
+              <button data-tax-type="specific" class="active">Specific (£ per unit)</button>
+              <button data-tax-type="advalorem">Ad valorem (% of price)</button>
+            </div>
+            <span class="value" id="tax-val" style="margin-left: auto;">No subsidy</span>
+          </div>
+          <input type="range" id="tax-slider" min="0" max="60" step="1" value="0" style="width: 100%;" />
+          <span class="small muted" id="tax-note">Slide to add a subsidy. With a <strong>specific</strong> subsidy, supply shifts down by a constant. With <strong>ad valorem</strong>, supply rotates.</span>
+        </div>
+
+        <div class="control">
+          <label>Demand elasticity <span class="value" id="ped-val">linear</span></label>
+          <input type="range" id="demand-steepness" min="10" max="90" step="1" value="50" />
+          <span class="small muted">Steeper demand = more inelastic. The more inelastic side gains more from the subsidy.</span>
+        </div>
+
+        <div class="control">
+          <label>Supply elasticity <span class="value" id="pes-val">linear</span></label>
+          <input type="range" id="supply-steepness" min="10" max="90" step="1" value="50" />
+          <span class="small muted">Steeper supply = more inelastic. Watch the benefit split change as you adjust.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="totals-grid">
+        <div class="row cs">
+          <span class="lbl">Consumer surplus</span>
+          <span class="val" id="cs-val">—</span>
+          <span class="delta" id="cs-delta"></span>
+        </div>
+        <div class="row ps">
+          <span class="lbl">Producer surplus</span>
+          <span class="val" id="ps-val">—</span>
+          <span class="delta" id="ps-delta"></span>
+        </div>
+        <div class="row gov">
+          <span class="lbl">Government cost</span>
+          <span class="val" id="gov-val">—</span>
+          <span class="delta" id="gov-delta"></span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">CS + PS (private total)</span>
+          <span class="val" id="comm-val">—</span>
+          <span class="delta" id="comm-delta"></span>
+        </div>
+        <div class="row dwl" id="dwl-row" style="display: none;">
+          <span class="lbl">Deadweight loss</span>
+          <span class="val" id="dwl-val">—</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <div id="incidence-block" style="margin-bottom: 0.8rem; display: none;">
+        <div style="font-family: 'Inter', sans-serif; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin-bottom: 0.2rem;">Who captures the subsidy</div>
+        <div class="incidence-bar" id="incidence-bar">
+          <div class="consumer-share" id="consumer-share" style="width: 50%;"></div>
+          <div class="producer-share" id="producer-share" style="width: 50%;"></div>
+        </div>
+        <div class="incidence-labels">
+          <span class="c"><span id="consumer-pct">50%</span> consumers</span>
+          <span class="p">producers <span id="producer-pct">50%</span></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        A subsidy opens a wedge between the price consumers pay and the price producers receive, but in the opposite direction from a tax: consumers pay less, producers get more, and the government pays the difference per unit. More units are traded, but the cost to government exceeds the gain in consumer and producer surplus — the difference is deadweight loss.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Who benefits.</strong> The side of the market that is <em>more inelastic</em> captures more of the subsidy — symmetric to tax incidence. Subsidies are often used when a good has positive externalities (solar, education, vaccines) so the "deadweight loss" from an equilibrium perspective is actually a welfare gain once the externality benefit is counted.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatMoney, formatPrice, formatQuantity, svgEl } from '../js/common.js';
+
+const state = {
+  scenarioKey: 'greengrocer',
+  // Tax rate in appropriate units. For specific tax, this is in £ per unit.
+  // For ad valorem, it's a percentage (0..1).
+  taxType: 'specific',
+  taxSliderVal: 0,
+  demandSteepness: 50,
+  supplySteepness: 50,
+  caseKey: 'default',
+};
+
+let plot;
+
+/* -----------------------------------------------------------------------
+   Curves
+   -----------------------------------------------------------------------
+   Baseline demand and supply built from scenario defaults. Steepness
+   sliders allow the user to change elasticity at the pivot (q0, p0).
+   ----------------------------------------------------------------------- */
+
+function buildBaselineCurves() {
+  const sc = scenarios[state.scenarioKey];
+  const q0 = sc.defaultQuantity;
+  const p0 = sc.defaultPrice;
+
+  // Demand curve: pivot at (q0, p0), slope controlled by demandSteepness
+  // s=50 → slope = -p0/q0 (canonical linear)
+  // s→0 → slope → 0 (horizontal, perfectly elastic)
+  // s→100 → slope → -∞ (vertical, perfectly inelastic)
+  const mRefD = -p0 / q0;
+  const thetaD = (state.demandSteepness / 100) * (Math.PI / 2) * 0.98 + 0.01;
+  const slopeD = mRefD * Math.tan(thetaD) / Math.tan(Math.PI / 4);
+  const dxD = sc.quantityMax * 0.1;
+  const demand = linearCurve({ q: q0, p: p0 }, { q: q0 + dxD, p: p0 + slopeD * dxD });
+
+  // Supply curve: through (q0, p0) going down-left to some positive x-intercept
+  // at p=0. Steepness controls slope too.
+  // Reference: supply line from (q0 * 0.2, 0) to (q0, p0) has slope p0/(q0*0.8)
+  const mRefS = p0 / (q0 * 0.8);
+  const thetaS = (state.supplySteepness / 100) * (Math.PI / 2) * 0.98 + 0.01;
+  const slopeS = mRefS * Math.tan(thetaS) / Math.tan(Math.PI / 4);
+  const supply = linearCurve({ q: q0, p: p0 }, { q: q0 + dxD, p: p0 + slopeS * dxD });
+
+  return { demand, supply };
+}
+
+/* Apply a subsidy to the supply curve. Returns the "supply − subsidy" curve,
+   which is what's relevant for finding the new equilibrium (Q_s is where D
+   meets S−s). Consumers pay on S−s; producers receive on S (= consumer
+   price + subsidy).
+
+   Specific subsidy (s in £/unit): S_new(q) = S(q) − s  (vertical shift down)
+   Ad valorem (s as fraction):     S_new(q) = S(q) / (1 + s)  (rotation toward q-axis)
+*/
+function applyTaxToSupply(supply) {
+  const sub = currentTax();
+  if (sub <= 0) return supply;
+  if (state.taxType === 'specific') {
+    // Shift down by s
+    return linearCurve(
+      { q: supply.p1.q, p: supply.p1.p - sub },
+      { q: supply.p2.q, p: supply.p2.p - sub }
+    );
+  } else {
+    // Ad valorem: divide by (1+s)
+    return linearCurve(
+      { q: supply.p1.q, p: supply.p1.p / (1 + sub) },
+      { q: supply.p2.q, p: supply.p2.p / (1 + sub) }
+    );
+  }
+}
+
+/* The actual tax amount. For specific, slider 0..60 maps to 0..60% of p0.
+   For ad valorem, slider 0..60 maps to 0..60% ad-valorem rate. */
+function currentTax() {
+  const sc = scenarios[state.scenarioKey];
+  if (state.taxType === 'specific') {
+    return (state.taxSliderVal / 100) * sc.defaultPrice * 1.5;
+    // At slider=60, tax = 0.9 × default price — enough to be substantial
+  } else {
+    return state.taxSliderVal / 100;
+  }
+}
+
+/* Given a price P_c (consumer-paying price), compute the per-unit subsidy
+   and producer-receiving price. For a subsidy, the producer receives MORE
+   than the consumer pays; the government tops up the difference. */
+function producerPrice(pc) {
+  const sub = currentTax();
+  if (state.taxType === 'specific') return pc + sub;
+  return pc * (1 + sub);
+}
+
+function perUnitTax(pc) {
+  // Positive: producer gets more than consumer pays.
+  return producerPrice(pc) - pc;
+}
+
+function intersect(d, s) {
+  const dA = d.p1.p - d.slope * d.p1.q;
+  const sA = s.p1.p - s.slope * s.p1.q;
+  if (d.slope === s.slope) return null;
+  const q = (sA - dA) / (d.slope - s.slope);
+  const p = dA + d.slope * q;
+  return { q, p };
+}
+
+/* -----------------------------------------------------------------------
+   Surplus computation with tax
+   ----------------------------------------------------------------------- */
+
+function surplus() {
+  const { demand, supply } = buildBaselineCurves();
+  const supplyPlusTax = applyTaxToSupply(supply);
+
+  // Equilibrium (no-tax)
+  const e0 = intersect(demand, supply);
+  // New equilibrium with tax
+  const e1 = intersect(demand, supplyPlusTax);
+
+  const hasTax = currentTax() > 0.001 && e1 != null && e1.q > 0 && e1.p > 0;
+  const qT = hasTax ? Math.max(0, e1.q) : e0.q;
+  const pC = hasTax ? e1.p : e0.p;                // consumer-paid price
+  const pP = hasTax ? producerPrice(pC) : e0.p;   // producer-received price
+
+  // Areas: treat curves and limits
+  const sc = scenarios[state.scenarioKey];
+  const dAtZero = demand.priceAt(0);
+  const sAtZero = supply.priceAt(0);
+  const qSStart = sAtZero >= 0 ? 0 : supply.quantityAt(0);
+
+  // CS: area between D(q) and pC, 0..qT
+  let cs = 0;
+  if (qT > 0 && dAtZero > pC) {
+    const dqEnd = Math.max(pC, demand.priceAt(qT));
+    const dqStart = Math.max(pC, dAtZero);
+    cs = qT * ((dqStart + dqEnd) / 2 - pC);
+  }
+  // PS: area between pP and S(q), qSStart..qT
+  let ps = 0;
+  if (qT > qSStart) {
+    if (sAtZero >= 0) {
+      const sqStart = Math.max(0, sAtZero);
+      const sqEnd = Math.max(0, supply.priceAt(qT));
+      ps = qT * (pP - (sqStart + sqEnd) / 2);
+    } else {
+      const rect = pP * qSStart;
+      const sqEnd = Math.max(0, supply.priceAt(qT));
+      const tri = (qT - qSStart) * (pP - sqEnd / 2);
+      ps = rect + tri;
+    }
+    ps = Math.max(0, ps);
+  }
+
+  // Tax revenue rectangle: per-unit tax × quantity traded
+  const tax = hasTax ? perUnitTax(pC) : 0;
+  const govRev = tax * qT;
+
+  // Baseline CS/PS (no tax) for comparison
+  let csEq, psEq;
+  {
+    const dqEnd = demand.priceAt(e0.q);
+    csEq = e0.q * ((dAtZero + dqEnd) / 2 - e0.p);
+    if (sAtZero >= 0) {
+      const sqEnd = supply.priceAt(e0.q);
+      psEq = e0.q * (e0.p - (sAtZero + sqEnd) / 2);
+    } else {
+      const rect = e0.p * qSStart;
+      const sqEnd = supply.priceAt(e0.q);
+      const tri = (e0.q - qSStart) * (e0.p - sqEnd / 2);
+      psEq = rect + tri;
+    }
+  }
+
+  // DWL: triangle between D and S from e0.q to qT (to the right of Q*)
+  let dwl = 0;
+  if (hasTax && qT > e0.q + 0.01) {
+    const dT = demand.priceAt(qT);
+    const sT = Math.max(0, supply.priceAt(qT));
+    dwl = 0.5 * Math.abs(qT - e0.q) * Math.abs(sT - dT);
+  }
+
+  // Incidence / benefit split
+  let consumerShare = 0.5, producerShare = 0.5;
+  if (hasTax && tax > 0) {
+    const consBenefit = Math.max(0, e0.p - pC);     // price fell → consumer gain
+    const prodBenefit = Math.max(0, pP - e0.p);     // producer receives > P*
+    const total = consBenefit + prodBenefit;
+    if (total > 0.001) {
+      consumerShare = consBenefit / total;
+      producerShare = prodBenefit / total;
+    }
+  }
+
+  return {
+    demand, supply, supplyPlusTax, e0, e1,
+    qT, pC, pP, tax, hasTax,
+    cs, ps, govRev, community: cs + ps,
+    csEq, psEq, communityEq: csEq + psEq,
+    dwl, consumerShare, producerShare,
+    qSStart,
+  };
+}
+
+/* -----------------------------------------------------------------------
+   Region polygons
+   ----------------------------------------------------------------------- */
+
+function regionPolygons(s) {
+  const regions = [];
+  const sc = scenarios[state.scenarioKey];
+  const { demand, supply, qT, pC, pP, hasTax, e0, qSStart } = s;
+  const dAtZero = demand.priceAt(0);
+  const sAtZero = supply.priceAt(0);
+
+  // CS: between pC and D, 0..qT
+  if (qT > 0 && dAtZero > pC) {
+    const pts = [[0, pC], [0, Math.min(dAtZero, sc.priceMax)]];
+    if (dAtZero > sc.priceMax) pts.push([demand.quantityAt(sc.priceMax), sc.priceMax]);
+    pts.push([qT, demand.priceAt(qT)]);
+    pts.push([qT, pC]);
+    regions.push({ id: 'cs', className: 'consumer-surplus', points: pts, label: `CS ${formatMoney(state.scenarioKey, s.cs)}` });
+  }
+
+  // PS: between pP and S, qSStart..qT
+  if (qT > qSStart && pP > 0) {
+    let pts;
+    if (sAtZero >= 0) {
+      pts = [[0, sAtZero], [0, pP], [qT, pP], [qT, supply.priceAt(qT)]];
+    } else {
+      pts = [[0, 0], [0, pP], [qT, pP], [qT, Math.max(0, supply.priceAt(qT))], [qSStart, 0]];
+    }
+    regions.push({ id: 'ps', className: 'producer-surplus', points: pts, label: `PS ${formatMoney(state.scenarioKey, s.ps)}` });
+  }
+
+  // Government cost rectangle: from (0, pC) to (qT, pP). For a subsidy pP > pC.
+  if (hasTax && qT > 0 && pP > pC + 0.001) {
+    regions.push({
+      id: 'gov', className: 'tax-revenue',
+      points: [[0, pC], [0, pP], [qT, pP], [qT, pC]],
+      label: `Gov cost ${formatMoney(state.scenarioKey, s.govRev)}`,
+    });
+  }
+
+  // DWL: triangle — for a subsidy, quantity EXCEEDS the efficient level.
+  // The DWL triangle lies to the RIGHT of Q* between D (below S) and S
+  // (above D) from Q* to qT. Vertices: (e0.q, e0.p), (qT, D(qT)), (qT, S(qT)).
+  if (hasTax && qT > e0.q + 0.01) {
+    const dT = demand.priceAt(qT);
+    const sT = Math.max(0, supply.priceAt(qT));
+    regions.push({
+      id: 'dwl', className: 'welfare-loss',
+      points: [[e0.q, e0.p], [qT, sT], [qT, dT]],
+      label: `DWL ${formatMoney(state.scenarioKey, s.dwl)}`,
+    });
+  }
+
+  return regions;
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function renderAll() {
+  const s = surplus();
+  const sc = scenarios[state.scenarioKey];
+  const curveSpecs = [
+    { curve: s.demand, kind: 'demand', label: 'D', draggable: false },
+    { curve: s.supply, kind: 'supply', label: s.hasTax ? 'S' : 'S', draggable: false },
+  ];
+  if (s.hasTax) {
+    curveSpecs.push({ curve: s.supplyPlusTax, kind: 'supply', variant: 'shifted', label: 'S − subsidy', draggable: false });
+  }
+  plot.setCurves(curveSpecs);
+  plot.setRegions(regionPolygons(s));
+  plot.setEquilibriumMarker({ q: s.e0.q, p: s.e0.p });
+  // Hide the draggable price line in this diagram (we set tax via slider)
+  plot.setPriceLine(null);
+
+  // Labels
+  const labels = [];
+  labels.push({
+    x: 0, y: s.e0.p, rawX: plot.margin.left + 6,
+    text: 'P*', textAnchor: 'start', offset: { y: -4 },
+    color: 'var(--ink-soft)', className: 'point-label',
+  });
+  labels.push({
+    x: s.e0.q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+    text: 'Q*', textAnchor: 'start', offset: { x: 5 },
+    color: 'var(--ink-soft)', className: 'point-label',
+  });
+  if (s.hasTax) {
+    labels.push({
+      x: 0, y: s.pP, rawX: plot.margin.left + 6,
+      text: `Pp = ${formatPrice(state.scenarioKey, s.pP)}`,
+      textAnchor: 'start', offset: { y: -4 },
+      color: 'var(--supply)', className: 'point-label',
+    });
+    labels.push({
+      x: 0, y: s.pC, rawX: plot.margin.left + 6,
+      text: `Pc = ${formatPrice(state.scenarioKey, s.pC)}`,
+      textAnchor: 'start', offset: { y: 12 },
+      color: 'var(--demand-shift)', className: 'point-label',
+    });
+    labels.push({
+      x: s.qT, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+      text: `Qs = ${formatQuantity(state.scenarioKey, s.qT)}`,
+      textAnchor: 'start', offset: { x: 5 },
+      color: '#6a4d99', className: 'point-label',
+    });
+  }
+  plot.setLabels(labels);
+
+  // Annotations: drop lines
+  const annots = [];
+  annots.push({ kind: 'dropLine', q: s.e0.q, pFrom: s.e0.p, pTo: 0, toAxis: true, dashed: true });
+  annots.push({ kind: 'acrossLine', p: s.e0.p, qFrom: 0, qTo: s.e0.q, fromAxis: true, dashed: true });
+  if (s.hasTax) {
+    annots.push({ kind: 'dropLine', q: s.qT, pFrom: s.pC, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: s.pC, qFrom: 0, qTo: s.qT, fromAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: s.pP, qFrom: 0, qTo: s.qT, fromAxis: true, dashed: true });
+  }
+  plot.setAnnotations(annots);
+
+  plot.render();
+  updateRightPanel(s);
+  updateSliderLabels(s);
+}
+
+function updateRightPanel(s) {
+  document.getElementById('cs-val').textContent = formatMoney(state.scenarioKey, s.cs);
+  document.getElementById('ps-val').textContent = formatMoney(state.scenarioKey, s.ps);
+  document.getElementById('gov-val').textContent = formatMoney(state.scenarioKey, s.govRev);
+  document.getElementById('comm-val').textContent = formatMoney(state.scenarioKey, s.community);
+
+  const dCs = s.cs - s.csEq;
+  const dPs = s.ps - s.psEq;
+  const dComm = s.community - s.communityEq;
+  const setDelta = (id, v) => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.05) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + formatMoney(state.scenarioKey, Math.abs(v));
+    el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDelta('cs-delta', dCs);
+  setDelta('ps-delta', dPs);
+  setDelta('gov-delta', s.govRev);
+  if (s.govRev > 0.05) document.getElementById('gov-delta').className = 'delta up';
+  else document.getElementById('gov-delta').textContent = '';
+  setDelta('comm-delta', dComm);
+
+  const dwlRow = document.getElementById('dwl-row');
+  if (s.dwl > 0.01) {
+    dwlRow.style.display = 'contents';
+    document.getElementById('dwl-val').textContent = formatMoney(state.scenarioKey, s.dwl);
+  } else {
+    dwlRow.style.display = 'none';
+  }
+
+  // Incidence bar
+  const incBlock = document.getElementById('incidence-block');
+  if (s.hasTax) {
+    incBlock.style.display = 'block';
+    const cPct = Math.round(s.consumerShare * 100);
+    const pPct = 100 - cPct;
+    document.getElementById('consumer-share').style.width = cPct + '%';
+    document.getElementById('producer-share').style.width = pPct + '%';
+    document.getElementById('consumer-pct').textContent = cPct + '%';
+    document.getElementById('producer-pct').textContent = pPct + '%';
+  } else {
+    incBlock.style.display = 'none';
+  }
+
+  // Narration
+  const narrEl = document.getElementById('narration-text');
+  if (!s.hasTax) {
+    narrEl.innerHTML = 'No subsidy applied. The market clears at P* and Q*. Slide the subsidy rate above zero to see the wedge appear.';
+  } else {
+    const sub = s.tax;
+    const cPct = Math.round(s.consumerShare * 100);
+    narrEl.innerHTML = `A subsidy of <strong>${formatPrice(state.scenarioKey, sub)}/unit</strong> pushes the producer price up to <strong>${formatPrice(state.scenarioKey, s.pP)}</strong> while consumers pay just <strong>${formatPrice(state.scenarioKey, s.pC)}</strong>. Quantity rises to <strong>${formatQuantity(state.scenarioKey, s.qT)}</strong>. Consumers capture <strong>${cPct}%</strong> of the subsidy through lower prices, producers <strong>${100 - cPct}%</strong> through higher received prices.`;
+  }
+}
+
+function updateSliderLabels(s) {
+  const tv = document.getElementById('tax-val');
+  if (!s.hasTax) tv.textContent = 'No subsidy';
+  else if (state.taxType === 'specific') tv.textContent = formatPrice(state.scenarioKey, s.tax) + ' / unit';
+  else tv.textContent = Math.round(state.taxSliderVal) + '% of price';
+
+  const label = (sv) => {
+    if (sv < 15) return 'very elastic';
+    if (sv < 40) return 'elastic';
+    if (sv <= 55) return 'linear';
+    if (sv < 75) return 'inelastic';
+    return 'very inelastic';
+  };
+  document.getElementById('ped-val').textContent = label(state.demandSteepness);
+  document.getElementById('pes-val').textContent = label(state.supplySteepness);
+}
+
+/* -----------------------------------------------------------------------
+   Cases
+   ----------------------------------------------------------------------- */
+
+const cases = {
+  default: { taxSliderVal: 0, demandSteepness: 50, supplySteepness: 50, taxType: 'specific',
+    narration: 'A generic market with linear D and S. Apply a subsidy to see the wedge appear between consumer price and producer price. Try adjusting the elasticity sliders to see who captures more of the subsidy.' },
+  solar: { taxSliderVal: 30, demandSteepness: 40, supplySteepness: 55, taxType: 'specific',
+    narration: 'Solar panel subsidies (e.g. UK Feed-in Tariffs, German EEG) reduce the effective cost to householders. The aim is to accelerate adoption of a good with positive externalities (lower carbon emissions). Demand is relatively elastic — a modest subsidy produces a large quantity response.' },
+  ev: { taxSliderVal: 35, demandSteepness: 35, supplySteepness: 60, taxType: 'specific',
+    narration: 'Electric vehicle subsidies (tax credits, registration discounts) reduce the up-front price gap between EVs and petrol cars. Justification: EVs reduce the negative externality from petrol emissions. Demand is elastic because petrol cars are a close substitute.' },
+  farm: { taxSliderVal: 40, demandSteepness: 70, supplySteepness: 45, taxType: 'specific',
+    narration: 'Farm subsidies (EU CAP, US farm bill) support rural incomes and food security. Demand is inelastic (food is a necessity), so most of the subsidy flows through to consumers as lower food prices — an unintended effect governments sometimes try to offset with tariffs or purchase programs.' },
+  tuition: { taxSliderVal: 50, demandSteepness: 40, supplySteepness: 80, taxType: 'advalorem',
+    narration: 'Higher education subsidies (student loans, direct institutional funding) aim to make university affordable. Supply is inelastic in the short run — universities can\'t expand places quickly — so a big chunk of the subsidy ends up as higher prices received by universities rather than lower prices paid by students.' },
+};
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const c = cases[btn.dataset.case];
+    if (!c) return;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.assign(state, c);
+    document.getElementById('tax-slider').value = state.taxSliderVal;
+    document.getElementById('demand-steepness').value = state.demandSteepness;
+    document.getElementById('supply-steepness').value = state.supplySteepness;
+    document.querySelectorAll('[data-tax-type]').forEach(b => b.classList.toggle('active', b.dataset.taxType === state.taxType));
+    document.getElementById('case-narration').textContent = c.narration;
+    renderAll();
+  });
+});
+
+document.querySelectorAll('[data-tax-type]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.taxType = btn.dataset.taxType;
+    document.querySelectorAll('[data-tax-type]').forEach(b => b.classList.toggle('active', b === btn));
+    renderAll();
+  });
+});
+
+document.getElementById('tax-slider').addEventListener('input', ev => {
+  state.taxSliderVal = Number(ev.target.value);
+  renderAll();
+});
+
+document.getElementById('demand-steepness').addEventListener('input', ev => {
+  state.demandSteepness = Number(ev.target.value);
+  renderAll();
+});
+
+document.getElementById('supply-steepness').addEventListener('input', ev => {
+  state.supplySteepness = Number(ev.target.value);
+  renderAll();
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+renderAll();
+</script>
+
+</body>
+</html>

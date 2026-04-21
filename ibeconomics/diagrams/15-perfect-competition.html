@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfect competition · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Side-by-side layout for the firm and industry panels */
+    .two-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .two-panels { grid-template-columns: 1fr; }
+    }
+
+    /* Cost-curve specific styling */
+    .curve-atc {
+      stroke: #5d7a68;
+      stroke-width: 2;
+    }
+    .curve-avc {
+      stroke: #a49c7a;
+      stroke-width: 1.5;
+      stroke-dasharray: 4 3;
+    }
+    .curve-mc {
+      stroke: var(--supply);
+      stroke-width: 2;
+    }
+    .curve-dmrar {
+      stroke: var(--demand-shift);
+      stroke-width: 2;
+    }
+    .curve-industry-d {
+      stroke: var(--demand-shift);
+      stroke-width: 2;
+    }
+    .curve-industry-s {
+      stroke: var(--supply);
+      stroke-width: 2;
+    }
+    .price-line {
+      stroke: var(--ink-soft);
+      stroke-width: 1.2;
+      stroke-dasharray: 3 3;
+    }
+    .profit-rect {
+      fill: rgba(60, 160, 100, 0.22);
+      stroke: #2d7a50;
+      stroke-width: 0.5;
+    }
+    .loss-rect {
+      fill: rgba(200, 80, 60, 0.22);
+      stroke: var(--welfare-loss);
+      stroke-width: 0.5;
+    }
+
+    .state-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      letter-spacing: 0.01em;
+    }
+    .state-pill.profit { background: #dff0e3; color: #2d6b46; }
+    .state-pill.break-even { background: var(--paper-deep); color: var(--ink); }
+    .state-pill.loss { background: #fde8c6; color: #8a5a00; }
+    .state-pill.shutdown { background: #f6d9d4; color: var(--welfare-loss); }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      text-align: right;
+      color: var(--ink);
+    }
+    .totals-grid .positive .val { color: #2d7a50; }
+    .totals-grid .negative .val { color: var(--welfare-loss); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.11 Perfect competition · HL Required</span>
+      <h1>Perfect competition: firm and industry</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-case="profit">Short-run profit</button>
+        <button class="event-chip" data-case="breakeven">Break-even (long-run)</button>
+        <button class="event-chip" data-case="loss">Short-run loss</button>
+        <button class="event-chip" data-case="shutdown">Shut-down price</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        In perfect competition the firm is a price-taker: market price is set in the industry diagram on the right, and the firm's demand curve is horizontal at that price. Profit-max output is where MC = MR = price.
+      </div>
+
+      <section class="graph-area" style="padding: 0.5rem 0.5rem 0.2rem;">
+        <div class="two-panels">
+          <div id="firm-plot"></div>
+          <div id="industry-plot"></div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Market price <span class="value" id="price-val">£0.80</span></label>
+          <input type="range" id="price-slider" min="0.30" max="1.40" step="0.01" value="0.80" />
+          <span class="small muted">Slide to change the industry price. Watch how the firm's optimal quantity, profit or loss, and shut-down decision change.</span>
+        </div>
+
+        <div class="control">
+          <label>Long-run adjustment</label>
+          <div class="return-style" role="group" aria-label="Long-run">
+            <button data-action="lr-equilibrate" class="event-btn">Run long-run adjustment</button>
+            <button data-action="reset" class="event-btn">Reset to current short-run</button>
+          </div>
+          <span class="small muted" id="lr-note">In the long run, entry (if firms profit) or exit (if firms lose) drives price to the minimum of ATC, giving zero economic profit.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="state-pill profit" id="state-pill">Profit</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Market price P</span>
+          <span class="val" id="p-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Firm output q*</span>
+          <span class="val" id="q-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Average total cost</span>
+          <span class="val" id="atc-val">—</span>
+        </div>
+        <hr />
+        <div class="row" id="profit-row">
+          <span class="lbl">Economic profit</span>
+          <span class="val" id="profit-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        At price £0.80, the firm produces where MC = P. Average cost at that quantity is lower than price, so the firm makes a positive economic profit (the green rectangle).
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> A firm in perfect competition is a price-taker: it faces a horizontal demand curve at the market price (because its output is tiny relative to the industry and substitutes are perfect). Profit-max is always where MC = price. In the <em>long run</em>, free entry or exit drives price to the minimum of ATC — zero economic profit, productive efficiency, allocative efficiency.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { makeCostCurveSet, createCostAxes, drawCurveFn, drawRect } from '../js/cost-curves.js';
+import { linearCurve, svgEl } from '../js/common.js';
+
+const state = {
+  price: 0.80,
+  cost: makeCostCurveSet(),   // default parameters
+  firmPlot: null,
+  industryPlot: null,
+  // Industry: linear D and S. The industry S is horizontally the sum of
+  // firm MC curves; we just pick linear D and S that give equilibrium at
+  // the current price when `lr-equilibrated` or matches whatever slider
+  // has selected.
+};
+
+const INDUSTRY = {
+  demandATq0: 2.0,   // demand y-intercept at q=0
+  qMax: 300,         // market quantity max
+};
+
+/* -----------------------------------------------------------------------
+   Plots
+   ----------------------------------------------------------------------- */
+
+function makePlots() {
+  state.firmPlot = createCostAxes({
+    container: document.getElementById('firm-plot'),
+    width: 520, height: 400,
+    xLabel: 'Output (units)',
+    yLabel: 'Cost / Price (£)',
+    xMax: 200,
+    yMax: 1.6,
+    title: 'The firm',
+  });
+  state.industryPlot = createCostAxes({
+    container: document.getElementById('industry-plot'),
+    width: 520, height: 400,
+    xLabel: 'Industry quantity',
+    yLabel: 'Price (£)',
+    xMax: 300,
+    yMax: 1.6,
+    title: 'The industry',
+  });
+}
+
+/* -----------------------------------------------------------------------
+   Firm diagram render
+   ----------------------------------------------------------------------- */
+
+function renderFirm() {
+  const { plotGroup, xScale, yScale } = state.firmPlot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const c = state.cost;
+  const xMax = 200;
+  const yMax = 1.6;
+
+  // Profit-max quantity
+  const p = state.price;
+  // Shut-down condition: P < AVC_min
+  const isShutdown = p < c.avcMin;
+  const q = isShutdown ? 0 : c.qAtMC(p);
+
+  // Draw profit / loss rectangle first (behind curves)
+  if (!isShutdown && q > 0) {
+    const atcAtQ = c.atc(q);
+    const nearBE = Math.abs(p - c.atcMin) < 0.02;
+    if (!nearBE && p > atcAtQ + 0.01) {
+      // Profit rectangle
+      drawRect(plotGroup, 0, atcAtQ, q, p, {
+        xScale, yScale, className: 'profit-rect',
+        label: `π = £${((p - atcAtQ) * q).toFixed(1)}`,
+        labelColor: '#2d6b46',
+      });
+    } else if (!nearBE && p < atcAtQ - 0.01) {
+      // Loss rectangle
+      drawRect(plotGroup, 0, p, q, atcAtQ, {
+        xScale, yScale, className: 'loss-rect',
+        label: `Loss: £${((atcAtQ - p) * q).toFixed(1)}`,
+        labelColor: 'var(--welfare-loss)',
+      });
+    }
+  }
+
+  // Draw the cost curves
+  drawCurveFn(plotGroup, qv => c.atc(qv), {
+    xStart: 10, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-atc', label: 'ATC', strokeColor: '#5d7a68',
+  });
+  drawCurveFn(plotGroup, qv => c.avc(qv), {
+    xStart: 1, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-avc', label: 'AVC', strokeColor: '#a49c7a',
+  });
+  drawCurveFn(plotGroup, qv => c.mc(qv), {
+    xStart: 1, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-mc', label: 'MC', strokeColor: 'var(--supply)',
+  });
+
+  // D = MR = AR (horizontal line at p)
+  if (p <= yMax) {
+    const line = svgEl('line', {
+      class: 'curve curve-dmrar',
+      x1: xScale(0), y1: yScale(p),
+      x2: xScale(xMax * 0.95), y2: yScale(p),
+    });
+    plotGroup.appendChild(line);
+    // Label at right end
+    const lbl = svgEl('text', {
+      x: xScale(xMax * 0.95) + 4,
+      y: yScale(p) + 3,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+    });
+    lbl.textContent = 'D = MR = AR';
+    plotGroup.appendChild(lbl);
+  }
+
+  // Drop-lines and markers
+  if (!isShutdown && q > 0) {
+    // Vertical dashed line at q
+    const v = svgEl('line', {
+      class: 'price-line',
+      x1: xScale(q), y1: yScale(0), x2: xScale(q), y2: yScale(p),
+    });
+    plotGroup.appendChild(v);
+
+    // q* label on x-axis
+    const qLbl = svgEl('text', {
+      x: xScale(q), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+    });
+    qLbl.textContent = `q* = ${q.toFixed(0)}`;
+    plotGroup.appendChild(qLbl);
+
+    // Profit-max dot
+    const dot = svgEl('circle', {
+      cx: xScale(q), cy: yScale(p), r: 5,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    });
+    plotGroup.appendChild(dot);
+  }
+}
+
+/* -----------------------------------------------------------------------
+   Industry diagram render
+   ----------------------------------------------------------------------- */
+
+function renderIndustry() {
+  const { plotGroup, xScale, yScale } = state.industryPlot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  // Baseline D: linear, passes through (0, 2.0) and (300, 0)
+  // Baseline S: linear, through (30, 0) and the current market price * Q mapping
+  // The industry equilibrium price is state.price. We draw S such that it
+  // crosses D at that price. So the intersection is at (qEq, state.price)
+  // where qEq is demand.quantityAt(price).
+  const p = state.price;
+  const d = linearCurve({ q: 0, p: 2.0 }, { q: 300, p: 0 });
+  const qEq = d.quantityAt(p);
+  // Supply: through (30, 0) and (qEq, p). Slope = p/(qEq - 30).
+  const s = linearCurve({ q: 30, p: 0 }, { q: Math.max(50, qEq), p: Math.max(0.1, p) });
+
+  const xMax = 300, yMax = 1.6;
+
+  // Draw D
+  const dPts = [[0, d.priceAt(0)], [d.quantityAt(0), 0]];
+  const dPath = svgEl('path', {
+    class: 'curve curve-industry-d',
+    d: `M ${xScale(dPts[0][0])} ${yScale(dPts[0][1])} L ${xScale(dPts[1][0])} ${yScale(dPts[1][1])}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(dPath);
+  // D label
+  const dLbl = svgEl('text', {
+    x: xScale(dPts[1][0]) + 4, y: yScale(0) - 2,
+    'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D';
+  plotGroup.appendChild(dLbl);
+
+  // Draw S (only if we have a valid qEq within range)
+  if (isFinite(qEq) && qEq > 30 && qEq < xMax) {
+    // Extend S from x-intercept (30, 0) to some high q (where p reaches yMax)
+    const sSlope = s.slope;
+    const qAtYMax = 30 + yMax / sSlope;
+    const sEnd = [Math.min(xMax, qAtYMax), Math.min(yMax, s.priceAt(Math.min(xMax, qAtYMax)))];
+    const sPath = svgEl('path', {
+      class: 'curve curve-industry-s',
+      d: `M ${xScale(30)} ${yScale(0)} L ${xScale(sEnd[0])} ${yScale(sEnd[1])}`,
+      fill: 'none', stroke: 'var(--supply)', 'stroke-width': 2,
+    });
+    plotGroup.appendChild(sPath);
+    const sLbl = svgEl('text', {
+      x: xScale(sEnd[0]) + 4, y: yScale(sEnd[1]) + 4,
+      'text-anchor': 'start',
+      style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--supply);",
+    });
+    sLbl.textContent = 'S';
+    plotGroup.appendChild(sLbl);
+  }
+
+  // Horizontal line at market price (same colour as firm's D)
+  const hLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(0), y1: yScale(p), x2: xScale(xMax), y2: yScale(p),
+    stroke: 'var(--demand-shift)', 'stroke-dasharray': '3 3',
+    'stroke-width': 1.2,
+  });
+  plotGroup.appendChild(hLine);
+
+  // P label on y-axis
+  const pLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(p) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  pLbl.textContent = `P = £${p.toFixed(2)}`;
+  plotGroup.appendChild(pLbl);
+
+  // Equilibrium dot
+  if (isFinite(qEq) && qEq > 0 && qEq < xMax) {
+    const dot = svgEl('circle', {
+      cx: xScale(qEq), cy: yScale(p), r: 5,
+      fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+    });
+    plotGroup.appendChild(dot);
+  }
+}
+
+/* -----------------------------------------------------------------------
+   Right panel / state update
+   ----------------------------------------------------------------------- */
+
+function updateRightPanel() {
+  const c = state.cost;
+  const p = state.price;
+  const isShutdown = p < c.avcMin;
+  const q = isShutdown ? 0 : c.qAtMC(p);
+  const atcAtQ = q > 0 ? c.atc(q) : Infinity;
+  const profit = q > 0 ? (p - atcAtQ) * q : 0;
+
+  document.getElementById('p-val').textContent = `£${p.toFixed(2)}`;
+  document.getElementById('q-val').textContent = isShutdown ? '0 (shut down)' : q.toFixed(0);
+  document.getElementById('atc-val').textContent = isShutdown ? '—' : `£${atcAtQ.toFixed(2)}`;
+
+  const profitRow = document.getElementById('profit-row');
+  const profitEl = document.getElementById('profit-val');
+  const nearBE = !isShutdown && Math.abs(p - c.atcMin) < 0.02;
+  if (isShutdown) {
+    profitRow.className = 'row negative';
+    // At shut-down, the firm loses fixed costs
+    profitEl.textContent = `−£${c.FC.toFixed(2)} (FC)`;
+  } else if (nearBE || Math.abs(profit) < 0.05) {
+    profitRow.className = 'row';
+    profitEl.textContent = '£0.00 (break-even)';
+  } else if (profit > 0) {
+    profitRow.className = 'row positive';
+    profitEl.textContent = `+£${profit.toFixed(2)}`;
+  } else {
+    profitRow.className = 'row negative';
+    profitEl.textContent = `−£${Math.abs(profit).toFixed(2)}`;
+  }
+
+  // State pill + narration
+  const pill = document.getElementById('state-pill');
+  const narr = document.getElementById('narration-text');
+  // Treat "near ATC min" as break-even regardless of small numerical profit
+  const nearBreakEven = nearBE;
+  if (isShutdown) {
+    pill.className = 'state-pill shutdown';
+    pill.textContent = 'Shut down';
+    narr.innerHTML = `At a price of £${p.toFixed(2)}, the firm can't even cover its variable costs (AVC min = £${c.avcMin.toFixed(2)}). It shuts down in the short run, losing only its fixed costs of £${c.FC.toFixed(2)}.`;
+  } else if (nearBreakEven) {
+    pill.className = 'state-pill break-even';
+    pill.textContent = 'Break-even (long-run equilibrium)';
+    narr.innerHTML = `Price equals the minimum of ATC (£${c.atcMin.toFixed(2)}). The firm makes zero economic profit — just enough to cover all costs including the opportunity cost of capital. No further entry or exit; this is the long-run equilibrium of perfect competition.`;
+  } else if (profit > 0.05) {
+    pill.className = 'state-pill profit';
+    pill.textContent = 'Short-run profit';
+    narr.innerHTML = `At a price of £${p.toFixed(2)}, the firm produces ${q.toFixed(0)} units where MC = P. Average total cost is £${atcAtQ.toFixed(2)}, less than price, so the firm earns <strong>economic profit of £${profit.toFixed(2)}</strong>. In the long run, other firms will enter, pushing price down toward ATC min.`;
+  } else if (profit < -0.05) {
+    pill.className = 'state-pill loss';
+    pill.textContent = 'Short-run loss';
+    narr.innerHTML = `At a price of £${p.toFixed(2)}, the firm produces ${q.toFixed(0)} units (MC = P). Average total cost is £${atcAtQ.toFixed(2)}, above price, so the firm loses <strong>£${Math.abs(profit).toFixed(2)}</strong>. It keeps operating (price still covers AVC = £${c.avc(q).toFixed(2)}) but in the long run will exit the industry.`;
+  } else {
+    pill.className = 'state-pill break-even';
+    pill.textContent = 'Break-even (long-run equilibrium)';
+    narr.innerHTML = `Price equals the minimum of ATC (£${c.atcMin.toFixed(2)}). The firm makes zero economic profit — just enough to cover all costs including the opportunity cost of capital. No further entry or exit; this is the long-run equilibrium of perfect competition.`;
+  }
+}
+
+/* -----------------------------------------------------------------------
+   Cases
+   ----------------------------------------------------------------------- */
+
+const cases = {
+  profit:     { price: 1.00, narration: 'Price above ATC min: firm makes short-run economic profit. Entry will eventually erode this.' },
+  breakeven:  { price: null, narration: 'Price equals ATC min — the long-run equilibrium. Firms earn zero economic profit and there\'s no incentive to enter or exit.' },
+  loss:       { price: 0.55, narration: 'Price between AVC min and ATC min: firm makes a short-run loss but continues producing (covers variable costs and some fixed). In the long run, firms exit.' },
+  shutdown:   { price: 0.40, narration: 'Price below AVC min: firm can\'t cover variable costs. Shut down in the short run, losing fixed costs only.' },
+};
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const c = cases[btn.dataset.case];
+    if (!c) return;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // For break-even, set price to ATC min of the current cost curve
+    const price = c.price != null ? c.price : state.cost.atcMin;
+    state.price = Number(price.toFixed(2));
+    document.getElementById('price-slider').value = state.price;
+    document.getElementById('price-val').textContent = `£${state.price.toFixed(2)}`;
+    document.getElementById('case-narration').textContent = c.narration;
+    renderAll();
+  });
+});
+
+document.getElementById('price-slider').addEventListener('input', ev => {
+  state.price = Number(ev.target.value);
+  document.getElementById('price-val').textContent = `£${state.price.toFixed(2)}`;
+  renderAll();
+});
+
+document.querySelector('[data-action="lr-equilibrate"]').addEventListener('click', () => {
+  // Long-run: price → ATC_min
+  state.price = Number(state.cost.atcMin.toFixed(2));
+  document.getElementById('price-slider').value = state.price;
+  document.getElementById('price-val').textContent = `£${state.price.toFixed(2)}`;
+  document.getElementById('lr-note').textContent = 'Price has adjusted to ATC min (£' + state.cost.atcMin.toFixed(2) + '). Firms earn zero economic profit. This is the long-run equilibrium of perfect competition.';
+  renderAll();
+});
+
+document.querySelector('[data-action="reset"]').addEventListener('click', () => {
+  state.price = 0.80;
+  document.getElementById('price-slider').value = state.price;
+  document.getElementById('price-val').textContent = `£${state.price.toFixed(2)}`;
+  document.getElementById('lr-note').textContent = 'In the long run, entry (if firms profit) or exit (if firms lose) drives price to the minimum of ATC, giving zero economic profit.';
+  renderAll();
+});
+
+function renderAll() {
+  renderFirm();
+  renderIndustry();
+  updateRightPanel();
+}
+
+/* Init */
+makePlots();
+renderAll();
+</script>
+
+</body>
+</html>

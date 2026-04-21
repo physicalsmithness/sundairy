@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Price elasticity of demand · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Revenue rectangle — draws the P × Q box. Uses a neutral violet so it's
+       distinct from CS (amber) and PS (teal). */
+    .graph-area svg .region.revenue {
+      fill: #8a6fb8;
+      fill-opacity: 0.22;
+      stroke: #6a4d99;
+      stroke-width: 0.5;
+    }
+    .graph-area svg .region.revenue-old {
+      fill: none;
+      stroke: #6a4d99;
+      stroke-width: 1;
+      stroke-dasharray: 3 2;
+      opacity: 0.6;
+    }
+    .graph-area svg .region.revenue-gained {
+      fill: var(--welfare-gain);
+      fill-opacity: 0.3;
+      stroke: #2d7a50;
+      stroke-width: 0.5;
+    }
+    .graph-area svg .region.revenue-lost {
+      fill: var(--welfare-loss);
+      fill-opacity: 0.25;
+      stroke: var(--welfare-loss);
+      stroke-width: 0.5;
+    }
+
+    /* PED-value readout card in the right panel */
+    .ped-card {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 0.7rem;
+      text-align: center;
+    }
+    .ped-card .ped-value {
+      font-family: 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 0.2rem;
+    }
+    .ped-card .ped-category {
+      font-family: 'Source Serif 4', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .ped-card.elastic .ped-value { color: var(--demand-shift); }
+    .ped-card.inelastic .ped-value { color: var(--supply); }
+    .ped-card.unitary .ped-value { color: #6a4d99; }
+    .ped-card.perfect-elastic .ped-value, .ped-card.perfect-inelastic .ped-value {
+      color: var(--welfare-loss);
+    }
+
+    /* Revenue readout */
+    .rev-card {
+      background: var(--paper-deep);
+      border-radius: var(--radius-md);
+      padding: 0.5rem 0.8rem;
+      margin-bottom: 0.7rem;
+      font-size: 13px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.2rem 0.8rem;
+    }
+    .rev-card dt { color: var(--ink-soft); font-weight: 500; }
+    .rev-card dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: right;
+    }
+    .rev-card .change-up { color: #2d7a50; }
+    .rev-card .change-down { color: var(--welfare-loss); }
+
+    /* Steepness slider — markers along it at reference positions */
+    .steepness-slider-wrap {
+      position: relative;
+      padding-top: 1.5rem;
+    }
+    .steepness-slider-wrap .markers {
+      position: absolute;
+      top: 0;
+      left: 0; right: 0;
+      height: 1.3rem;
+      pointer-events: none;
+      font-family: 'Source Serif 4', serif;
+      font-style: italic;
+      font-size: 10.5px;
+      color: var(--ink-soft);
+    }
+    .steepness-slider-wrap .markers span {
+      position: absolute;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.5 Price elasticity of demand · Required (HL extras marked)</span>
+      <h1>Price elasticity of demand</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer" selected>St Andrews greengrocer</option>
+        <option value="smartphones">Global smartphone market</option>
+        <option value="albania_wheat">Albanian wheat market</option>
+        <option value="danny">Danny's lemonade stand</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="example-row">
+        <span class="events-label">Try a real case</span>
+        <button class="event-chip" data-example="petrol">Petrol <span class="term-badge">inelastic</span></button>
+        <button class="event-chip" data-example="insulin">Insulin <span class="term-badge">perfectly inelastic</span></button>
+        <button class="event-chip" data-example="beef">Beef <span class="term-badge">elastic</span></button>
+        <button class="event-chip" data-example="share">Single share on the stock market <span class="term-badge">perfectly elastic</span></button>
+        <button class="event-chip active" data-example="default">Generic (start here)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="example-narration">
+        Drag the point along the curve. The shape of the curve (its steepness) determines how much quantity responds to price. Read the PED on the right.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Curve steepness <span class="value" id="steepness-val">linear</span></label>
+          <div class="steepness-slider-wrap">
+            <div class="markers" id="steepness-markers">
+              <span style="left: 5%;">perfectly elastic</span>
+              <span style="left: 35%;">elastic</span>
+              <span style="left: 50%;">unitary*</span>
+              <span style="left: 65%;">inelastic</span>
+              <span style="left: 95%;">perfectly inelastic</span>
+            </div>
+            <input type="range" id="steepness" min="0" max="100" step="1" value="50" />
+          </div>
+          <span class="small muted">Slide from a horizontal demand curve (left) to a vertical one (right). *Unitary PED requires a curved line in general; the slider approximates.</span>
+        </div>
+
+        <div class="control">
+          <label class="toggle">
+            <input type="checkbox" id="show-revenue" checked />
+            <span>Show revenue rectangle (P × Q)</span>
+          </label>
+          <span class="small muted">Shaded rectangle under the chosen point. When you move the price, the green region is revenue gained, the coral is revenue lost.</span>
+        </div>
+
+        <div class="control" style="grid-column: span 2;">
+          <label>Two-point revenue comparison</label>
+          <div class="return-style" role="group" aria-label="Revenue comparison">
+            <button data-action="snap-current" class="event-btn">Snap current point as "old"</button>
+            <button data-action="clear-old" class="event-btn">Clear old point</button>
+          </div>
+          <span class="small muted" id="rev-compare-note">Snap a reference point, then drag to a new price and compare revenue.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="ped-card" id="ped-card">
+        <div class="ped-value" id="ped-value">—</div>
+        <div class="ped-category" id="ped-category">Drag the point to see PED</div>
+      </div>
+
+      <dl class="rev-card">
+        <dt>Price at this point</dt>
+        <dd id="out-price">—</dd>
+        <dt>Quantity demanded</dt>
+        <dd id="out-quantity">—</dd>
+        <dt>Revenue (P × Q)</dt>
+        <dd id="out-revenue">—</dd>
+        <dt id="change-label" style="display: none;">Revenue change from old</dt>
+        <dd id="out-change" style="display: none;"></dd>
+      </dl>
+
+      <p class="prose" id="narration-text">
+        Price elasticity of demand measures how sharply quantity demanded responds to price: <em>%ΔQ / %ΔP</em>. A steeper demand curve is more inelastic — quantity doesn't move much when price changes. A flatter curve is more elastic — quantity moves a lot.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The revenue insight.</strong> If demand is <strong>inelastic</strong> (PED &lt; 1), total revenue moves <em>with</em> price: raise price, revenue rises. If demand is <strong>elastic</strong> (PED &gt; 1), revenue moves <em>against</em> price: raise price, revenue falls. At <strong>unitary</strong> PED, revenue is unchanged.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatMoney, formatPrice, formatQuantity, svgEl } from '../js/common.js';
+
+const state = {
+  scenarioKey: 'greengrocer',
+  // Steepness slider value 0..100. 0 = horizontal (perfectly elastic),
+  // 100 = vertical (perfectly inelastic), 50 = linear through the pivot.
+  steepness: 50,
+  // The chosen point along the curve (q, p). Starts at the pivot.
+  pointQ: null,
+  pointP: null,
+  // Snapshot of the old point for revenue comparison.
+  oldQ: null,
+  oldP: null,
+  showRevenue: true,
+};
+
+let plot;
+
+/* -----------------------------------------------------------------------
+   Curve construction
+   -----------------------------------------------------------------------
+   Pivot at (q0, p0) — the scenario default. Steepness s in 0..100 maps to
+   a slope via:
+
+     s=50:  slope = -p0/q0  (a line from (0, 2p0) through the pivot to
+                              (2q0, 0))
+     s<50:  shallower (more elastic, flatter)
+     s>50:  steeper (more inelastic)
+     s=0:   slope ≈ 0 (perfectly elastic, horizontal line at p0)
+     s=100: slope ≈ -∞ (perfectly inelastic, vertical line at q=q0)
+
+   Implementation: map s to an angle a (in radians), compute slope from that.
+   We let a vary from very close to 0 (horizontal) to very close to -π/2 (vertical).
+   ----------------------------------------------------------------------- */
+
+function curveForSteepness() {
+  const sc = scenarios[state.scenarioKey];
+  const q0 = sc.defaultQuantity;
+  const p0 = sc.defaultPrice;
+  // s in 0..100. Map to angle in [epsilon, π/2 - epsilon]. We want s=50 to
+  // give us a "canonical" linear demand where slope = -p0/q0 (so the curve
+  // passes through (2q0, 0) and (0, 2p0)). The angle whose tangent gives
+  // that slope (in price-per-quantity, scaled by axis aspect) is:
+  //     tan(a_canonical) = (p0/q0) / (priceMax/quantityMax) * 1  (ratio of
+  //     axis units)
+  // but simpler: use a monotonic map from slider to a multiplicative factor.
+
+  // We use a reference "canonical" slope m_ref = -p0 / q0.
+  // steepness=50 → slope m_ref
+  // steepness→0  → slope → 0
+  // steepness→100 → slope → -∞
+  // Use slope = m_ref × tan( (s/100) × π/2 ) / tan(π/4)
+  //           = m_ref × tan( s × π / 200 )    (since tan(π/4)=1)
+  // At s=0: tan(0)=0 → slope=0 (horizontal)
+  // At s=50: tan(π/4)=1 → slope = m_ref
+  // At s=100: tan(π/2)=∞ → slope = -∞ (vertical)
+  const s = state.steepness;
+  const mRef = -p0 / q0;
+  const theta = (s / 100) * (Math.PI / 2) * 0.99 + 0.005;
+  const factor = Math.tan(theta) / Math.tan(Math.PI / 4);
+  const slope = mRef * factor;
+  // linearCurve wants two anchor points. We put one at the pivot (q0, p0)
+  // and another at a point offset by some dx.
+  const dx = sc.quantityMax * 0.1;
+  return linearCurve(
+    { q: q0, p: p0 },
+    { q: q0 + dx, p: p0 + slope * dx }
+  );
+}
+
+/* At a point (q, p) on a linear demand curve with slope m, the PED is:
+     PED = (dQ/dP) × (P/Q) = (1/m) × (P/Q)
+   (signed negative but we report abs).
+   Edge cases: horizontal curve (m → 0) → PED → ∞ (perfectly elastic)
+              vertical curve (m → ∞) → PED → 0 (perfectly inelastic)
+*/
+function pedAtPoint(q, p, curve) {
+  const m = curve.slope;
+  if (!isFinite(m)) return 0;           // vertical: PED = 0
+  if (Math.abs(m) < 1e-6) return Infinity; // horizontal: PED = ∞
+  if (q <= 0 || p <= 0) return 0;
+  return Math.abs((1 / m) * (p / q));
+}
+
+function pedCategory(pedValue) {
+  if (!isFinite(pedValue)) return { name: 'perfectly elastic', className: 'perfect-elastic' };
+  if (pedValue === 0) return { name: 'perfectly inelastic', className: 'perfect-inelastic' };
+  if (Math.abs(pedValue - 1) < 0.05) return { name: 'unitary elastic', className: 'unitary' };
+  if (pedValue > 1) return { name: 'elastic (PED > 1)', className: 'elastic' };
+  return { name: 'inelastic (PED < 1)', className: 'inelastic' };
+}
+
+/* -----------------------------------------------------------------------
+   Rendering
+   ----------------------------------------------------------------------- */
+
+function currentPoint() {
+  if (state.pointQ == null || state.pointP == null) {
+    const sc = scenarios[state.scenarioKey];
+    return { q: sc.defaultQuantity, p: sc.defaultPrice };
+  }
+  return { q: state.pointQ, p: state.pointP };
+}
+
+function renderAll() {
+  if (!plot) return;
+  const sc = scenarios[state.scenarioKey];
+  const curve = curveForSteepness();
+  state.curve = curve;
+  // Ensure the chosen point still lies on the curve
+  const pt = currentPoint();
+  // Snap pt to the curve at its q (keep q, replace p with curve.priceAt(q))
+  let q = Math.max(1, Math.min(sc.quantityMax * 0.98, pt.q));
+  let p = curve.priceAt(q);
+  // If p is out of plot bounds (can happen for very steep/shallow curves),
+  // clamp p and recompute q instead.
+  if (p < 0 || p > sc.priceMax * 0.98) {
+    p = Math.max(0.02 * sc.priceMax, Math.min(0.95 * sc.priceMax, p));
+    q = curve.quantityAt(p);
+    q = Math.max(1, Math.min(sc.quantityMax * 0.98, q));
+    p = curve.priceAt(q);
+  }
+  state.pointQ = q;
+  state.pointP = p;
+
+  // Curves
+  plot.setCurves([
+    { curve, kind: 'demand', label: 'D', draggable: false },
+  ]);
+
+  // Revenue regions
+  const regions = [];
+  if (state.showRevenue && q > 0 && p > 0) {
+    regions.push({
+      id: 'revenue',
+      className: 'revenue',
+      points: [[0, 0], [0, p], [q, p], [q, 0]],
+      label: `Revenue ${formatMoney(state.scenarioKey, q * p)}`,
+    });
+    if (state.oldQ != null && state.oldP != null) {
+      // Old rectangle as outline
+      const oq = state.oldQ, op = state.oldP;
+      regions.push({
+        id: 'revenue-old',
+        className: 'revenue-old',
+        points: [[0, 0], [0, op], [oq, op], [oq, 0]],
+        label: null,
+      });
+      // Gained / lost regions — only the non-overlapping bits
+      // If new price > old price: some revenue was gained in the price direction
+      //   (the horizontal strip from old p to new p, width = min(oq, q))
+      // If new q > old q: some revenue was gained in the quantity direction
+      //   (the vertical strip from old q to new q, height = min(op, p))
+      // And vice versa for losses.
+      const minQ = Math.min(oq, q), maxQ = Math.max(oq, q);
+      const minP = Math.min(op, p), maxP = Math.max(op, p);
+      // Rectangle of gains: if price went up AND quantity went down (or vice
+      // versa), we have one strip gained and one strip lost (with the
+      // central overlap shared). We're simple: compute the "old" rectangle
+      // and the "new" rectangle in aligned pieces:
+      //    new_only = (new ∖ old) = gained area
+      //    old_only = (old ∖ new) = lost area
+      // For two rectangles anchored at origin, these are just strips.
+      // If q > oq: vertical strip [oq, q] × [0, p] is part of new_only,
+      //   minus the slice [oq, q] × [min(op,p), max(op,p)] that may still be
+      //   in old. Simpler: render new_only as non-rect-aligned rects.
+      // Implementation: draw strips.
+      if (q > oq && p >= op) {
+        // new point up-and-right of old — entirely gained strips:
+        //   strip 1: [oq, q] × [0, p]  (full right strip)
+        //   strip 2: [0, oq] × [op, p] (top strip over original width)
+        if (q > oq) regions.push({
+          id: 'rev-gained-1', className: 'revenue-gained',
+          points: [[oq, 0], [oq, p], [q, p], [q, 0]],
+        });
+        if (p > op) regions.push({
+          id: 'rev-gained-2', className: 'revenue-gained',
+          points: [[0, op], [0, p], [oq, p], [oq, op]],
+        });
+      } else if (q < oq && p <= op) {
+        // new down-and-left — entirely lost:
+        if (oq > q) regions.push({
+          id: 'rev-lost-1', className: 'revenue-lost',
+          points: [[q, 0], [q, op], [oq, op], [oq, 0]],
+        });
+        if (op > p) regions.push({
+          id: 'rev-lost-2', className: 'revenue-lost',
+          points: [[0, p], [0, op], [q, op], [q, p]],
+        });
+      } else if (q > oq && p < op) {
+        // new at higher q but lower p — classic elastic case (price fell,
+        // quantity rose). Gained: [oq, q] × [0, p]. Lost: [0, oq] × [p, op].
+        regions.push({
+          id: 'rev-gained-1', className: 'revenue-gained',
+          points: [[oq, 0], [oq, p], [q, p], [q, 0]],
+        });
+        regions.push({
+          id: 'rev-lost-1', className: 'revenue-lost',
+          points: [[0, p], [0, op], [oq, op], [oq, p]],
+        });
+      } else if (q < oq && p > op) {
+        // new at lower q but higher p — classic inelastic case (price rose,
+        // quantity fell). Gained: [0, q] × [op, p]. Lost: [q, oq] × [0, op].
+        regions.push({
+          id: 'rev-gained-1', className: 'revenue-gained',
+          points: [[0, op], [0, p], [q, p], [q, op]],
+        });
+        regions.push({
+          id: 'rev-lost-1', className: 'revenue-lost',
+          points: [[q, 0], [q, op], [oq, op], [oq, 0]],
+        });
+      }
+    }
+  }
+  plot.setRegions(regions);
+
+  // Annotations: dotted lines from the point to both axes
+  const annots = [];
+  annots.push({ kind: 'dropLine', q, pFrom: p, pTo: 0, toAxis: true, dashed: true });
+  annots.push({ kind: 'acrossLine', p, qFrom: 0, qTo: q, fromAxis: true, dashed: true });
+  plot.setAnnotations(annots);
+
+  // Labels — price and quantity at point
+  const labels = [];
+  labels.push({
+    x: 0, y: p, rawX: plot.margin.left + 6,
+    text: formatPrice(state.scenarioKey, p),
+    textAnchor: 'start', offset: { y: -4 },
+    color: 'var(--ink)', className: 'point-label',
+  });
+  labels.push({
+    x: q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+    text: formatQuantity(state.scenarioKey, q),
+    textAnchor: 'start', offset: { x: 5 },
+    color: 'var(--ink)', className: 'point-label',
+  });
+  plot.setLabels(labels);
+
+  // Transition circle as the draggable point marker
+  plot.setTransitionCircle({
+    curQ: q, curP: p, showCurrent: true, fadeAlpha: 1,
+    oldQ: null, oldP: null,
+  });
+
+  plot.render();
+
+  updateReadouts();
+}
+
+function updateReadouts() {
+  const curve = state.curve;
+  const { q, p } = currentPoint();
+  const ped = pedAtPoint(q, p, curve);
+  const cat = pedCategory(ped);
+
+  const pedCard = document.getElementById('ped-card');
+  pedCard.className = 'ped-card ' + cat.className;
+  const pedValue = document.getElementById('ped-value');
+  if (!isFinite(ped)) pedValue.textContent = '∞';
+  else if (ped === 0) pedValue.textContent = '0';
+  else if (ped > 100) pedValue.textContent = '>> 1';
+  else if (ped < 0.01) pedValue.textContent = '~ 0';
+  else pedValue.textContent = ped.toFixed(2);
+  document.getElementById('ped-category').textContent = cat.name;
+
+  document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, p);
+  document.getElementById('out-quantity').textContent = formatQuantity(state.scenarioKey, q);
+  document.getElementById('out-revenue').textContent = formatMoney(state.scenarioKey, q * p);
+
+  // Revenue change
+  const changeLbl = document.getElementById('change-label');
+  const changeEl = document.getElementById('out-change');
+  if (state.oldQ != null && state.oldP != null) {
+    const oldRev = state.oldQ * state.oldP;
+    const newRev = q * p;
+    const diff = newRev - oldRev;
+    changeLbl.style.display = '';
+    changeEl.style.display = '';
+    const sign = diff >= 0 ? '+' : '';
+    changeEl.textContent = sign + formatMoney(state.scenarioKey, diff);
+    changeEl.className = diff >= 0 ? 'change-up' : 'change-down';
+  } else {
+    changeLbl.style.display = 'none';
+    changeEl.style.display = 'none';
+  }
+
+  // Steepness category for the slider label
+  const sval = document.getElementById('steepness-val');
+  const s = state.steepness;
+  if (s < 5) sval.textContent = 'perfectly elastic';
+  else if (s < 35) sval.textContent = 'elastic';
+  else if (s < 45) sval.textContent = 'moderately elastic';
+  else if (s <= 55) sval.textContent = 'linear';
+  else if (s < 65) sval.textContent = 'moderately inelastic';
+  else if (s < 95) sval.textContent = 'inelastic';
+  else sval.textContent = 'perfectly inelastic';
+}
+
+/* -----------------------------------------------------------------------
+   Dragging
+   ----------------------------------------------------------------------- */
+
+function setupDrag() {
+  const svg = plot.svg;
+  let dragging = false;
+  const toData = ev => {
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const x = ((ev.clientX - rect.left) / rect.width) * vb.width;
+    return plot.xInv(x);
+  };
+  const onMove = ev => {
+    if (!dragging) return;
+    ev.preventDefault();
+    const q = toData(ev);
+    if (!isFinite(q)) return;
+    const sc = scenarios[state.scenarioKey];
+    const clamped = Math.max(1, Math.min(sc.quantityMax * 0.98, q));
+    state.pointQ = clamped;
+    state.pointP = state.curve.priceAt(clamped);
+    renderAll();
+  };
+  const onUp = ev => {
+    dragging = false;
+    svg.releasePointerCapture?.(ev.pointerId);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+  svg.addEventListener('pointerdown', ev => {
+    dragging = true;
+    svg.setPointerCapture(ev.pointerId);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    onMove(ev);
+  });
+}
+
+/* -----------------------------------------------------------------------
+   Preset examples
+   ----------------------------------------------------------------------- */
+
+const examples = {
+  default: {
+    steepness: 50,
+    narration: 'A typical textbook demand curve. Slide the steepness to explore, or try a real-world case.',
+  },
+  petrol: {
+    steepness: 80,
+    narration: 'Petrol is relatively inelastic: you still need to drive to work even if the price rises. PED estimates cluster around 0.1 to 0.3 in the short run.',
+  },
+  insulin: {
+    steepness: 98,
+    narration: 'Insulin is a life-necessity with no substitute. Diabetic patients buy it regardless of price — the demand curve is very nearly vertical, PED ≈ 0.',
+  },
+  beef: {
+    steepness: 25,
+    narration: 'Beef has close substitutes (chicken, pork, fish). Raise the price and many buyers switch. PED for beef estimates around 1.0-1.5.',
+  },
+  share: {
+    steepness: 2,
+    narration: 'At any tiny step above the market price, no one buys from this single seller (they go elsewhere). At any tiny step below, everyone buys. The individual firm\'s demand curve in a perfectly competitive market is nearly horizontal.',
+  },
+};
+
+document.querySelectorAll('[data-example]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.example;
+    const ex = examples[key];
+    if (!ex) return;
+    document.querySelectorAll('[data-example]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.steepness = ex.steepness;
+    document.getElementById('steepness').value = ex.steepness;
+    document.getElementById('example-narration').textContent = ex.narration;
+    renderAll();
+  });
+});
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.getElementById('steepness').addEventListener('input', ev => {
+  state.steepness = Number(ev.target.value);
+  renderAll();
+});
+
+document.getElementById('show-revenue').addEventListener('change', ev => {
+  state.showRevenue = ev.target.checked;
+  renderAll();
+});
+
+document.querySelectorAll('[data-action]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.action;
+    if (action === 'snap-current') {
+      state.oldQ = state.pointQ;
+      state.oldP = state.pointP;
+      document.getElementById('rev-compare-note').textContent = 'Old point snapped. Move the point and see revenue gained (green) vs lost (coral).';
+    } else if (action === 'clear-old') {
+      state.oldQ = null;
+      state.oldP = null;
+      document.getElementById('rev-compare-note').textContent = 'Snap a reference point, then drag to a new price and compare revenue.';
+    }
+    renderAll();
+  });
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  const sc = scenarios[state.scenarioKey];
+  state.pointQ = sc.defaultQuantity;
+  state.pointP = sc.defaultPrice;
+  state.oldQ = null;
+  state.oldP = null;
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+const sc0 = scenarios[state.scenarioKey];
+state.pointQ = sc0.defaultQuantity;
+state.pointP = sc0.defaultPrice;
+setupDrag();
+renderAll();
+
+</script>
+
+</body>
+</html>

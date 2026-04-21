@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consumer and producer surplus · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Visible "traders" drawn along each curve. */
+    .trader {
+      pointer-events: none;
+    }
+    .trader-body {
+      transition: fill 0.25s, opacity 0.25s;
+    }
+    .trader-surplus-strip {
+      fill: var(--demand-fill);
+      stroke: var(--demand-shift);
+      stroke-width: 0.6;
+      transition: opacity 0.25s;
+    }
+    .trader-surplus-strip.seller {
+      fill: var(--supply-fill);
+      stroke: var(--supply);
+    }
+    .trader-price-dot {
+      fill: var(--ink-soft);
+    }
+
+    /* Large totals in the right panel */
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.2rem 0.9rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      margin-bottom: 0.8rem;
+    }
+    .totals-grid .total-row {
+      display: contents;
+    }
+    .totals-grid .total-label {
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+    .totals-grid .total-value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: right;
+    }
+    .totals-grid .total-row.cs .total-label { color: var(--demand-shift); }
+    .totals-grid .total-row.ps .total-label { color: var(--supply); }
+    .totals-grid .total-row.comm .total-label { color: #5d7a68; }
+    .totals-grid .total-row.dwl .total-label { color: var(--welfare-loss); }
+    .totals-grid .total-row.dwl .total-value { color: var(--welfare-loss); }
+    .totals-grid hr {
+      grid-column: span 2;
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 0.2rem 0;
+    }
+
+    .loss-banner {
+      background: rgba(200, 80, 60, 0.1);
+      color: var(--welfare-loss);
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      padding: 0.4rem 0.7rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 0.6rem;
+      display: none;
+      line-height: 1.4;
+    }
+    .loss-banner.visible { display: block; }
+    .loss-banner strong { color: var(--welfare-loss); }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.3 Consumer and producer surplus · Required</span>
+      <h1>Consumer and producer surplus</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer" selected>St Andrews greengrocer</option>
+        <option value="smartphones">Global smartphone market</option>
+        <option value="albania_wheat">Albanian wheat market</option>
+        <option value="danny">Danny's lemonade stand</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="mode-row">
+        <span class="events-label">What's visible</span>
+        <button class="event-chip active" data-view="both">CS and PS</button>
+        <button class="event-chip" data-view="cs">Just CS</button>
+        <button class="event-chip" data-view="ps">Just PS</button>
+        <button class="event-chip" data-view="community">Community surplus</button>
+        <button class="event-chip" data-view="dwl">Deadweight loss (drag price)</button>
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control" style="grid-column: span 2;">
+          <label class="toggle">
+            <input type="checkbox" id="show-traders" checked />
+            <span>Show buyers and sellers along the curves</span>
+          </label>
+          <span class="small muted">Each figure represents a buyer (on the demand curve) or seller (on the supply curve) at their reservation price. Drag the price line to see who can still transact.</span>
+        </div>
+
+        <div class="control" style="grid-column: span 2;">
+          <label>Try</label>
+          <div class="return-style" role="group" aria-label="Scenarios">
+            <button data-scenario-action="reset">Reset to equilibrium</button>
+            <button data-scenario-action="price-up">Price above equilibrium</button>
+            <button data-scenario-action="price-down">Price below equilibrium</button>
+          </div>
+          <span class="small muted" id="scenario-action-note">Drag the dashed price line up or down, or use these buttons. Watch the surplus triangles change.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="loss-banner" id="loss-banner">
+        <strong>Deadweight loss.</strong> Some trades that would have benefited both buyer and seller aren't happening, because the price is forced off equilibrium.
+      </div>
+
+      <div class="totals-grid" id="totals-grid">
+        <div class="total-row cs">
+          <span class="total-label">Consumer surplus</span>
+          <span class="total-value" id="cs-val">—</span>
+        </div>
+        <div class="total-row ps">
+          <span class="total-label">Producer surplus</span>
+          <span class="total-value" id="ps-val">—</span>
+        </div>
+        <hr />
+        <div class="total-row comm">
+          <span class="total-label">Community surplus</span>
+          <span class="total-value" id="comm-val">—</span>
+        </div>
+        <div class="total-row dwl" id="dwl-row" style="display: none;">
+          <span class="total-label">Deadweight loss</span>
+          <span class="total-value" id="dwl-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        Consumer surplus is the gap between the most a buyer would pay and what they actually pay. Producer surplus is the gap between what a seller receives and the least they would accept. Drag the price line off equilibrium to see community surplus shrink.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> Community surplus (CS + PS) is at its <strong>maximum</strong> at the competitive market equilibrium. Any other price destroys value: some mutually beneficial trades simply stop happening. This is the <em>allocative efficiency</em> property of competitive markets.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatMoney, svgEl } from '../js/common.js';
+
+const state = {
+  scenarioKey: 'greengrocer',
+  view: 'both',                  // 'both'|'cs'|'ps'|'community'|'dwl'
+  demand: null,
+  supply: null,
+  forcedPrice: null,             // null → at equilibrium
+  showTraders: true,
+};
+
+let plot;
+
+/* -----------------------------------------------------------------------
+   Curves
+   ----------------------------------------------------------------------- */
+
+function buildCurves() {
+  const s = scenarios[state.scenarioKey];
+  const q0 = s.defaultQuantity;
+  const p0 = s.defaultPrice;
+  const pAtZeroD = p0 * 1.67;
+  state.demand = linearCurve({ q: 0, p: pAtZeroD }, { q: q0, p: p0 });
+  const qMin = q0 * 0.2;
+  state.supply = linearCurve({ q: qMin, p: 0 }, { q: q0, p: p0 });
+}
+
+function eq() {
+  if (!state.demand || !state.supply) return null;
+  const dA = state.demand.p1.p - state.demand.slope * state.demand.p1.q;
+  const sA = state.supply.p1.p - state.supply.slope * state.supply.p1.q;
+  const q = (sA - dA) / (state.demand.slope - state.supply.slope);
+  const p = dA + state.demand.slope * q;
+  return { q, p };
+}
+
+function currentPrice() {
+  const e = eq();
+  return state.forcedPrice != null ? state.forcedPrice : (e ? e.p : 0);
+}
+
+/* -----------------------------------------------------------------------
+   Surplus computation
+   -----------------------------------------------------------------------
+   At market price p and quantity-traded q_T = min(qD(p), qS(p)):
+
+     CS = ∫_0^{q_T} (D(q) - p) dq
+     PS = ∫_0^{q_T} (p - S(q))+ dq   (clamped to max 0 per unit)
+     WTP = ∫_0^{q_T} D(q) dq
+     Expenditure = p × q_T
+
+   With linear curves this is all just trapezoid area arithmetic.
+   ----------------------------------------------------------------------- */
+
+function surplusValues() {
+  const p = currentPrice();
+  const sc = scenarios[state.scenarioKey];
+  const qD = Math.max(0, Math.min(sc.quantityMax, state.demand.quantityAt(p)));
+  const qS = Math.max(0, Math.min(sc.quantityMax, state.supply.quantityAt(p)));
+  const qT = Math.min(qD, qS);
+
+  const dAtZero = state.demand.priceAt(0);
+  const sAtZero = state.supply.priceAt(0);
+
+  // CS — trapezoid between D(q) and p, 0..qT
+  let cs = 0;
+  if (qT > 0) {
+    const dq0 = Math.max(p, dAtZero);
+    const dqT = Math.max(p, state.demand.priceAt(qT));
+    cs = qT * ((dq0 + dqT) / 2 - p);
+  }
+
+  // PS — handle positive x-intercept case
+  let ps = 0;
+  if (qT > 0) {
+    if (sAtZero >= 0) {
+      const sq0 = sAtZero;
+      const sqT = state.supply.priceAt(qT);
+      ps = Math.max(0, qT * (p - (sq0 + sqT) / 2));
+    } else {
+      const qSStart = state.supply.quantityAt(0);
+      const rectQ = Math.min(qSStart, qT);
+      const rect = p * rectQ;
+      let tri = 0;
+      if (qT > qSStart) {
+        const sqT = Math.max(0, state.supply.priceAt(qT));
+        const triWidth = qT - qSStart;
+        tri = triWidth * (p - sqT / 2);
+      }
+      ps = Math.max(0, rect + tri);
+    }
+  }
+
+  const community = cs + ps;
+
+  // Deadweight loss: the area of the triangle bounded by D, S and the
+  // line qT from qT to qEq. Zero when at equilibrium.
+  const e = eq();
+  let dwl = 0;
+  if (e && qT < e.q) {
+    // Triangle: vertices (qT, D(qT)), (qT, S(qT)), (qEq, pEq)
+    const dT = state.demand.priceAt(qT);
+    const sT = Math.max(0, state.supply.priceAt(qT));
+    dwl = 0.5 * Math.abs(e.q - qT) * Math.abs(dT - sT);
+  }
+
+  return { cs, ps, community, dwl, qT, qD, qS, e };
+}
+
+/* -----------------------------------------------------------------------
+   Region polygons for shading
+   ----------------------------------------------------------------------- */
+
+function regionPolygons() {
+  const regions = [];
+  const p = currentPrice();
+  const sc = scenarios[state.scenarioKey];
+  const qD = Math.max(0, Math.min(sc.quantityMax, state.demand.quantityAt(p)));
+  const qS = Math.max(0, Math.min(sc.quantityMax, state.supply.quantityAt(p)));
+  const qT = Math.min(qD, qS);
+  const pTop = sc.priceMax;
+  const dAtZero = state.demand.priceAt(0);
+  const sAtZero = state.supply.priceAt(0);
+  const e = eq();
+
+  // CS region (always built; filtered by view below)
+  let csPts = null;
+  if (qT > 0 && dAtZero > p) {
+    const dTopY = Math.min(dAtZero, pTop);
+    csPts = [[0, p], [0, dTopY]];
+    if (dAtZero > pTop) csPts.push([state.demand.quantityAt(pTop), pTop]);
+    csPts.push([qT, state.demand.priceAt(qT)]);
+    if (state.demand.priceAt(qT) > p + 0.001) csPts.push([qT, p]);
+  }
+
+  // PS region
+  let psPts = null;
+  if (sAtZero >= 0) {
+    if (qT > 0 && p > sAtZero) {
+      psPts = [[0, sAtZero], [0, p], [qT, p], [qT, state.supply.priceAt(qT)]];
+    }
+  } else {
+    const qSStart = state.supply.quantityAt(0);
+    if (qT > qSStart && p > 0) {
+      psPts = [[0, 0], [0, p], [qT, p], [qT, state.supply.priceAt(qT)], [qSStart, 0]];
+    }
+  }
+
+  // Community region (union of CS and PS)
+  let commPts = null;
+  if (qT > 0 && dAtZero > Math.max(0, sAtZero)) {
+    const sStart = Math.max(0, sAtZero);
+    const dTop = Math.min(dAtZero, pTop);
+    commPts = [[0, sStart], [0, dTop]];
+    if (dAtZero > pTop) commPts.push([state.demand.quantityAt(pTop), pTop]);
+    commPts.push([qT, state.demand.priceAt(qT)]);
+    commPts.push([qT, Math.max(0, state.supply.priceAt(qT))]);
+    if (sAtZero < 0) commPts.push([state.supply.quantityAt(0), 0]);
+  }
+
+  // DWL triangle: only when off-equilibrium
+  let dwlPts = null;
+  if (e && qT < e.q - 0.1) {
+    const dT = state.demand.priceAt(qT);
+    const sT = Math.max(0, state.supply.priceAt(qT));
+    // Triangle vertices: (qT, dT), (e.q, e.p), (qT, sT)
+    dwlPts = [[qT, dT], [e.q, e.p], [qT, sT]];
+  }
+
+  const view = state.view;
+  if ((view === 'both' || view === 'cs') && csPts) {
+    regions.push({ id: 'cs', className: 'consumer-surplus', points: csPts, label: `CS ${formatMoney(state.scenarioKey, surplusValues().cs)}` });
+  }
+  if ((view === 'both' || view === 'ps') && psPts) {
+    regions.push({ id: 'ps', className: 'producer-surplus', points: psPts, label: `PS ${formatMoney(state.scenarioKey, surplusValues().ps)}` });
+  }
+  if (view === 'community' && commPts) {
+    regions.push({ id: 'community', className: 'community-surplus', points: commPts, label: `Community ${formatMoney(state.scenarioKey, surplusValues().community)}` });
+  }
+  if ((view === 'dwl' || view === 'both' || view === 'community') && dwlPts) {
+    regions.push({ id: 'dwl', className: 'welfare-loss', points: dwlPts, label: `DWL ${formatMoney(state.scenarioKey, surplusValues().dwl)}` });
+  }
+  return regions;
+}
+
+/* -----------------------------------------------------------------------
+   Traders along the curves — decorative stickfigures
+   -----------------------------------------------------------------------
+   We draw N_BUYERS figures along the demand curve at evenly-spaced
+   quantities, each representing a buyer whose reservation price is
+   D(q_i). Similarly for sellers along supply. Their appearance reflects
+   whether they're currently in or out of the market.
+   ----------------------------------------------------------------------- */
+
+const N_TRADERS = 8;
+
+function drawBuyer(group, cx, cy, surplus, active) {
+  // Stickfigure: head + triangle body. Opacity and colour reflect state.
+  const colour = active ? 'var(--demand-shift)' : 'var(--ink-soft)';
+  const opacity = active ? 1 : 0.35;
+  const head = svgEl('circle', {
+    class: 'trader-body',
+    cx, cy: cy - 11, r: 2.5, fill: colour, opacity,
+  });
+  const body = svgEl('path', {
+    class: 'trader-body',
+    d: `M ${cx-3} ${cy} L ${cx+3} ${cy} L ${cx} ${cy-8} Z`,
+    fill: colour, opacity,
+  });
+  group.appendChild(head);
+  group.appendChild(body);
+  // A small coin-stack showing surplus, only if they're active and surplus > 0
+  if (active && surplus > 0.01) {
+    const h = Math.min(12, 2 + surplus * 3);
+    const strip = svgEl('rect', {
+      class: 'trader-surplus-strip',
+      x: cx - 2, y: cy - 11 - h, width: 4, height: h, rx: 1,
+    });
+    group.appendChild(strip);
+  }
+}
+
+function drawSeller(group, cx, cy, surplus, active) {
+  const colour = active ? 'var(--supply)' : 'var(--ink-soft)';
+  const opacity = active ? 1 : 0.35;
+  const head = svgEl('circle', {
+    class: 'trader-body',
+    cx, cy: cy + 11, r: 2.5, fill: colour, opacity,
+  });
+  const body = svgEl('path', {
+    class: 'trader-body',
+    // Seller's body drawn below the point (a triangle pointing down)
+    d: `M ${cx-3} ${cy} L ${cx+3} ${cy} L ${cx} ${cy+8} Z`,
+    fill: colour, opacity,
+  });
+  group.appendChild(head);
+  group.appendChild(body);
+  if (active && surplus > 0.01) {
+    const h = Math.min(12, 2 + surplus * 3);
+    const strip = svgEl('rect', {
+      class: 'trader-surplus-strip seller',
+      x: cx - 2, y: cy + 11, width: 4, height: h, rx: 1,
+    });
+    group.appendChild(strip);
+  }
+}
+
+function renderTraders() {
+  const layer = plot.svg.querySelector('#cs-traders-layer') || (() => {
+    const g = svgEl('g', { id: 'cs-traders-layer' });
+    plot.svg.appendChild(g);
+    return g;
+  })();
+  while (layer.firstChild) layer.removeChild(layer.firstChild);
+  if (!state.showTraders) return;
+
+  const p = currentPrice();
+  const sc = scenarios[state.scenarioKey];
+  const qD = Math.max(0, Math.min(sc.quantityMax, state.demand.quantityAt(p)));
+  const qS = Math.max(0, Math.min(sc.quantityMax, state.supply.quantityAt(p)));
+  const qT = Math.min(qD, qS);
+
+  // Distribute buyers along demand: q_i are the midpoints of equal quantity bands
+  // running from 0 to somewhere past the equilibrium. We use the full range up to
+  // 1.6 * equilibrium quantity, so buyers "off the back" (high reservation prices)
+  // are also visible.
+  const e = eq();
+  if (!e) return;
+
+  const qRange = Math.min(sc.quantityMax * 0.9, e.q * 1.6);
+  for (let i = 0; i < N_TRADERS; i++) {
+    const q = qRange * (i + 0.5) / N_TRADERS;
+    const pR = state.demand.priceAt(q);  // buyer's reservation price
+    if (pR < 0 || pR > sc.priceMax) continue;
+    const cx = plot.xScale(q);
+    const cy = plot.yScale(pR);
+    // Buyer is active if their reservation price ≥ market price AND they're in the
+    // first qT of buyers (i.e. their position along the demand curve is to the left
+    // of where supply meets demand at price p, because higher-WTP buyers get served first)
+    const active = pR >= p && q <= qT;
+    const surplus = active ? (pR - p) : 0;
+    drawBuyer(layer, cx, cy, surplus, active);
+  }
+
+  const sAtZero = state.supply.priceAt(0);
+  const qSStart = sAtZero >= 0 ? 0 : state.supply.quantityAt(0);
+  for (let i = 0; i < N_TRADERS; i++) {
+    const q = qSStart + (qRange - qSStart) * (i + 0.5) / N_TRADERS;
+    const pR = state.supply.priceAt(q);  // seller's reservation price (min willing)
+    if (pR < 0 || pR > sc.priceMax) continue;
+    const cx = plot.xScale(q);
+    const cy = plot.yScale(pR);
+    const active = pR <= p && q <= qT;
+    const surplus = active ? (p - pR) : 0;
+    drawSeller(layer, cx, cy, surplus, active);
+  }
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function renderAll() {
+  if (!plot) return;
+  buildCurves();
+  const e = eq();
+  const p = currentPrice();
+  const sc = scenarios[state.scenarioKey];
+
+  plot.setCurves([
+    { curve: state.demand, kind: 'demand', label: 'D', draggable: false },
+    { curve: state.supply, kind: 'supply', label: 'S', draggable: false },
+  ]);
+  plot.setRegions(regionPolygons());
+  if (e) plot.setEquilibriumMarker({ q: e.q, p: e.p });
+
+  plot.setPriceLine({
+    price: p,
+    draggable: true,
+    onMove: (newP) => {
+      const clamped = Math.max(0.02 * sc.priceMax, Math.min(0.95 * sc.priceMax, newP));
+      state.forcedPrice = clamped;
+      renderAll();
+    },
+    onRelease: () => {},
+    springTarget: null,
+    springStyle: 'none',
+  });
+
+  // Labels / annotations
+  const labels = [];
+  const annots = [];
+  if (e) {
+    annots.push({ kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true });
+    labels.push({
+      x: 0, y: e.p, rawX: plot.margin.left + 6,
+      text: 'P*', textAnchor: 'start', offset: { y: -4 },
+      color: 'var(--ink)', className: 'point-label',
+    });
+    labels.push({
+      x: e.q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+      text: 'Q*', textAnchor: 'start', offset: { x: 5 },
+      color: 'var(--ink)', className: 'point-label',
+    });
+  }
+  plot.setAnnotations(annots);
+  plot.setLabels(labels);
+  plot.render();
+
+  // Custom traders layer (drawn after the plot renders so it sits on top)
+  renderTraders();
+
+  updateRightPanel();
+}
+
+function updateRightPanel() {
+  const v = surplusValues();
+  document.getElementById('cs-val').textContent = formatMoney(state.scenarioKey, v.cs);
+  document.getElementById('ps-val').textContent = formatMoney(state.scenarioKey, v.ps);
+  document.getElementById('comm-val').textContent = formatMoney(state.scenarioKey, v.community);
+  const dwlRow = document.getElementById('dwl-row');
+  const dwlEl = document.getElementById('dwl-val');
+  const banner = document.getElementById('loss-banner');
+  if (v.dwl > 0.01) {
+    dwlRow.style.display = 'contents';
+    dwlEl.textContent = '- ' + formatMoney(state.scenarioKey, v.dwl);
+    banner.classList.add('visible');
+  } else {
+    dwlRow.style.display = 'none';
+    banner.classList.remove('visible');
+  }
+
+  // Narration
+  const narrEl = document.getElementById('narration-text');
+  const e = eq();
+  const p = currentPrice();
+  if (!e) return;
+  const atEq = Math.abs(p - e.p) < 0.005;
+  if (atEq) {
+    narrEl.innerHTML = `The market is at equilibrium (P* = ${formatMoney(state.scenarioKey, e.p).replace('£', '£').replace('L', 'L')}). Consumer surplus is <strong>${formatMoney(state.scenarioKey, v.cs)}</strong> and producer surplus is <strong>${formatMoney(state.scenarioKey, v.ps)}</strong>. Their sum — community surplus — is at its maximum.`;
+  } else if (p > e.p) {
+    narrEl.innerHTML = `Price is above equilibrium. Some buyers are priced out and some sellers would be willing to sell at lower prices but can't find a buyer. Community surplus has fallen from its maximum — the difference is the <strong>deadweight loss</strong> of <strong>${formatMoney(state.scenarioKey, v.dwl)}</strong>.`;
+  } else {
+    narrEl.innerHTML = `Price is below equilibrium. Sellers find the price too low to produce as much as buyers want. Community surplus has fallen from its maximum — the difference is the <strong>deadweight loss</strong> of <strong>${formatMoney(state.scenarioKey, v.dwl)}</strong>.`;
+  }
+}
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.view = btn.dataset.view;
+    document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (state.view === 'dwl' && state.forcedPrice == null) {
+      // Auto-jump to a price above equilibrium so the DWL is visible
+      const e = eq();
+      if (e) state.forcedPrice = e.p * 1.25;
+    }
+    renderAll();
+  });
+});
+
+document.querySelectorAll('[data-scenario-action]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.scenarioAction;
+    const e = eq();
+    if (action === 'reset') state.forcedPrice = null;
+    else if (action === 'price-up' && e) state.forcedPrice = e.p * 1.3;
+    else if (action === 'price-down' && e) state.forcedPrice = e.p * 0.7;
+    renderAll();
+  });
+});
+
+document.getElementById('show-traders').addEventListener('change', ev => {
+  state.showTraders = ev.target.checked;
+  renderAll();
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  state.forcedPrice = null;
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+buildCurves();
+renderAll();
+</script>
+
+</body>
+</html>

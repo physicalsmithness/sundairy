@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Externalities · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Externality-specific curve variants.
+       MSC = blue-teal (social cost), MPC = regular teal (private cost)
+       MSB = blue-purple (social benefit), MPB = regular amber (private benefit)
+    */
+    .graph-area svg path.curve.msc {
+      stroke: #2c6b8a;
+      stroke-width: 2.5;
+      stroke-dasharray: none;
+    }
+    .graph-area svg path.curve.mpc {
+      stroke: var(--supply);
+      stroke-width: 2.5;
+    }
+    .graph-area svg path.curve.msb {
+      stroke: #8a4fb0;
+      stroke-width: 2.5;
+    }
+    .graph-area svg path.curve.mpb {
+      stroke: var(--demand-shift);
+      stroke-width: 2.5;
+    }
+    .graph-area svg .region.welfare-loss-tri {
+      fill: var(--welfare-loss);
+      fill-opacity: 0.35;
+      stroke: var(--welfare-loss);
+      stroke-width: 0.5;
+    }
+
+    .curve-legend {
+      display: flex;
+      gap: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      padding: 0.4rem 0.6rem;
+      margin-top: 0.3rem;
+    }
+    .curve-legend .swatch {
+      display: inline-block;
+      width: 12px; height: 2.5px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    .type-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--paper-deep);
+      color: var(--ink);
+    }
+    .type-pill.warn {
+      background: #f6d9d4;
+      color: var(--welfare-loss);
+    }
+    .type-pill.good {
+      background: #dff0e3;
+      color: #2d6b46;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.2rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: right;
+    }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.25rem 0 0.1rem; }
+    .totals-grid .welfare-loss .lbl { color: var(--welfare-loss); }
+    .totals-grid .welfare-loss .val { color: var(--welfare-loss); }
+
+    .intervention-note {
+      background: rgba(200, 80, 60, 0.08);
+      border-left: 3px solid var(--welfare-loss);
+      padding: 0.5rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink);
+      border-radius: 0 4px 4px 0;
+      margin: 0.4rem 0;
+      line-height: 1.45;
+      display: none;
+    }
+    .intervention-note.visible { display: block; }
+    .intervention-note.success {
+      background: rgba(60, 160, 100, 0.08);
+      border-left-color: #2d6b46;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.8 Externalities &amp; government responses · Required</span>
+      <h1>Externalities</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer">Generic market</option>
+        <option value="smartphones">Mobile phones</option>
+        <option value="albania_wheat">Wheat market</option>
+        <option value="danny">Lemonade stand</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="type-row">
+        <span class="events-label">Type of externality</span>
+        <button class="event-chip active" data-ext-type="neg-prod">Negative production <span class="term-badge">e.g. pollution</span></button>
+        <button class="event-chip" data-ext-type="pos-prod">Positive production <span class="term-badge">e.g. worker training</span></button>
+        <button class="event-chip" data-ext-type="neg-cons">Negative consumption <span class="term-badge">e.g. smoking</span></button>
+        <button class="event-chip" data-ext-type="pos-cons">Positive consumption <span class="term-badge">e.g. vaccines</span></button>
+        <button class="event-chip" data-ext-type="none">No externality</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="type-narration">
+        When production or consumption of a good affects third parties, private and social cost (or benefit) diverge. The free market over- or under-produces relative to the socially optimal level.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Externality size <span class="value" id="ext-val">moderate</span></label>
+          <input type="range" id="ext-slider" min="0" max="100" step="1" value="40" />
+          <span class="small muted">How big is the external cost or benefit per unit? Slide to zero to remove the externality.</span>
+        </div>
+
+        <div class="control">
+          <label>Government response</label>
+          <div class="return-style" role="group" aria-label="Policy interventions">
+            <button data-intervention="none" class="event-btn active">None (free market)</button>
+            <button data-intervention="pigouvian" class="event-btn">Pigouvian tax/subsidy</button>
+            <button data-intervention="regulation" class="event-btn">Regulation (quantity limit)</button>
+            <button data-intervention="permits" class="event-btn">Tradable permits</button>
+          </div>
+          <div class="intervention-note" id="intervention-note"></div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="type-pill" id="outcome-pill">Market outcome</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Market equilibrium</span>
+          <span class="val" id="market-eq">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Socially optimal</span>
+          <span class="val" id="social-eq">—</span>
+        </div>
+        <hr />
+        <div class="row welfare-loss">
+          <span class="lbl">Welfare loss</span>
+          <span class="val" id="wl-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        In a negative production externality, firms ignore the costs they impose on third parties (pollution, noise, congestion). Social cost exceeds private cost, so the market over-produces relative to the socially optimal level. The welfare loss triangle captures this over-production.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> Private decisions use private costs and benefits. Social optimum uses <em>social</em> costs and benefits. The gap is where markets fail. Pigouvian taxes (for negative externalities) and subsidies (for positive ones) try to close this gap by making firms or consumers face the full social cost or benefit.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatMoney, formatPrice, formatQuantity, svgEl } from '../js/common.js';
+
+const state = {
+  scenarioKey: 'greengrocer',
+  extType: 'neg-prod',           // 'neg-prod' | 'pos-prod' | 'neg-cons' | 'pos-cons' | 'none'
+  extSize: 40,                   // 0..100 → 0..60% of p0
+  intervention: 'none',
+};
+
+let plot;
+
+/* -----------------------------------------------------------------------
+   Curves: MPC, MSC, MPB, MSB
+   -----------------------------------------------------------------------
+   Start from baseline linear D and S. Then:
+     neg-prod: MSC = MPC shifted UP by ext (social cost higher than private)
+     pos-prod: MSC = MPC shifted DOWN by ext
+     neg-cons: MSB = MPB shifted DOWN by ext (social benefit lower than private)
+     pos-cons: MSB = MPB shifted UP by ext
+     none:     MSC = MPC, MSB = MPB
+   Market equilibrium is where MPC meets MPB (the curves people actually use).
+   Socially optimal is where MSC meets MSB.
+   ----------------------------------------------------------------------- */
+
+function buildCurves() {
+  const sc = scenarios[state.scenarioKey];
+  const q0 = sc.defaultQuantity;
+  const p0 = sc.defaultPrice;
+
+  // Baseline linear D (through (0, 5p0/3) and (2q0, 0))
+  const dAtZero = p0 * 5/3;
+  const mpb = linearCurve({ q: 0, p: dAtZero }, { q: q0 * 2, p: 0 });
+
+  // Baseline S: through (q0*0.2, 0) and (q0, p0)
+  const qMin = q0 * 0.2;
+  const mpc = linearCurve({ q: qMin, p: 0 }, { q: q0, p: p0 });
+
+  // External-cost/benefit magnitude (in £/unit)
+  const ext = (state.extSize / 100) * p0 * 0.6;
+
+  let msc = mpc, msb = mpb;
+  if (state.extType === 'neg-prod') {
+    msc = linearCurve({ q: qMin, p: ext }, { q: q0, p: p0 + ext });
+  } else if (state.extType === 'pos-prod') {
+    msc = linearCurve({ q: qMin, p: -ext }, { q: q0, p: p0 - ext });
+  } else if (state.extType === 'neg-cons') {
+    msb = linearCurve({ q: 0, p: dAtZero - ext }, { q: q0 * 2, p: -ext });
+  } else if (state.extType === 'pos-cons') {
+    msb = linearCurve({ q: 0, p: dAtZero + ext }, { q: q0 * 2, p: ext });
+  }
+
+  // Pigouvian intervention: align the private curve with its social
+  // counterpart. The tax/subsidy equals MEC/MEB per unit, which for a
+  // negative production externality means MPC faced by firms shifts up to
+  // coincide with MSC. We keep both the "private" and "social" variables
+  // but return the "effective" curves that drive the equilibrium.
+  let mpcEff = mpc, mpbEff = mpb;
+  if (state.intervention === 'pigouvian' && state.extType !== 'none') {
+    if (state.extType === 'neg-prod' || state.extType === 'pos-prod') {
+      mpcEff = msc;  // tax/subsidy aligns MPC with MSC
+    } else if (state.extType === 'neg-cons' || state.extType === 'pos-cons') {
+      mpbEff = msb;  // tax/subsidy aligns MPB with MSB
+    }
+  }
+
+  return { mpb, mpc, msb, msc, mpbEff, mpcEff, ext };
+}
+
+function intersect(d, s) {
+  const dA = d.p1.p - d.slope * d.p1.q;
+  const sA = s.p1.p - s.slope * s.p1.q;
+  if (d.slope === s.slope) return null;
+  const q = (sA - dA) / (d.slope - s.slope);
+  const p = dA + d.slope * q;
+  return { q, p };
+}
+
+/* -----------------------------------------------------------------------
+   Welfare loss computation
+   -----------------------------------------------------------------------
+   The welfare loss triangle has:
+     - one vertex at the market equilibrium (Q_m, P_m)
+     - one vertex at the socially optimal quantity on the relevant curve
+     - depends on the type of externality
+
+   For negative production: at Q_m, MSC(Q_m) > MPB(Q_m). Triangle vertices:
+     (Q*, P*) where Q* is MSC=MSB intersection, and (Q_m, MSC(Q_m)), (Q_m, MPB(Q_m)).
+
+   Similar patterns for the other three cases.
+   ----------------------------------------------------------------------- */
+
+function computeOutcomes() {
+  const c = buildCurves();
+  const marketEq = intersect(c.mpbEff, c.mpcEff);  // post-intervention market eq
+  const socialEq = intersect(c.msb, c.msc);
+  if (!marketEq || !socialEq) return null;
+
+  // Welfare loss triangle: at the market quantity, the gap between MSC and
+  // MSB (both evaluated at Q_m) times half the distance from Q_m to Q*.
+  // When Pigouvian intervention aligns MPC/MPB with MSC/MSB, the market
+  // equilibrium coincides with the social optimum, and the triangle
+  // collapses to zero.
+  let wlTri = null;
+  let wl = 0;
+  const qDiff = Math.abs(marketEq.q - socialEq.q);
+  if (qDiff > 0.1) {
+    const mscAtQm = c.msc.priceAt(marketEq.q);
+    const msbAtQm = c.msb.priceAt(marketEq.q);
+    const height = Math.abs(mscAtQm - msbAtQm);
+    wl = 0.5 * qDiff * height;
+    wlTri = [
+      [socialEq.q, socialEq.p],
+      [marketEq.q, mscAtQm],
+      [marketEq.q, msbAtQm],
+    ];
+  }
+  return { ...c, marketEq, socialEq, wl, wlTri };
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function renderAll() {
+  const outcomes = computeOutcomes();
+  if (!outcomes) return;
+  const sc = scenarios[state.scenarioKey];
+  const { mpb, mpc, msb, msc, marketEq, socialEq, wl, wlTri, ext } = outcomes;
+
+  // Curves — label and colour based on whether social diverges from private
+  const hasExt = state.extType !== 'none' && ext > 0.001;
+  const curveSpecs = [];
+
+  // Always draw MPB (demand as perceived by consumers)
+  curveSpecs.push({ curve: mpb, kind: 'demand', label: hasExt && (state.extType === 'neg-cons' || state.extType === 'pos-cons') ? 'MPB' : 'D = MPB = MSB', draggable: false });
+
+  // MSB if different from MPB (only consumption externality)
+  if (hasExt && (state.extType === 'neg-cons' || state.extType === 'pos-cons')) {
+    curveSpecs.push({ curve: msb, kind: 'demand', variant: 'shifted', label: 'MSB', draggable: false });
+  }
+
+  // MPC (supply curve as firms see it)
+  curveSpecs.push({ curve: mpc, kind: 'supply', label: hasExt && (state.extType === 'neg-prod' || state.extType === 'pos-prod') ? 'MPC' : 'S = MPC = MSC', draggable: false });
+
+  // MSC if different from MPC (production externality)
+  if (hasExt && (state.extType === 'neg-prod' || state.extType === 'pos-prod')) {
+    curveSpecs.push({ curve: msc, kind: 'supply', variant: 'shifted', label: 'MSC', draggable: false });
+  }
+
+  plot.setCurves(curveSpecs);
+
+  // Equilibrium markers — market (hollow ring) and socially optimal (filled dot)
+  plot.setEquilibriumMarker({ q: marketEq.q, p: marketEq.p });
+
+  // Welfare loss region
+  const regions = [];
+  if (hasExt && wlTri && wl > 0.01) {
+    regions.push({
+      id: 'wl', className: 'welfare-loss-tri',
+      points: wlTri,
+      label: `WL ${formatMoney(state.scenarioKey, wl)}`,
+    });
+  }
+  plot.setRegions(regions);
+
+  // Labels and annotations
+  const labels = [];
+  const annots = [];
+
+  annots.push({ kind: 'dropLine', q: marketEq.q, pFrom: marketEq.p, pTo: 0, toAxis: true, dashed: true });
+  annots.push({ kind: 'acrossLine', p: marketEq.p, qFrom: 0, qTo: marketEq.q, fromAxis: true, dashed: true });
+  labels.push({
+    x: marketEq.q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+    text: `Qm = ${formatQuantity(state.scenarioKey, marketEq.q)}`,
+    textAnchor: 'start', offset: { x: 5 },
+    color: 'var(--ink)', className: 'point-label',
+  });
+
+  if (hasExt && Math.abs(socialEq.q - marketEq.q) > 0.5) {
+    annots.push({ kind: 'dropLine', q: socialEq.q, pFrom: socialEq.p, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: socialEq.p, qFrom: 0, qTo: socialEq.q, fromAxis: true, dashed: true });
+    labels.push({
+      x: socialEq.q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+      text: `Q* = ${formatQuantity(state.scenarioKey, socialEq.q)}`,
+      textAnchor: 'start', offset: { x: 5 },
+      color: '#2d6b46', className: 'point-label',
+    });
+    labels.push({
+      x: 0, y: socialEq.p, rawX: plot.margin.left + 6,
+      text: `P* = ${formatPrice(state.scenarioKey, socialEq.p)}`,
+      textAnchor: 'start', offset: { y: -4 },
+      color: '#2d6b46', className: 'point-label',
+    });
+  }
+
+  plot.setLabels(labels);
+  plot.setAnnotations(annots);
+  plot.setPriceLine(null);
+  plot.render();
+
+  updateRightPanel(outcomes);
+}
+
+function updateRightPanel(o) {
+  document.getElementById('market-eq').textContent =
+    `${formatPrice(state.scenarioKey, o.marketEq.p)}, ${formatQuantity(state.scenarioKey, o.marketEq.q)}`;
+  document.getElementById('social-eq').textContent =
+    `${formatPrice(state.scenarioKey, o.socialEq.p)}, ${formatQuantity(state.scenarioKey, o.socialEq.q)}`;
+
+  const wlVal = document.getElementById('wl-val');
+  wlVal.textContent = formatMoney(state.scenarioKey, o.wl);
+
+  const pill = document.getElementById('outcome-pill');
+  if (state.extType === 'none' || o.wl < 0.01) {
+    pill.className = 'type-pill good';
+    pill.textContent = 'Market is efficient';
+  } else {
+    pill.className = 'type-pill warn';
+    const overOrUnder = o.marketEq.q > o.socialEq.q ? 'over-producing' : 'under-producing';
+    pill.textContent = `Market ${overOrUnder}`;
+  }
+
+  // Narration — pulled from the type
+  const narrations = {
+    'neg-prod': 'A negative production externality: firms impose costs on third parties (pollution, noise, congestion). Social cost exceeds private cost, so market over-produces. The welfare loss triangle lies between the market quantity and the socially optimal quantity, bounded above by MSC and below by MPB (the demand curve).',
+    'pos-prod': 'A positive production externality: producing this good creates benefits that spill over to others (e.g. firms training workers who later work elsewhere, R&D spillovers). Social cost is lower than private cost, so market under-produces.',
+    'neg-cons': 'A negative consumption externality: when a person consumes, others suffer (second-hand smoke, loud music at night). Social benefit is lower than private benefit, so market over-consumes.',
+    'pos-cons': 'A positive consumption externality: when a person consumes, others benefit (vaccines, education, a well-maintained garden). Social benefit exceeds private benefit, so market under-consumes.',
+    'none': 'With no externality, private and social costs/benefits coincide. The free market achieves the socially optimal outcome without intervention.',
+  };
+  document.getElementById('narration-text').textContent = narrations[state.extType] || '';
+
+  // Intervention note
+  updateInterventionNote(o);
+}
+
+function updateInterventionNote(o) {
+  const note = document.getElementById('intervention-note');
+  if (state.intervention === 'none' || state.extType === 'none') {
+    note.classList.remove('visible');
+    return;
+  }
+  note.classList.add('visible');
+  note.classList.remove('success');
+  const intv = state.intervention;
+  if (intv === 'pigouvian') {
+    note.classList.add('success');
+    if (state.extType === 'neg-prod') {
+      note.innerHTML = '<strong>Pigouvian tax.</strong> A tax of exactly the per-unit external cost (MEC) shifts MPC up to coincide with MSC. Firms face the true social cost. Market equilibrium moves to Q* and the welfare loss vanishes.';
+    } else if (state.extType === 'pos-prod') {
+      note.innerHTML = '<strong>Pigouvian subsidy.</strong> A subsidy of the external benefit per unit shifts MPC down to MSC. Firms now face lower effective costs. Market equilibrium moves out to Q*.';
+    } else if (state.extType === 'neg-cons') {
+      note.innerHTML = '<strong>Pigouvian tax.</strong> A tax on the good shifts MPB down to MSB. Consumers now bear the social cost of their consumption. Market moves in toward Q*.';
+    } else {
+      note.innerHTML = '<strong>Pigouvian subsidy.</strong> A subsidy on the good shifts MPB up to MSB. Consumers effectively face the social benefit. Market moves out toward Q*.';
+    }
+  } else if (intv === 'regulation') {
+    if (state.extType === 'neg-prod' || state.extType === 'neg-cons') {
+      note.innerHTML = '<strong>Regulation.</strong> Legal limit on quantity at Q*. Eliminates the welfare loss if perfectly set, but requires knowing the social optimum and enforcing compliance. Inflexible: all firms restricted uniformly.';
+    } else {
+      note.innerHTML = '<strong>Mandate or provision.</strong> Require consumption/production at Q* (e.g. vaccine mandate, free basic education). Effective but intrusive; government must know the socially optimal level.';
+    }
+  } else if (intv === 'permits') {
+    if (state.extType === 'neg-prod') {
+      note.innerHTML = '<strong>Tradable permits (cap-and-trade).</strong> Issue permits totalling Q*. Firms trade permits, so the lowest-cost reducers sell theirs and highest-cost ones buy. Achieves the target at lowest total cost — in theory.';
+    } else {
+      note.innerHTML = '<strong>Tradable permits.</strong> More commonly applied to negative production externalities (emissions). Less natural for positive externalities or consumption issues.';
+    }
+  }
+}
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-ext-type]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.extType = btn.dataset.extType;
+    document.querySelectorAll('[data-ext-type]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+
+document.getElementById('ext-slider').addEventListener('input', ev => {
+  state.extSize = Number(ev.target.value);
+  const v = state.extSize;
+  document.getElementById('ext-val').textContent =
+    v < 5 ? 'none' : v < 30 ? 'small' : v < 60 ? 'moderate' : v < 85 ? 'large' : 'very large';
+  renderAll();
+});
+
+document.querySelectorAll('[data-intervention]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-intervention]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.intervention = btn.dataset.intervention;
+    renderAll();
+  });
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+renderAll();
+</script>
+
+</body>
+</html>

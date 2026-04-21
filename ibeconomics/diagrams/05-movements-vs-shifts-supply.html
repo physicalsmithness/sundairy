@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movements along and shifts of the supply curve · IB Economics</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+</head>
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header sticky-header">
+    <div class="title-block">
+      <a href="../index.html" class="back-link">← Diagrams</a>
+      <span class="syllabus-tag">2.2 · SUPPLY</span>
+      <h1>Movements along vs. shifts of the supply curve</h1>
+    </div>
+    <div class="scenario-picker">
+      <label for="scenario" class="small muted">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer">St Andrews greengrocer</option>
+        <option value="smartphones">Global smartphone market</option>
+        <option value="albania_wheat">Albanian wheat market</option>
+        <option value="danny">Danny's lemonade stand</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="mode-row">
+        <span class="events-label">What changed?</span>
+        <button class="event-chip active" data-mode="price">A price change <span class="term-badge">movement along S</span></button>
+        <button class="event-chip" data-mode="costs-down">Input costs fell <span class="term-badge">shift right</span></button>
+        <button class="event-chip" data-mode="costs-up">Input costs rose <span class="term-badge">shift left</span></button>
+        <button class="event-chip" data-mode="tech-up">New tech, cheaper to make <span class="term-badge">shift right</span></button>
+        <button class="event-chip" data-mode="firms-exit">Some firms exited the market <span class="term-badge">shift left</span></button>
+        <button class="event-chip reset" id="mode-reset">Reset</button>
+      </div>
+      <div class="event-narration baseline visible" id="mode-narration">Click a cause above to see what happens to the supply curve.</div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+      <dl class="live-readout">
+        <dt>Price</dt><dd id="out-price">£0.80</dd>
+        <dt>Quantity supplied</dt><dd id="out-qty">150 apples</dd>
+        <dt>Change type</dt><dd id="out-change">—</dd>
+      </dl>
+
+      <p class="prose" id="explanation" style="margin-top: 0.8rem;">
+        Click a button above to see what happens. The difference between a price change and a non-price change is one of the most commonly confused ideas in economics.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>The key distinction.</strong> A change in <strong>price</strong> of the good itself causes a <strong>movement along</strong> the supply curve — the curve doesn't move. A change in any <strong>other</strong> factor (input costs, technology, number of firms, expected future prices, producer subsidies or taxes) causes the entire supply curve to <strong>shift</strong>.</p>
+      </div>
+    </aside>
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatPrice, formatQuantity } from '../js/common.js';
+
+let plot;
+let state = {
+  scenarioKey: 'greengrocer',
+  mode: 'price',           // 'price' | 'costs-down' | 'costs-up' | 'tech-up' | 'firms-exit'
+  pricePoint: null,        // for 'price' mode: where along the supply curve the user is
+  supplyShift: 0,          // percentage shift applied for non-price modes
+  demand: null,
+  supply: null,
+  baseSupply: null,
+};
+
+/* Build the baseline supply curve, and the shifted curve if the mode is
+   a non-price change. */
+function buildCurves() {
+  const s = scenarios[state.scenarioKey];
+  const q0 = s.defaultQuantity;
+  const p0 = s.defaultPrice;
+  // Baseline supply: rising from some small positive x-intercept (suppliers
+  // need a minimum price before entering the market).
+  const qMin = q0 * 0.2;  // supply starts at 20% of default quantity at p=0
+  const base = linearCurve({ q: qMin, p: 0 }, { q: q0, p: p0 });
+  state.baseSupply = base;
+
+  // Shifted curve: a right-shift means "more supply at each price" — for
+  // a linear curve, we shift both endpoints to the right by a percentage
+  // of quantityMax. (So (qMin, 0) becomes (qMin + shift*qMax, 0) and
+  // (q0, p0) becomes (q0 + shift*qMax, p0).)
+  const shiftPct = shiftForMode(state.mode);
+  state.supplyShift = shiftPct;
+  const shiftQ = (shiftPct / 100) * s.quantityMax;
+  const shifted = linearCurve(
+    { q: qMin + shiftQ, p: 0 },
+    { q: q0 + shiftQ, p: p0 }
+  );
+  state.supply = shifted;
+
+  // Demand: fixed at baseline, for context (so equilibrium is visible)
+  const pAtZeroD = p0 * 1.67;
+  state.demand = linearCurve(
+    { q: 0, p: pAtZeroD },
+    { q: q0, p: p0 }
+  );
+}
+
+function shiftForMode(mode) {
+  switch (mode) {
+    case 'costs-down':   return 25;   // cheaper to produce → supply shifts right
+    case 'costs-up':     return -25;  // more expensive → supply shifts left
+    case 'tech-up':      return 30;   // new tech → more supply at each price
+    case 'firms-exit':   return -20;  // fewer firms → less supply at each price
+    default:             return 0;
+  }
+}
+
+const modeNarration = {
+  price: 'A price change is a MOVEMENT along the existing supply curve. The curve itself hasn\'t changed — what\'s changed is which point on it firms choose to supply at.',
+  'costs-down': 'Cheaper inputs (labour, raw materials, energy) mean firms can profitably supply more at every price. The whole supply curve SHIFTS right.',
+  'costs-up': 'More expensive inputs squeeze margins. At every price, firms are willing to supply less. The supply curve SHIFTS left.',
+  'tech-up': 'A new production technology lowers the cost of making each unit. More can be supplied at every price: supply SHIFTS right.',
+  'firms-exit': 'Some firms have left this market (bankruptcy, regulation, shifting to another industry). Fewer sellers means less total supply at every price: supply SHIFTS left.',
+};
+
+const modeChangeLabel = {
+  price: 'Movement along S',
+  'costs-down': 'Shift right (ΔS)',
+  'costs-up': 'Shift left (ΔS)',
+  'tech-up': 'Shift right (ΔS)',
+  'firms-exit': 'Shift left (ΔS)',
+};
+
+/* For 'price' mode, the user can drag a point along the supply curve. For
+   other modes, we just render baseline (ghost) and shifted curves. */
+function renderAll() {
+  if (!plot) return;
+  buildCurves();
+
+  const s = scenarios[state.scenarioKey];
+  const curveSpecs = [];
+
+  // Demand as context (always shown faint)
+  curveSpecs.push({
+    curve: state.demand,
+    kind: 'demand',
+    label: 'D',
+    draggable: false,
+  });
+
+  if (state.mode === 'price') {
+    // Single supply curve
+    curveSpecs.push({
+      curve: state.supply,
+      kind: 'supply',
+      label: 'S',
+      draggable: false,
+    });
+  } else {
+    // Baseline supply as ghost + new supply
+    curveSpecs.push({
+      curve: state.baseSupply,
+      kind: 'supply',
+      variant: 'ghost',
+      label: 'S₀',
+      draggable: false,
+    });
+    curveSpecs.push({
+      curve: state.supply,
+      kind: 'supply',
+      label: 'S₁',
+      draggable: false,
+    });
+  }
+
+  plot.setCurves(curveSpecs);
+
+  const e = intersectCurves(state.demand, state.supply);
+  if (e) plot.setEquilibriumMarker({ q: e.q, p: e.p });
+
+  const labels = [];
+  let annots = [];
+  if (state.mode === 'price') {
+    // Draggable price point slides along supply
+    const pp = state.pricePoint || { q: s.defaultQuantity, p: s.defaultPrice };
+    state.pricePoint = pp;
+    annots.push({ kind: 'dropLine', q: pp.q, pFrom: pp.p, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'acrossLine', p: pp.p, qFrom: 0, qTo: pp.q, fromAxis: true, dashed: true });
+    labels.push({
+      x: 0, y: pp.p, rawX: plot.margin.left + 6,
+      text: formatPrice(state.scenarioKey, pp.p),
+      textAnchor: 'start', offset: { y: -4 },
+      color: 'var(--ink)', className: 'point-label axis-callout',
+    });
+    labels.push({
+      x: pp.q, y: 0,
+      rawY: plot.margin.top + plot.plotH - 6,
+      text: formatQuantity(state.scenarioKey, pp.q),
+      textAnchor: 'start', offset: { x: 5 },
+      color: 'var(--ink)', className: 'point-label axis-callout',
+    });
+    plot.setTransitionCircle({
+      curQ: pp.q, curP: pp.p, showCurrent: true, fadeAlpha: 1,
+      oldQ: null, oldP: null,
+    });
+  } else {
+    plot.setTransitionCircle(null);
+    if (e) {
+      labels.push({
+        x: 0, y: e.p, rawX: plot.margin.left + 6,
+        text: formatPrice(state.scenarioKey, e.p),
+        textAnchor: 'start', offset: { y: -4 },
+        color: 'var(--ink)', className: 'point-label axis-callout',
+      });
+      labels.push({
+        x: e.q, y: 0,
+        rawY: plot.margin.top + plot.plotH - 6,
+        text: formatQuantity(state.scenarioKey, e.q),
+        textAnchor: 'start', offset: { x: 5 },
+        color: 'var(--ink)', className: 'point-label axis-callout',
+      });
+      annots.push({ kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true });
+      annots.push({ kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true });
+    }
+  }
+  plot.setAnnotations(annots);
+  plot.setLabels(labels);
+  plot.render();
+
+  // Right-panel readout
+  if (state.mode === 'price') {
+    const pp = state.pricePoint;
+    document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, pp.p);
+    document.getElementById('out-qty').textContent = formatQuantity(state.scenarioKey, pp.q);
+  } else if (e) {
+    document.getElementById('out-price').textContent = formatPrice(state.scenarioKey, e.p);
+    document.getElementById('out-qty').textContent = formatQuantity(state.scenarioKey, e.q);
+  }
+  document.getElementById('out-change').textContent = modeChangeLabel[state.mode];
+  document.getElementById('explanation').textContent = modeNarration[state.mode];
+
+  const narr = document.getElementById('mode-narration');
+  narr.classList.remove('baseline');
+  narr.classList.add('visible');
+  narr.textContent = modeNarration[state.mode];
+}
+
+function intersectCurves(d, s) {
+  const dA = d.p1.p - d.slope * d.p1.q;
+  const sA = s.p1.p - s.slope * s.p1.q;
+  const q = (sA - dA) / (d.slope - s.slope);
+  const p = dA + d.slope * q;
+  return { q, p };
+}
+
+/* In 'price' mode, click anywhere on the plot to move the chosen point
+   along the SUPPLY curve. */
+function setupPricePointDrag() {
+  const svg = plot.svg;
+  let dragging = false;
+  const onMove = (ev) => {
+    if (state.mode !== 'price') return;
+    if (!dragging) return;
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const x = ((ev.clientX - rect.left) / rect.width) * vb.width;
+    const q = plot.xInv(x);
+    if (!isFinite(q)) return;
+    const sc = scenarios[state.scenarioKey];
+    const qClamped = Math.max(state.supply.p1.q, Math.min(sc.quantityMax * 0.95, q));
+    const pAtQ = state.supply.priceAt(qClamped);
+    state.pricePoint = { q: qClamped, p: Math.max(0, Math.min(sc.priceMax * 0.95, pAtQ)) };
+    renderAll();
+  };
+  svg.addEventListener('pointerdown', (ev) => {
+    if (state.mode !== 'price') return;
+    dragging = true;
+    svg.setPointerCapture(ev.pointerId);
+    onMove(ev);
+  });
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', (ev) => {
+    dragging = false;
+    svg.releasePointerCapture?.(ev.pointerId);
+  });
+}
+
+/* Event wiring */
+document.querySelectorAll('#mode-row .event-chip[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('#mode-row .event-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (state.mode === 'price') {
+      const s = scenarios[state.scenarioKey];
+      state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+    }
+    renderAll();
+  });
+});
+document.getElementById('mode-reset').addEventListener('click', () => {
+  state.mode = 'price';
+  document.querySelectorAll('#mode-row .event-chip').forEach(b => b.classList.remove('active'));
+  document.querySelector('#mode-row .event-chip[data-mode="price"]').classList.add('active');
+  const s = scenarios[state.scenarioKey];
+  state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+  renderAll();
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  const s = scenarios[state.scenarioKey];
+  state.pricePoint = { q: s.defaultQuantity, p: s.defaultPrice };
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+setupPricePointDrag();
+const s0 = scenarios[state.scenarioKey];
+state.pricePoint = { q: s0.defaultQuantity, p: s0.defaultPrice };
+renderAll();
+</script>
+
+</body>
+</html>

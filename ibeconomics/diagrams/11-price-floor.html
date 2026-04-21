@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Price floor · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* A flow along the "unlucky buyers" region to emphasise scarcity */
+    .unlucky-buyer {
+      pointer-events: none;
+    }
+    .unlucky-buyer .body {
+      fill: var(--welfare-loss);
+      opacity: 0.55;
+    }
+    .lucky-buyer .body {
+      fill: var(--demand-shift);
+      opacity: 0.9;
+    }
+
+    /* Binding/non-binding pill */
+    .binding-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      letter-spacing: 0.01em;
+    }
+    .binding-pill.binding {
+      background: #f6d9d4;
+      color: var(--welfare-loss);
+    }
+    .binding-pill.nonbinding {
+      background: #dff0e3;
+      color: #2d6b46;
+    }
+
+    /* Totals grid */
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.2rem 0.7rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: right;
+    }
+    .totals-grid .delta {
+      font-variant-numeric: tabular-nums;
+      font-size: 11.5px;
+      text-align: right;
+      min-width: 46px;
+    }
+    .totals-grid .delta.up { color: #2d7a50; }
+    .totals-grid .delta.down { color: var(--welfare-loss); }
+    .totals-grid hr {
+      grid-column: span 3;
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 0.25rem 0 0.1rem;
+    }
+    .totals-grid .cs .lbl { color: var(--demand-shift); }
+    .totals-grid .ps .lbl { color: var(--supply); }
+    .totals-grid .dwl .lbl { color: var(--welfare-loss); }
+    .totals-grid .dwl .val { color: var(--welfare-loss); }
+
+    .shortage-callout {
+      background: rgba(200, 80, 60, 0.1);
+      color: var(--welfare-loss);
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      padding: 0.4rem 0.7rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 0.6rem;
+      line-height: 1.4;
+      display: none;
+    }
+    .shortage-callout.visible { display: block; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.7 Price floor (minimum price) · Required</span>
+      <h1>Price floor</h1>
+    </div>
+    <div class="scenario-picker">
+      <label class="small muted" for="scenario">Setting</label>
+      <select id="scenario">
+        <option value="greengrocer" selected>Apple market (St Andrews)</option>
+        <option value="smartphones">Mobile phones</option>
+        <option value="albania_wheat">Wheat market (Albania)</option>
+        <option value="danny">Danny's lemonade</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Real-world case</span>
+        <button class="event-chip active" data-case="default">No specific case</button>
+        <button class="event-chip" data-case="cap">EU Common Agricultural Policy</button>
+        <button class="event-chip" data-case="minwage">Minimum wage (labour market)</button>
+        <button class="event-chip" data-case="us-corn">US agricultural support</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        A price floor is a government-mandated minimum price. Drag the dashed line up above equilibrium to see the floor bind.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Floor position <span class="value" id="ceiling-val">at equilibrium</span></label>
+          <input type="range" id="ceiling-slider" min="90" max="200" step="1" value="130" />
+          <span class="small muted">Slider shows floor as % of equilibrium price. At 100% or below the floor is non-binding. Above that, excess supply appears. You can also drag the dashed line on the plot directly.</span>
+        </div>
+
+        <div class="control">
+          <label>Show consequence</label>
+          <div class="return-style" role="group" aria-label="Floor consequences">
+            <button data-consequence="surplus-destroy" class="event-btn">Surplus destruction</button>
+            <button data-consequence="gov-buy" class="event-btn">Government buys the surplus</button>
+            <button data-consequence="unemployment" class="event-btn">Unemployment</button>
+            <button data-consequence="illegal-trade" class="event-btn">Illegal under-cutting</button>
+            <button data-consequence="clear" class="event-btn">Clear</button>
+          </div>
+          <span class="small muted" id="consequence-note">The unsold quantity (excess supply) has to go somewhere. Pick a consequence to see a brief explanation.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.6rem;">
+        <span class="binding-pill nonbinding" id="binding-pill">Floor not yet binding</span>
+      </div>
+
+      <div class="shortage-callout" id="shortage-callout">
+        <strong>Excess supply</strong> of <span id="shortage-size">—</span>: sellers want to supply more than buyers are willing to buy at this price.
+      </div>
+
+      <div class="totals-grid">
+        <div class="row cs">
+          <span class="lbl">Consumer surplus</span>
+          <span class="val" id="cs-val">—</span>
+          <span class="delta" id="cs-delta"></span>
+        </div>
+        <div class="row ps">
+          <span class="lbl">Producer surplus</span>
+          <span class="val" id="ps-val">—</span>
+          <span class="delta" id="ps-delta"></span>
+        </div>
+        <hr />
+        <div class="row">
+          <span class="lbl">Community surplus</span>
+          <span class="val" id="comm-val">—</span>
+          <span class="delta" id="comm-delta"></span>
+        </div>
+        <div class="row dwl" id="dwl-row" style="display: none;">
+          <span class="lbl">Deadweight loss</span>
+          <span class="val" id="dwl-val">—</span>
+          <span class="delta"></span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        A price floor at or below the equilibrium price has no effect. Pushed above equilibrium, it creates excess supply: sellers offer more at the higher price than buyers are willing to buy. The market can't clear through price.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> Price floors transfer some surplus from consumers to producers who still manage to sell. But the economy loses output overall, because the excess supply prevents beneficial trades and unsold stock is wasted or purchased by government. The missing trades are the <strong>deadweight loss</strong>.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { PQPlot } from '../js/pq-plot.js';
+import { scenarios, linearCurve, formatMoney, formatPrice, formatQuantity, svgEl } from '../js/common.js';
+
+const state = {
+  scenarioKey: 'greengrocer',
+  // Floor as fraction of equilibrium price. 1.3 means floor at 130% of P*.
+  // 1.0 or below = non-binding. We allow the user to push it below 1 via
+  // slider to see "non-binding" too.
+  ceilingFrac: 1.3,
+  demand: null,
+  supply: null,
+  consequence: null,
+  caseKey: 'default',
+};
+
+let plot;
+
+function buildCurves() {
+  const s = scenarios[state.scenarioKey];
+  const q0 = s.defaultQuantity;
+  const p0 = s.defaultPrice;
+  const pAtZeroD = p0 * 1.67;
+  state.demand = linearCurve({ q: 0, p: pAtZeroD }, { q: q0, p: p0 });
+  const qMin = q0 * 0.2;
+  state.supply = linearCurve({ q: qMin, p: 0 }, { q: q0, p: p0 });
+}
+
+function eq() {
+  const dA = state.demand.p1.p - state.demand.slope * state.demand.p1.q;
+  const sA = state.supply.p1.p - state.supply.slope * state.supply.p1.q;
+  const q = (sA - dA) / (state.demand.slope - state.supply.slope);
+  const p = dA + state.demand.slope * q;
+  return { q, p };
+}
+
+function ceilingPrice() {
+  const e = eq();
+  return e.p * state.ceilingFrac;
+}
+
+/* -----------------------------------------------------------------------
+   Surplus computation
+   -----------------------------------------------------------------------
+   With a binding floor at P_f:
+     Q_traded = Q_D(P_f)  (demand is the binding constraint)
+     CS = (D-trapezoid from 0 to Q_D, above P_f)
+     PS = (P_f-supply-trapezoid from 0 to Q_D)
+     DWL = triangle between D and S from Q_D to Q*
+     Excess supply = Q_S(P_f) - Q_D(P_f)
+   With non-binding: normal equilibrium values.
+   ----------------------------------------------------------------------- */
+
+function surplus() {
+  const e = eq();
+  const sc = scenarios[state.scenarioKey];
+  const sAtZero = state.supply.priceAt(0);
+  const qSStart = sAtZero >= 0 ? 0 : state.supply.quantityAt(0);
+  const isBinding = state.ceilingFrac > 1.001;
+
+  // Traded price and quantity
+  const pf = ceilingPrice();
+  const pTrade = isBinding ? pf : e.p;
+  const qTrade = isBinding
+    ? Math.max(0, Math.min(e.q, state.demand.quantityAt(pf)))
+    : e.q;
+
+  // CS: area between D(q) and pTrade from 0..qTrade
+  const dAtZero = state.demand.priceAt(0);
+  let cs = 0;
+  if (qTrade > 0 && dAtZero > pTrade) {
+    const dqEnd = Math.max(pTrade, state.demand.priceAt(qTrade));
+    const dqStart = Math.max(pTrade, dAtZero);
+    cs = qTrade * ((dqStart + dqEnd) / 2 - pTrade);
+  }
+
+  // PS: area between pTrade and S(q) from qSStart..qTrade
+  let ps = 0;
+  if (qTrade > qSStart) {
+    const sqStart = Math.max(0, state.supply.priceAt(qSStart));
+    const sqEnd = Math.max(0, state.supply.priceAt(qTrade));
+    if (sAtZero >= 0) {
+      ps = qTrade * (pTrade - (sqStart + sqEnd) / 2);
+    } else {
+      const rect = pTrade * qSStart;
+      const tri = (qTrade - qSStart) * (pTrade - sqEnd / 2);
+      ps = rect + tri;
+    }
+    ps = Math.max(0, ps);
+  }
+
+  // Equilibrium CS and PS for comparison
+  let csEq = 0, psEq = 0;
+  {
+    const dqEnd = state.demand.priceAt(e.q);
+    csEq = e.q * ((dAtZero + dqEnd) / 2 - e.p);
+    if (sAtZero >= 0) {
+      const sqEnd = state.supply.priceAt(e.q);
+      psEq = e.q * (e.p - (sAtZero + sqEnd) / 2);
+    } else {
+      const rect = e.p * qSStart;
+      const sqEnd = state.supply.priceAt(e.q);
+      const tri = (e.q - qSStart) * (e.p - sqEnd / 2);
+      psEq = rect + tri;
+    }
+  }
+
+  // DWL: triangle between D and S from qTrade to e.q
+  let dwl = 0;
+  if (isBinding && qTrade < e.q - 0.1) {
+    const dT = state.demand.priceAt(qTrade);
+    const sT = Math.max(0, state.supply.priceAt(qTrade));
+    dwl = 0.5 * Math.abs(e.q - qTrade) * Math.abs(dT - sT);
+  }
+
+  // Excess supply: Q_S(pf) - Q_D(pf)
+  let shortage = 0;  // keep variable name, semantic flip to "excess supply"
+  if (isBinding) {
+    const qD = state.demand.quantityAt(pf);
+    const qS = Math.min(sc.quantityMax, state.supply.quantityAt(pf));
+    shortage = Math.max(0, qS - qD);
+  }
+
+  return {
+    cs, ps, community: cs + ps, dwl,
+    csEq, psEq, communityEq: csEq + psEq,
+    qTrade, pTrade, shortage, isBinding, e,
+  };
+}
+
+/* -----------------------------------------------------------------------
+   Region polygons
+   ----------------------------------------------------------------------- */
+
+function regionPolygons() {
+  const regions = [];
+  const s = surplus();
+  const sc = scenarios[state.scenarioKey];
+  const dAtZero = state.demand.priceAt(0);
+  const sAtZero = state.supply.priceAt(0);
+  const qSStart = sAtZero >= 0 ? 0 : state.supply.quantityAt(0);
+
+  const { qTrade, pTrade, isBinding, e } = s;
+
+  // CS region (always drawn)
+  if (qTrade > 0 && dAtZero > pTrade) {
+    const pts = [[0, pTrade], [0, Math.min(dAtZero, sc.priceMax)]];
+    if (dAtZero > sc.priceMax) pts.push([state.demand.quantityAt(sc.priceMax), sc.priceMax]);
+    pts.push([qTrade, state.demand.priceAt(qTrade)]);
+    pts.push([qTrade, pTrade]);
+    regions.push({ id: 'cs', className: 'consumer-surplus', points: pts, label: `CS ${formatMoney(state.scenarioKey, s.cs)}` });
+  }
+
+  // PS region
+  if (qTrade > qSStart && pTrade > 0) {
+    let pts;
+    if (sAtZero >= 0) {
+      pts = [[0, sAtZero], [0, pTrade], [qTrade, pTrade], [qTrade, state.supply.priceAt(qTrade)]];
+    } else {
+      pts = [[0, 0], [0, pTrade], [qTrade, pTrade], [qTrade, Math.max(0, state.supply.priceAt(qTrade))], [qSStart, 0]];
+    }
+    regions.push({ id: 'ps', className: 'producer-surplus', points: pts, label: `PS ${formatMoney(state.scenarioKey, s.ps)}` });
+  }
+
+  // DWL triangle (only when binding)
+  if (isBinding && qTrade < e.q - 0.1) {
+    const dT = state.demand.priceAt(qTrade);
+    const sT = Math.max(0, state.supply.priceAt(qTrade));
+    regions.push({
+      id: 'dwl', className: 'welfare-loss',
+      points: [[qTrade, dT], [e.q, e.p], [qTrade, sT]],
+      label: `DWL ${formatMoney(state.scenarioKey, s.dwl)}`,
+    });
+  }
+
+  return regions;
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function renderAll() {
+  buildCurves();
+  const sc = scenarios[state.scenarioKey];
+  const s = surplus();
+  const { qTrade, pTrade, isBinding, e } = s;
+
+  plot.setCurves([
+    { curve: state.demand, kind: 'demand', label: 'D', draggable: false },
+    { curve: state.supply, kind: 'supply', label: 'S', draggable: false },
+  ]);
+  plot.setRegions(regionPolygons());
+  plot.setEquilibriumMarker({ q: e.q, p: e.p });
+
+  // The floor itself as a draggable price line, but only show as "active"
+  // when above equilibrium.
+  const lineP = isBinding ? pTrade : e.p;
+  plot.setPriceLine({
+    price: lineP,
+    draggable: true,
+    onMove: (newP) => {
+      const sc = scenarios[state.scenarioKey];
+      const clamped = Math.max(e.p * 0.95, Math.min(0.98 * sc.priceMax, newP));
+      state.ceilingFrac = Math.max(1, clamped / e.p);
+      document.getElementById('ceiling-slider').value = Math.round(state.ceilingFrac * 100);
+      renderAll();
+    },
+    onRelease: () => {},
+    springTarget: null,
+    springStyle: 'none',
+  });
+
+  // Excess supply gap bar at the floor price — direction 'surplus' (label above line)
+  if (isBinding) {
+    const qD = state.demand.quantityAt(pTrade);
+    const qS = Math.min(sc.quantityMax, state.supply.quantityAt(pTrade));
+    if (qS - qD > 0.5) {
+      plot.setGapBar({
+        atPrice: pTrade,
+        qLow: qD, qHigh: qS,
+        label: `Excess supply: ${formatQuantity(state.scenarioKey, qS - qD)}`,
+        direction: 'surplus',
+      });
+    } else plot.setGapBar(null);
+  } else plot.setGapBar(null);
+
+  // Labels
+  const labels = [];
+  // P* at equilibrium
+  labels.push({
+    x: 0, y: e.p, rawX: plot.margin.left + 6,
+    text: 'P*', textAnchor: 'start', offset: { y: -4 },
+    color: 'var(--ink-soft)', className: 'point-label',
+  });
+  labels.push({
+    x: e.q, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+    text: 'Q*', textAnchor: 'start', offset: { x: 5 },
+    color: 'var(--ink-soft)', className: 'point-label',
+  });
+  // Pmin and Qd (only when binding)
+  if (isBinding) {
+    labels.push({
+      x: 0, y: pTrade, rawX: plot.margin.left + 6,
+      text: `Pmin = ${formatPrice(state.scenarioKey, pTrade)}`,
+      textAnchor: 'start', offset: { y: -4 },
+      color: 'var(--welfare-loss)', className: 'point-label',
+    });
+    labels.push({
+      x: qTrade, y: 0, rawY: plot.margin.top + plot.plotH - 6,
+      text: `Qd = ${formatQuantity(state.scenarioKey, qTrade)}`,
+      textAnchor: 'start', offset: { x: 5 },
+      color: 'var(--welfare-loss)', className: 'point-label',
+    });
+  }
+  plot.setLabels(labels);
+
+  // Annotations: drop lines for Qd and Qs at the floor price
+  const annots = [];
+  if (isBinding) {
+    const qD = state.demand.quantityAt(pTrade);
+    const qS = Math.min(sc.quantityMax, state.supply.quantityAt(pTrade));
+    annots.push({ kind: 'dropLine', q: qD, pFrom: pTrade, pTo: 0, toAxis: true, dashed: true });
+    annots.push({ kind: 'dropLine', q: qS, pFrom: pTrade, pTo: 0, toAxis: true, dashed: true });
+  }
+  annots.push({ kind: 'dropLine', q: e.q, pFrom: e.p, pTo: 0, toAxis: true, dashed: true });
+  annots.push({ kind: 'acrossLine', p: e.p, qFrom: 0, qTo: e.q, fromAxis: true, dashed: true });
+  plot.setAnnotations(annots);
+
+  plot.render();
+  updateRightPanel();
+  updateSliderLabel();
+}
+
+function updateSliderLabel() {
+  const pct = Math.round(state.ceilingFrac * 100);
+  const el = document.getElementById('ceiling-val');
+  if (state.ceilingFrac <= 1.001) el.textContent = 'at or below equilibrium (non-binding)';
+  else el.textContent = `at ${pct}% of P*`;
+}
+
+function updateRightPanel() {
+  const s = surplus();
+  document.getElementById('cs-val').textContent = formatMoney(state.scenarioKey, s.cs);
+  document.getElementById('ps-val').textContent = formatMoney(state.scenarioKey, s.ps);
+  document.getElementById('comm-val').textContent = formatMoney(state.scenarioKey, s.community);
+
+  // Deltas vs equilibrium
+  const dCs = s.cs - s.csEq;
+  const dPs = s.ps - s.psEq;
+  const dComm = s.community - s.communityEq;
+  const setDelta = (id, v) => {
+    const el = document.getElementById(id);
+    if (Math.abs(v) < 0.05) { el.textContent = ''; el.className = 'delta'; return; }
+    const sign = v >= 0 ? '+' : '−';
+    el.textContent = sign + formatMoney(state.scenarioKey, Math.abs(v));
+    el.className = 'delta ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDelta('cs-delta', dCs);
+  setDelta('ps-delta', dPs);
+  setDelta('comm-delta', dComm);
+
+  const dwlRow = document.getElementById('dwl-row');
+  const dwlVal = document.getElementById('dwl-val');
+  if (s.dwl > 0.01) {
+    dwlRow.style.display = 'contents';
+    dwlVal.textContent = formatMoney(state.scenarioKey, s.dwl);
+  } else {
+    dwlRow.style.display = 'none';
+  }
+
+  // Pill
+  const pill = document.getElementById('binding-pill');
+  if (s.isBinding) {
+    pill.className = 'binding-pill binding';
+    pill.textContent = 'Binding floor: excess supply';
+  } else {
+    pill.className = 'binding-pill nonbinding';
+    pill.textContent = 'Floor not yet binding';
+  }
+
+  // Excess-supply callout
+  const callout = document.getElementById('shortage-callout');
+  const shortSize = document.getElementById('shortage-size');
+  if (s.isBinding && s.shortage > 0.5) {
+    callout.classList.add('visible');
+    shortSize.textContent = formatQuantity(state.scenarioKey, s.shortage);
+  } else {
+    callout.classList.remove('visible');
+  }
+
+  // Narration
+  const narrEl = document.getElementById('narration-text');
+  if (!s.isBinding) {
+    narrEl.innerHTML = `The floor sits at or below the equilibrium price, so it has no effect. The market clears normally at P* = <strong>${formatPrice(state.scenarioKey, s.e.p)}</strong> and Q* = <strong>${formatQuantity(state.scenarioKey, s.e.q)}</strong>.`;
+  } else {
+    narrEl.innerHTML = `At the floor price of <strong>${formatPrice(state.scenarioKey, s.pTrade)}</strong>, only <strong>${formatQuantity(state.scenarioKey, s.qTrade)}</strong> change hands. Sellers are willing to supply <strong>${formatQuantity(state.scenarioKey, s.qTrade + s.shortage)}</strong> at this price, leaving an excess of <strong>${formatQuantity(state.scenarioKey, s.shortage)}</strong> unsold. Consumers lose surplus. Producers who can still sell gain, but the overall economy loses beneficial trades.`;
+  }
+}
+
+/* -----------------------------------------------------------------------
+   Cases and consequences
+   ----------------------------------------------------------------------- */
+
+const cases = {
+  default: {
+    ceilingFrac: 1.3,
+    narration: 'A price floor is a government-mandated minimum price. Drag the dashed line up above equilibrium to see the floor bind.',
+  },
+  cap: {
+    ceilingFrac: 1.45,
+    narration: 'The EU Common Agricultural Policy (est. 1962) supported farm prices well above market-clearing levels. The result: wine lakes, butter mountains, huge unsold stockpiles bought and stored by the EU, then sometimes exported at subsidised prices (hurting producers in developing countries).',
+  },
+  minwage: {
+    ceilingFrac: 1.25,
+    narration: 'A minimum wage is a floor in the labour market. Axes should be read as: Q = labour hours, P = wage. A wage above equilibrium means more people want to work at that wage than employers want to hire — the excess supply appears as unemployment. Real-world effect depends on PED of labour demand.',
+  },
+  'us-corn': {
+    ceilingFrac: 1.35,
+    narration: 'US agricultural price supports guarantee farmers a minimum price through government purchases or loan programs. Surplus production is stored, exported, or used for food aid. Currently focused on corn, wheat, dairy, sugar.',
+  },
+};
+
+const consequences = {
+  'surplus-destroy': 'Excess produce is sometimes destroyed (EU fruit and vegetables in the 1980s) to prevent it reaching the market and driving prices down. Wasteful, politically embarrassing, but keeps the floor effective.',
+  'gov-buy': 'The government buys the excess supply to keep producers whole. This costs taxpayers the rectangle formed by (Q_S − Q_D) × P_floor. Stored produce may later be exported at lower prices, dumped on world markets, or given as food aid.',
+  unemployment: 'In labour markets, excess supply means people who want jobs at the minimum wage but can\'t find them. Critics argue this hurts the least-skilled; supporters argue that PED of labour demand is low enough that the effect is small in practice.',
+  'illegal-trade': 'Some buyers and sellers transact below the floor illegally. Common in labour markets: "cash in hand" work below minimum wage. The floor ends up not protecting the workers it targets.',
+};
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.case;
+    const c = cases[key];
+    if (!c) return;
+    state.caseKey = key;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.ceilingFrac = c.ceilingFrac;
+    document.getElementById('ceiling-slider').value = Math.round(state.ceilingFrac * 100);
+    document.getElementById('case-narration').textContent = c.narration;
+    renderAll();
+  });
+});
+
+document.getElementById('ceiling-slider').addEventListener('input', ev => {
+  state.ceilingFrac = Number(ev.target.value) / 100;
+  renderAll();
+});
+
+document.querySelectorAll('[data-consequence]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const c = btn.dataset.consequence;
+    document.querySelectorAll('[data-consequence]').forEach(b => b.classList.remove('active'));
+    if (c === 'clear') {
+      state.consequence = null;
+      document.getElementById('consequence-note').textContent = 'The unsold quantity (excess supply) has to go somewhere. Pick a consequence to see a brief explanation.';
+      return;
+    }
+    btn.classList.add('active');
+    state.consequence = c;
+    document.getElementById('consequence-note').textContent = consequences[c] || '';
+  });
+});
+
+document.getElementById('scenario').addEventListener('change', ev => {
+  state.scenarioKey = ev.target.value;
+  plot.setScenario(state.scenarioKey);
+  renderAll();
+});
+
+/* Init */
+plot = new PQPlot({
+  container: document.getElementById('plot'),
+  scenario: state.scenarioKey,
+  width: 720,
+  height: 440,
+});
+buildCurves();
+renderAll();
+</script>
+
+</body>
+</html>

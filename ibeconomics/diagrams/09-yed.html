@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Income elasticity of demand · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    /* Engel-curve specific styling: curve and draggable income point */
+    .engel-curve {
+      fill: none;
+      stroke: var(--demand-shift);
+      stroke-width: 2.5;
+    }
+    .engel-point {
+      fill: var(--demand-shift);
+      stroke: #fff;
+      stroke-width: 2;
+      cursor: grab;
+    }
+    .engel-point.dragging { cursor: grabbing; r: 9; }
+    .engel-point-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      fill: var(--ink);
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-width: 3;
+      stroke-linejoin: round;
+    }
+
+    .yed-card {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 0.7rem;
+      text-align: center;
+    }
+    .yed-card .yed-value {
+      font-family: 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+      margin-bottom: 0.2rem;
+    }
+    .yed-card .yed-category {
+      font-family: 'Source Serif 4', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .yed-card.luxury .yed-value { color: var(--demand-shift); }
+    .yed-card.necessity .yed-value { color: var(--supply); }
+    .yed-card.inferior .yed-value { color: var(--welfare-loss); }
+
+    .point-readout {
+      background: var(--paper-deep);
+      border-radius: var(--radius-md);
+      padding: 0.5rem 0.8rem;
+      margin-bottom: 0.7rem;
+      font-size: 13px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.2rem 0.8rem;
+    }
+    .point-readout dt { color: var(--ink-soft); font-weight: 500; }
+    .point-readout dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: right;
+    }
+
+    /* Tangent line showing local slope at the chosen point */
+    .engel-tangent {
+      stroke: var(--demand-shift);
+      stroke-width: 1;
+      stroke-dasharray: 4 3;
+      opacity: 0.8;
+      fill: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.5 Income elasticity of demand · Required</span>
+      <h1>Income elasticity of demand</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="example-row">
+        <span class="events-label">Try a real case</span>
+        <button class="event-chip active" data-example="luxury">Overseas holidays <span class="term-badge">luxury</span></button>
+        <button class="event-chip" data-example="necessity">Bread <span class="term-badge">necessity</span></button>
+        <button class="event-chip" data-example="inferior">Bus tickets <span class="term-badge">inferior</span></button>
+        <button class="event-chip" data-example="switcher">Rice in a developing economy <span class="term-badge">switches type</span></button>
+      </div>
+
+      <div class="event-narration baseline visible" id="example-narration">
+        An Engel curve plots quantity demanded against income. Its slope tells you how demand responds to income. Drag the point along the curve to see YED change.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Income of the household <span class="value" id="income-val">£30,000</span></label>
+          <input type="range" id="income-slider" min="5000" max="95000" step="1000" value="30000" />
+          <span class="small muted">Slide to see where that income-level falls on the Engel curve, and what happens to quantity demanded.</span>
+        </div>
+
+        <div class="control">
+          <label class="toggle">
+            <input type="checkbox" id="show-tangent" />
+            <span>Show the slope at this point</span>
+          </label>
+          <span class="small muted">The slope of the Engel curve tells you whether quantity is rising (normal), flat, or falling (inferior) with income.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div class="yed-card" id="yed-card">
+        <div class="yed-value" id="yed-value">—</div>
+        <div class="yed-category" id="yed-category">Drag the point to see YED</div>
+      </div>
+
+      <dl class="point-readout">
+        <dt>Income</dt>
+        <dd id="out-income">—</dd>
+        <dt>Quantity demanded</dt>
+        <dd id="out-quantity">—</dd>
+      </dl>
+
+      <p class="prose" id="narration-text">
+        Income elasticity of demand measures how quantity demanded responds to changes in income: <em>%ΔQ<sub>d</sub> / %ΔY</em>. A positive YED means more is bought as income rises (normal good); a negative YED means less is bought (inferior good).
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Three categories.</strong> <strong>Luxury</strong> goods have YED &gt; 1: quantity rises faster than income. <strong>Necessity</strong> goods have 0 &lt; YED &lt; 1: quantity rises but slower than income. <strong>Inferior</strong> goods have YED &lt; 0: quantity actually falls as income rises, because buyers switch to more expensive substitutes they can now afford.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { createAxes, svgEl, logEvent } from '../js/common.js';
+
+/* -----------------------------------------------------------------------
+   State
+   ----------------------------------------------------------------------- */
+
+const state = {
+  exampleKey: 'luxury',
+  income: 30000,           // chosen income in £
+  showTangent: false,
+  plot: null,
+  svg: null,
+};
+
+/* -----------------------------------------------------------------------
+   Curve family
+   -----------------------------------------------------------------------
+   Each example defines a Q(Y) function that returns quantity-per-year
+   at income Y (in £). The curves are designed to cross through the
+   plot sensibly at income 30,000.
+
+   For YED we need dQ/dY at a point, which we compute numerically.
+   ----------------------------------------------------------------------- */
+
+const examples = {
+  luxury: {
+    label: 'Overseas holidays',
+    quantityLabel: 'Holidays per year',
+    // Power-law: Q = a * Y^b with b > 1 (luxury)
+    // At Y=30000 we want Q around 2.0
+    Q: (Y) => 2.0 * Math.pow(Y / 30000, 1.8),
+    yMax: 100000,
+    xMax: 8,
+    xTickFormat: v => v.toFixed(1),
+    narration: 'Overseas holidays are a luxury: YED is greater than 1, meaning a 10% rise in income produces more than 10% more holidays. Doubling income roughly triples holidays.',
+  },
+  necessity: {
+    label: 'Bread',
+    quantityLabel: 'Loaves per year',
+    // Power-law with 0 < b < 1 (necessity). At Y=30000 → ~150 loaves
+    Q: (Y) => 150 * Math.pow(Y / 30000, 0.3),
+    yMax: 100000,
+    xMax: 300,
+    xTickFormat: v => Math.round(v),
+    narration: 'Bread is a necessity: YED is positive but below 1. Richer households eat a little more bread (or better bread), but the quantity eaten is mostly driven by biology, not income.',
+  },
+  inferior: {
+    label: 'Bus tickets',
+    quantityLabel: 'Bus tickets per year',
+    // Downward curve — demand falls with income. Richer people drive or taxi.
+    // At Y=10000 → ~500 tickets, at Y=50000 → ~200, at Y=90000 → ~80.
+    // Use Q = a * (Y)^(-b) shape, scaled.
+    Q: (Y) => 1500 * Math.pow(Y / 30000, -0.7) + 40,
+    yMax: 100000,
+    xMax: 1200,
+    xTickFormat: v => Math.round(v),
+    narration: 'Bus tickets are an inferior good: YED is negative. As income rises, people switch to cars or taxis, so fewer bus tickets are bought. Doubling income roughly halves bus usage.',
+  },
+  switcher: {
+    label: 'Rice (developing economy)',
+    quantityLabel: 'kg of rice per year',
+    // A curve that rises, peaks, then falls — necessity at low incomes,
+    // inferior at high incomes. Use Q = a * Y^0.5 * exp(-Y/b).
+    Q: (Y) => 250 * Math.pow(Y / 30000, 0.5) * Math.exp(-Math.pow(Y / 50000, 1.4) + 0.5),
+    yMax: 100000,
+    xMax: 400,
+    xTickFormat: v => Math.round(v),
+    narration: 'In many developing economies, rice starts as a necessity — the poorest families eat more as income rises. Past a threshold, rice becomes an inferior good: richer families switch to wheat, meat, vegetables. The Engel curve rises, then falls.',
+  },
+};
+
+function currentExample() { return examples[state.exampleKey]; }
+
+/* -----------------------------------------------------------------------
+   Plot construction (uses the shared createAxes helper from common.js)
+   ----------------------------------------------------------------------- */
+
+function makePlot() {
+  const container = document.getElementById('plot');
+  const ex = currentExample();
+  state.plot = createAxes({
+    container,
+    width: 720,
+    height: 440,
+    margin: { top: 30, right: 60, bottom: 64, left: 90 },
+    xLabel: ex.quantityLabel,
+    yLabel: 'Household income (£/year)',
+    xMax: ex.xMax,
+    yMax: ex.yMax,
+    nxTicks: 10,
+    nyTicks: 10,
+    tickEvery: 2,
+    xFormat: ex.xTickFormat,
+    yFormat: v => v === 0 ? '0' : `£${(v / 1000).toFixed(0)}k`,
+  });
+  state.svg = state.plot.svg;
+}
+
+/* -----------------------------------------------------------------------
+   YED computation — numerical derivative
+   -----------------------------------------------------------------------
+   YED = (dQ/dY) * (Y/Q). Compute dQ/dY with central difference.
+   ----------------------------------------------------------------------- */
+
+function yedAt(Y) {
+  const ex = currentExample();
+  const h = Math.max(100, Y * 0.01);
+  const q1 = ex.Q(Y - h);
+  const q2 = ex.Q(Y + h);
+  const Q  = ex.Q(Y);
+  if (Q <= 0) return 0;
+  const dqdy = (q2 - q1) / (2 * h);
+  return dqdy * (Y / Q);
+}
+
+function yedCategory(yedValue) {
+  if (yedValue < -0.02) return { name: 'inferior (YED < 0)', className: 'inferior' };
+  if (yedValue > 1.02) return { name: 'luxury (YED > 1)', className: 'luxury' };
+  if (yedValue > 0.02) return { name: 'necessity (0 < YED < 1)', className: 'necessity' };
+  return { name: 'unit-elastic or near-zero', className: '' };
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const ex = currentExample();
+
+  // Engel curve — sample 100 points across the income range
+  const samples = 120;
+  const pts = [];
+  for (let i = 0; i <= samples; i++) {
+    const Y = (i / samples) * ex.yMax;
+    const Q = Math.max(0, Math.min(ex.xMax, ex.Q(Y)));
+    pts.push([Q, Y]);
+  }
+  const pathD = pts.map(([q, y], i) => `${i === 0 ? 'M' : 'L'} ${xScale(q)} ${yScale(y)}`).join(' ');
+  const curve = svgEl('path', { class: 'engel-curve', d: pathD });
+  plotGroup.appendChild(curve);
+
+  // Draggable income point
+  const Y = state.income;
+  const Q = Math.max(0, Math.min(ex.xMax, ex.Q(Y)));
+  const cx = xScale(Q);
+  const cy = yScale(Y);
+
+  // Dotted cross-hairs from point to both axes
+  const line1 = svgEl('line', {
+    x1: xScale(0), y1: cy, x2: cx, y2: cy,
+    stroke: 'var(--ink-soft)',
+    'stroke-width': 1,
+    'stroke-dasharray': '3 3',
+    opacity: 0.7,
+  });
+  const line2 = svgEl('line', {
+    x1: cx, y1: yScale(0), x2: cx, y2: cy,
+    stroke: 'var(--ink-soft)',
+    'stroke-width': 1,
+    'stroke-dasharray': '3 3',
+    opacity: 0.7,
+  });
+  plotGroup.appendChild(line1);
+  plotGroup.appendChild(line2);
+
+  // Tangent line (local slope) if toggle is on
+  if (state.showTangent) {
+    // Compute slope dY/dQ at the current point. We drew Engel curve with
+    // Q on x-axis, Y on y-axis, but the math is Q(Y) so dQ/dY is natural.
+    // Slope in plot = dY/dQ = 1 / (dQ/dY).
+    const h = Math.max(100, Y * 0.01);
+    const q1 = ex.Q(Y - h);
+    const q2 = ex.Q(Y + h);
+    const dqdy = (q2 - q1) / (2 * h);
+    const tangentLen = ex.yMax * 0.2;
+    if (Math.abs(dqdy) > 1e-6) {
+      const dydq = 1 / dqdy;
+      // Draw line through (Q, Y) with slope dY/dQ in data space
+      const dq = ex.xMax * 0.15;
+      const y1 = Y - dydq * dq;
+      const y2 = Y + dydq * dq;
+      const x1 = Q - dq;
+      const x2 = Q + dq;
+      const tline = svgEl('line', {
+        class: 'engel-tangent',
+        x1: xScale(x1), y1: yScale(y1),
+        x2: xScale(x2), y2: yScale(y2),
+      });
+      plotGroup.appendChild(tline);
+    }
+  }
+
+  const pointG = svgEl('g', { class: 'engel-point-group' });
+  const point = svgEl('circle', {
+    class: 'engel-point',
+    cx, cy, r: 7,
+  });
+  pointG.appendChild(point);
+  const label = svgEl('text', {
+    class: 'engel-point-label',
+    x: cx + 12,
+    y: cy - 10,
+    'text-anchor': 'start',
+  });
+  label.textContent = `£${(Y / 1000).toFixed(0)}k → ${Q.toFixed(Q < 10 ? 1 : 0)} ${ex.quantityLabel.split(' ')[0].toLowerCase()}`;
+  pointG.appendChild(label);
+  plotGroup.appendChild(pointG);
+
+  // Set up dragging on the point
+  setupPointDrag(point);
+
+  updateReadouts();
+}
+
+function setupPointDrag(el) {
+  const svg = state.svg;
+  let dragging = false;
+  const toData = ev => {
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const y = ((ev.clientY - rect.top) / rect.height) * vb.height;
+    return state.plot.yInv(y);
+  };
+  const onMove = ev => {
+    if (!dragging) return;
+    ev.preventDefault();
+    const Y = toData(ev);
+    if (!isFinite(Y)) return;
+    const ex = currentExample();
+    const clamped = Math.max(1000, Math.min(ex.yMax * 0.98, Y));
+    state.income = Math.round(clamped / 1000) * 1000;
+    document.getElementById('income-slider').value = state.income;
+    renderAll();
+  };
+  const onUp = ev => {
+    dragging = false;
+    el.classList.remove('dragging');
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+  el.addEventListener('pointerdown', ev => {
+    dragging = true;
+    el.classList.add('dragging');
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    ev.preventDefault();
+  });
+}
+
+function updateReadouts() {
+  const ex = currentExample();
+  const Y = state.income;
+  const Q = Math.max(0, Math.min(ex.xMax, ex.Q(Y)));
+  const yed = yedAt(Y);
+  const cat = yedCategory(yed);
+
+  const card = document.getElementById('yed-card');
+  card.className = 'yed-card ' + cat.className;
+  const valEl = document.getElementById('yed-value');
+  if (yed > 100) valEl.textContent = '>> 1';
+  else if (Math.abs(yed) < 0.01) valEl.textContent = '~ 0';
+  else valEl.textContent = yed.toFixed(2);
+  document.getElementById('yed-category').textContent = cat.name;
+
+  document.getElementById('out-income').textContent = `£${(Y / 1000).toFixed(0)}k`;
+  document.getElementById('out-quantity').textContent = `${Q.toFixed(Q < 10 ? 2 : 0)} ${ex.quantityLabel.toLowerCase().split(' per')[0]}`;
+
+  document.getElementById('income-val').textContent =
+    `£${Y.toLocaleString('en-GB')}`;
+}
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-example]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.exampleKey = btn.dataset.example;
+    document.querySelectorAll('[data-example]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const ex = currentExample();
+    document.getElementById('example-narration').textContent = ex.narration;
+    // Rebuild the plot since axis max values change per example
+    makePlot();
+    renderAll();
+    logEvent({ diagram: 'yed', action: 'example-change', example: state.exampleKey });
+  });
+});
+
+document.getElementById('income-slider').addEventListener('input', ev => {
+  state.income = Number(ev.target.value);
+  renderAll();
+});
+
+document.getElementById('show-tangent').addEventListener('change', ev => {
+  state.showTangent = ev.target.checked;
+  renderAll();
+});
+
+/* Init */
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

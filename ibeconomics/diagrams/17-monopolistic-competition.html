@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monopolistic competition · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-atc { stroke: #5d7a68; stroke-width: 2; }
+    .curve-mc { stroke: var(--supply); stroke-width: 2; }
+    .curve-ar { stroke: var(--demand-shift); stroke-width: 2; }
+    .curve-mr { stroke: var(--demand-shift); stroke-width: 1.7; stroke-dasharray: 4 3; opacity: 0.85; }
+    .price-line { stroke: var(--ink-soft); stroke-width: 1.2; stroke-dasharray: 3 3; }
+    .profit-rect { fill: rgba(60, 160, 100, 0.25); stroke: #2d7a50; stroke-width: 0.5; }
+    .loss-rect { fill: rgba(200, 80, 60, 0.22); stroke: var(--welfare-loss); stroke-width: 0.5; }
+    .excess-capacity-bar { stroke: var(--welfare-loss); stroke-width: 2; stroke-dasharray: 2 2; }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; color: var(--ink); }
+    .totals-grid .positive .val { color: #2d7a50; }
+    .totals-grid .negative .val { color: var(--welfare-loss); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .state-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .state-pill.profit { background: #dff0e3; color: #2d6b46; }
+    .state-pill.loss { background: #fde8c6; color: #8a5a00; }
+    .state-pill.lr { background: #e8ddf6; color: #5d3a99; }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.11 Monopolistic competition · HL Required</span>
+      <h1>Monopolistic competition</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Scenario</span>
+        <button class="event-chip active" data-case="sr-profit">Short-run profit</button>
+        <button class="event-chip" data-case="sr-loss">Short-run loss</button>
+        <button class="event-chip" data-case="long-run">Long-run equilibrium (entry → zero profit)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        Each firm faces its own downward-sloping D because products are differentiated (coffee shops, branded clothing, restaurants). Short-run: profit or loss possible like a monopoly. Long-run: free entry shifts each firm's D leftward until D is tangent to ATC — zero economic profit, but at a Q below min-ATC, so resources are wasted.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Demand position <span class="value" id="dmax-val">£1.20</span></label>
+          <input type="range" id="dmax-slider" min="0.60" max="2.00" step="0.01" value="1.20" />
+          <span class="small muted">Where does this firm's demand sit on the plot? Moves its whole demand curve up or down (parallel shift of D and MR).</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="state-pill profit" id="state-pill">Short-run profit</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Profit-max quantity</span>
+          <span class="val" id="q-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price charged</span>
+          <span class="val" id="p-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Average total cost</span>
+          <span class="val" id="atc-val">—</span>
+        </div>
+        <hr />
+        <div class="row" id="profit-row">
+          <span class="lbl">Economic profit</span>
+          <span class="val" id="profit-val">—</span>
+        </div>
+        <div class="row" id="excess-row" style="display: none;">
+          <span class="lbl" style="color: var(--welfare-loss);">Excess capacity</span>
+          <span class="val" id="excess-val" style="color: var(--welfare-loss);">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        At a demand intercept of £1.20, the firm picks q where MR = MC, then charges the highest price D allows. With costs as shown, there's currently positive economic profit — the green rectangle. In the long run, entry by competitors will shift this firm's D left until profit is zero.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Excess capacity theorem.</strong> In the long run, D must be tangent to ATC (zero profit). Because ATC is U-shaped and tangent to a downward-sloping D, the tangency sits on ATC's downward-sloping side — to the left of ATC's minimum. The firm produces <em>less</em> than the quantity that would minimise average cost. This "excess capacity" is a productive inefficiency, the price we pay for product variety.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { makeCostCurveSet, createCostAxes, drawCurveFn, drawRect } from '../js/cost-curves.js';
+import { svgEl } from '../js/common.js';
+
+const state = {
+  cost: makeCostCurveSet(),
+  dMax: 1.20,
+  qMax: 250,
+  plot: null,
+};
+
+function demand(q) { return state.dMax * (1 - q / state.qMax); }
+function mr(q)     { return state.dMax * (1 - 2 * q / state.qMax); }
+
+function findQStar(dMaxVal) {
+  const dFn = (q) => dMaxVal * (1 - 2 * q / state.qMax);
+  const c = state.cost;
+  let lo = 1, hi = state.qMax * 0.5;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (dFn(mid) > c.mc(mid)) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* Find the dMax value such that, at the profit-max q, D(q) = ATC(q).
+   This is the long-run tangency condition. Bisect on dMax. */
+function findLongRunDMax() {
+  const c = state.cost;
+  let lo = 0.30, hi = 2.0;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const q = findQStar(mid);
+    const dAtQ = mid * (1 - q / state.qMax);
+    const atcAtQ = c.atc(q);
+    if (dAtQ > atcAtQ) hi = mid; else lo = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+function makePlot() {
+  state.plot = createCostAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    xLabel: 'Quantity',
+    yLabel: 'Price / Cost (£)',
+    xMax: 200,
+    yMax: 1.6,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+  const c = state.cost;
+  const xMax = 200, yMax = 1.6;
+  const q = findQStar(state.dMax);
+  const p = demand(q);
+  const atcAtQ = c.atc(q);
+  const profit = (p - atcAtQ) * q;
+  const isLongRun = Math.abs(profit) < 0.5;
+  const excessCap = c.atcMinQ - q;  // quantity below min-ATC
+
+  // Profit / loss rectangle
+  if (p > atcAtQ + 0.01) {
+    drawRect(plotGroup, 0, atcAtQ, q, p, {
+      xScale, yScale, className: 'profit-rect',
+      label: `π = £${profit.toFixed(1)}`, labelColor: '#2d6b46',
+    });
+  } else if (p < atcAtQ - 0.01) {
+    drawRect(plotGroup, 0, p, q, atcAtQ, {
+      xScale, yScale, className: 'loss-rect',
+      label: `Loss: £${Math.abs(profit).toFixed(1)}`, labelColor: 'var(--welfare-loss)',
+    });
+  }
+
+  // Excess-capacity bar — only when in long-run equilibrium
+  if (isLongRun && excessCap > 5) {
+    // Draw a small horizontal bracket at the bottom of the chart showing
+    // the gap between q and atcMinQ
+    const y = yScale(0) + 28;
+    const x1 = xScale(q), x2 = xScale(c.atcMinQ);
+    const bracket = svgEl('line', {
+      class: 'excess-capacity-bar',
+      x1, y1: y, x2, y2: y,
+    });
+    plotGroup.appendChild(bracket);
+    [x1, x2].forEach(x => {
+      const t = svgEl('line', {
+        class: 'excess-capacity-bar',
+        x1: x, x2: x, y1: y - 3, y2: y + 3,
+      });
+      plotGroup.appendChild(t);
+    });
+    const lbl = svgEl('text', {
+      x: (x1 + x2) / 2, y: y + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--welfare-loss);",
+    });
+    lbl.textContent = `Excess capacity: ${excessCap.toFixed(0)} units`;
+    plotGroup.appendChild(lbl);
+  }
+
+  // Curves
+  drawCurveFn(plotGroup, qv => c.atc(qv), {
+    xStart: 10, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-atc', label: 'ATC', strokeColor: '#5d7a68',
+  });
+  drawCurveFn(plotGroup, qv => c.mc(qv), {
+    xStart: 1, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-mc', label: 'MC', strokeColor: 'var(--supply)',
+  });
+
+  // Demand (downward-sloping linear)
+  const dEndQ = Math.min(xMax, state.qMax);
+  const dPath = svgEl('path', {
+    class: 'curve curve-ar',
+    d: `M ${xScale(0)} ${yScale(state.dMax)} L ${xScale(dEndQ)} ${yScale(demand(dEndQ))}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(dPath);
+  const dLbl = svgEl('text', {
+    x: xScale(dEndQ) - 4, y: yScale(demand(dEndQ)) - 8, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D = AR';
+  plotGroup.appendChild(dLbl);
+
+  // MR
+  const mrXEnd = Math.min(xMax, state.qMax / 2);
+  const mrPath = svgEl('path', {
+    class: 'curve curve-mr',
+    d: `M ${xScale(0)} ${yScale(state.dMax)} L ${xScale(mrXEnd)} ${yScale(mr(mrXEnd))}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 1.7,
+    'stroke-dasharray': '4 3', opacity: 0.85,
+  });
+  plotGroup.appendChild(mrPath);
+  const mrLbl = svgEl('text', {
+    x: xScale(mrXEnd) + 4, y: yScale(mr(mrXEnd)) + 3, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; fill: var(--demand-shift);",
+  });
+  mrLbl.textContent = 'MR';
+  plotGroup.appendChild(mrLbl);
+
+  // Drop-lines
+  const vLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(q), y1: yScale(0), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(vLine);
+  const hLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(0), y1: yScale(p), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(hLine);
+  // MR=MC marker
+  const mrmcDot = svgEl('circle', {
+    cx: xScale(q), cy: yScale(c.mc(q)), r: 5,
+    fill: 'var(--supply)', stroke: '#fff', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(mrmcDot);
+  // Price-on-D marker
+  const pDot = svgEl('circle', {
+    cx: xScale(q), cy: yScale(p), r: 5,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(pDot);
+
+  // Labels
+  const qLbl = svgEl('text', {
+    x: xScale(q), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  qLbl.textContent = `q* = ${q.toFixed(0)}`;
+  plotGroup.appendChild(qLbl);
+  const pLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(p) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  pLbl.textContent = `P = £${p.toFixed(2)}`;
+  plotGroup.appendChild(pLbl);
+
+  // atcMinQ marker (for reference in excess-capacity case)
+  if (isLongRun) {
+    const aLbl = svgEl('text', {
+      x: xScale(c.atcMinQ), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: #5d7a68;",
+    });
+    aLbl.textContent = `ATC min = ${c.atcMinQ.toFixed(0)}`;
+    plotGroup.appendChild(aLbl);
+  }
+
+  updateRightPanel({ q, p, atcAtQ, profit, isLongRun, excessCap });
+}
+
+function updateRightPanel(s) {
+  document.getElementById('q-val').textContent = s.q.toFixed(0);
+  document.getElementById('p-val').textContent = `£${s.p.toFixed(2)}`;
+  document.getElementById('atc-val').textContent = `£${s.atcAtQ.toFixed(2)}`;
+
+  const profitRow = document.getElementById('profit-row');
+  const profitEl = document.getElementById('profit-val');
+  if (s.isLongRun) {
+    profitRow.className = 'row';
+    profitEl.textContent = '£0.00 (long-run)';
+  } else if (s.profit > 0.05) {
+    profitRow.className = 'row positive';
+    profitEl.textContent = `+£${s.profit.toFixed(2)}`;
+  } else {
+    profitRow.className = 'row negative';
+    profitEl.textContent = `−£${Math.abs(s.profit).toFixed(2)}`;
+  }
+
+  // Excess capacity row only in LR
+  const excessRow = document.getElementById('excess-row');
+  if (s.isLongRun && s.excessCap > 5) {
+    excessRow.style.display = 'contents';
+    document.getElementById('excess-val').textContent = `${s.excessCap.toFixed(0)} units`;
+  } else {
+    excessRow.style.display = 'none';
+  }
+
+  const pill = document.getElementById('state-pill');
+  const narr = document.getElementById('narration-text');
+  if (s.isLongRun) {
+    pill.className = 'state-pill lr';
+    pill.textContent = 'Long-run equilibrium';
+    narr.innerHTML = `The firm's D is tangent to ATC at q = ${s.q.toFixed(0)}. Zero economic profit. But tangency sits on ATC's downward slope, to the <em>left</em> of ATC's minimum at ${state.cost.atcMinQ.toFixed(0)} units. The firm operates with <strong>excess capacity</strong> of ${s.excessCap.toFixed(0)} units — it could produce more at lower average cost, but to do so would push its price below MR. This is the productive inefficiency cost of product variety.`;
+  } else if (s.profit > 0.05) {
+    pill.className = 'state-pill profit';
+    pill.textContent = 'Short-run profit';
+    narr.innerHTML = `At this demand position, the firm makes short-run profit of <strong>£${s.profit.toFixed(2)}</strong>. In the long run, other firms will enter this industry (attracted by the profit), stealing some of this firm's customers, which shifts its D leftward until D is tangent to ATC.`;
+  } else {
+    pill.className = 'state-pill loss';
+    pill.textContent = 'Short-run loss';
+    narr.innerHTML = `At this demand position, the firm loses <strong>£${Math.abs(s.profit).toFixed(2)}</strong>. In the long run, some firms exit the industry, which shifts this firm's D rightward until D is tangent to ATC (zero profit).`;
+  }
+}
+
+/* Case chips */
+const cases = {
+  'sr-profit': { dMax: 1.30 },
+  'sr-loss':   { dMax: 0.85 },
+  'long-run':  { dMax: null },   // computed dynamically
+};
+
+document.querySelectorAll('[data-case]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const c = cases[btn.dataset.case];
+    if (!c) return;
+    document.querySelectorAll('[data-case]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const dMax = c.dMax != null ? c.dMax : findLongRunDMax();
+    state.dMax = Number(dMax.toFixed(2));
+    document.getElementById('dmax-slider').value = state.dMax;
+    document.getElementById('dmax-val').textContent = `£${state.dMax.toFixed(2)}`;
+    renderAll();
+  });
+});
+
+document.getElementById('dmax-slider').addEventListener('input', ev => {
+  state.dMax = Number(ev.target.value);
+  document.getElementById('dmax-val').textContent = `£${state.dMax.toFixed(2)}`;
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>

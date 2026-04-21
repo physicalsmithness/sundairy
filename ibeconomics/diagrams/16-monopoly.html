@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monopoly · IB Economics interactive diagrams</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <style>
+    .curve-atc { stroke: #5d7a68; stroke-width: 2; }
+    .curve-mc { stroke: var(--supply); stroke-width: 2; }
+    .curve-ar { stroke: var(--demand-shift); stroke-width: 2; }
+    .curve-mr { stroke: var(--demand-shift); stroke-width: 1.7; stroke-dasharray: 4 3; opacity: 0.85; }
+    .price-line { stroke: var(--ink-soft); stroke-width: 1.2; stroke-dasharray: 3 3; }
+
+    .profit-rect {
+      fill: rgba(60, 160, 100, 0.25);
+      stroke: #2d7a50;
+      stroke-width: 0.5;
+    }
+    .dwl-tri {
+      fill: rgba(200, 80, 60, 0.28);
+      stroke: var(--welfare-loss);
+      stroke-width: 0.5;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      margin-bottom: 0.7rem;
+    }
+    .totals-grid .row { display: contents; }
+    .totals-grid .lbl { color: var(--ink-soft); font-weight: 500; }
+    .totals-grid .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      text-align: right;
+      color: var(--ink);
+    }
+    .totals-grid .positive .val { color: #2d7a50; }
+    .totals-grid .dwl .lbl, .totals-grid .dwl .val { color: var(--welfare-loss); }
+    .totals-grid hr { grid-column: span 2; border: none; border-top: 1px solid var(--rule); margin: 0.2rem 0 0.1rem; }
+
+    .state-pill {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: #dff0e3;
+      color: #2d6b46;
+    }
+  </style>
+</head>
+
+<body>
+
+<main class="diagram-page">
+
+  <header class="diagram-header">
+    <div class="title-block">
+      <a class="back-link" href="../index.html">← Diagrams</a>
+      <span class="syllabus-tag">2.11 Monopoly · HL Required</span>
+      <h1>Monopoly</h1>
+    </div>
+  </header>
+
+  <div class="diagram-main">
+    <div class="left-col">
+
+      <div class="events-row" id="case-row">
+        <span class="events-label">Show</span>
+        <button class="event-chip active" data-mode="default">Profit-maximising monopoly</button>
+        <button class="event-chip" data-mode="compare">Compare to perfect competition (DWL)</button>
+      </div>
+
+      <div class="event-narration baseline visible" id="case-narration">
+        A monopolist faces the entire market demand curve. Because D slopes down, selling one more unit requires cutting price on all units, so MR &lt; price. Profit-max where MR = MC, then charges the price D allows at that quantity.
+      </div>
+
+      <section class="graph-area">
+        <div id="plot"></div>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+
+        <div class="control">
+          <label>Demand intercept <span class="value" id="dmax-val">£1.60</span></label>
+          <input type="range" id="dmax-slider" min="1.00" max="2.00" step="0.02" value="1.60" />
+          <span class="small muted">How high does demand start at Q=0? Adjusts the market size the monopolist faces.</span>
+        </div>
+
+      </section>
+
+    </div>
+
+    <aside class="narration">
+      <h3>What's happening</h3>
+
+      <div style="margin-bottom: 0.7rem;">
+        <span class="state-pill" id="state-pill">Monopoly profit</span>
+      </div>
+
+      <div class="totals-grid">
+        <div class="row">
+          <span class="lbl">Profit-max quantity</span>
+          <span class="val" id="q-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Price charged</span>
+          <span class="val" id="p-val">—</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Average total cost</span>
+          <span class="val" id="atc-val">—</span>
+        </div>
+        <hr />
+        <div class="row positive">
+          <span class="lbl">Economic profit</span>
+          <span class="val" id="profit-val">—</span>
+        </div>
+        <div class="row dwl" id="dwl-row" style="display: none;">
+          <span class="lbl">Deadweight loss vs PC</span>
+          <span class="val" id="dwl-val">—</span>
+        </div>
+      </div>
+
+      <p class="prose" id="narration-text">
+        The monopolist picks q where MR = MC, then charges the highest price consumers will pay for that quantity (on the demand curve). Because price exceeds MC at the chosen q, allocative efficiency is lost — some consumers would pay more than the marginal cost of an extra unit but don't get one.
+      </p>
+
+      <div class="key-idea">
+        <p><strong>Key idea.</strong> Unlike perfect competition, a monopoly can sustain economic profit in the long run because barriers to entry (patents, network effects, economies of scale, legal protection) prevent competitors from bidding the price down. The welfare cost shows up as both higher prices and lost trades.</p>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { makeCostCurveSet, createCostAxes, drawCurveFn, drawRect } from '../js/cost-curves.js';
+import { svgEl } from '../js/common.js';
+
+const state = {
+  cost: makeCostCurveSet(),
+  dMax: 1.60,      // demand y-intercept at q=0
+  qMax: 300,       // demand reaches 0 at this q
+  mode: 'default',
+  plot: null,
+};
+
+/* -----------------------------------------------------------------------
+   Demand: P(q) = dMax × (1 - q/qMax)
+   MR for linear demand:  MR(q) = dMax × (1 - 2q/qMax)
+   (MR has same y-intercept, double slope, hits x-axis at qMax/2)
+   ----------------------------------------------------------------------- */
+
+function demand(q) { return state.dMax * (1 - q / state.qMax); }
+function mr(q)     { return state.dMax * (1 - 2 * q / state.qMax); }
+
+/* Find q* where MR = MC. Use bisection in [1, qMax*0.95]. */
+function findQStar() {
+  const c = state.cost;
+  let lo = 1, hi = state.qMax * 0.95;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const diff = mr(mid) - c.mc(mid);
+    if (diff > 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* For PC comparison: q where P = MC on the demand curve */
+function findQCompetitive() {
+  const c = state.cost;
+  let lo = 1, hi = state.qMax * 0.95;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const diff = demand(mid) - c.mc(mid);
+    if (diff > 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* -----------------------------------------------------------------------
+   Render
+   ----------------------------------------------------------------------- */
+
+function makePlot() {
+  state.plot = createCostAxes({
+    container: document.getElementById('plot'),
+    width: 720, height: 440,
+    xLabel: 'Quantity',
+    yLabel: 'Price / Cost (£)',
+    xMax: 250,
+    yMax: 2.0,
+  });
+}
+
+function renderAll() {
+  const { plotGroup, xScale, yScale } = state.plot;
+  while (plotGroup.firstChild) plotGroup.removeChild(plotGroup.firstChild);
+
+  const c = state.cost;
+  const q = findQStar();
+  const p = demand(q);
+  const atcAtQ = c.atc(q);
+  const mcAtQ = c.mc(q);
+  const profit = (p - atcAtQ) * q;
+
+  const xMax = 250, yMax = 2.0;
+
+  // Comparison quantities (for PC reference)
+  const showCompare = state.mode === 'compare';
+  const qPC = findQCompetitive();
+
+  // Layer 1: profit rectangle (behind curves)
+  if (p > atcAtQ + 0.01) {
+    drawRect(plotGroup, 0, atcAtQ, q, p, {
+      xScale, yScale, className: 'profit-rect',
+      label: `π = £${profit.toFixed(1)}`, labelColor: '#2d6b46',
+    });
+  }
+
+  // Layer 2: DWL triangle (if comparing)
+  if (showCompare && qPC > q + 0.5) {
+    // Triangle: from (q, p) down to (q, mcAtQ) across to (qPC, demand(qPC)=mc(qPC))
+    const dT = p;
+    const mT = mcAtQ;
+    const vertX = xScale(q);
+    const vertY1 = yScale(dT);
+    const vertY2 = yScale(mT);
+    const apexX = xScale(qPC);
+    const apexY = yScale(c.mc(qPC));
+    const path = svgEl('path', {
+      class: 'dwl-tri',
+      d: `M ${vertX} ${vertY1} L ${vertX} ${vertY2} L ${apexX} ${apexY} Z`,
+    });
+    plotGroup.appendChild(path);
+    // DWL label
+    const lblX = (vertX + apexX) / 2;
+    const lblY = (vertY1 + vertY2 + apexY) / 3;
+    const dwlArea = 0.5 * Math.abs(qPC - q) * Math.abs(dT - mT);
+    const lbl = svgEl('text', {
+      x: lblX, y: lblY + 4, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; fill: var(--welfare-loss); paint-order: stroke; stroke: #fff; stroke-width: 3;",
+    });
+    lbl.textContent = `DWL £${dwlArea.toFixed(1)}`;
+    plotGroup.appendChild(lbl);
+  }
+
+  // Layer 3: curves
+  drawCurveFn(plotGroup, qv => c.atc(qv), {
+    xStart: 10, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-atc', label: 'ATC', strokeColor: '#5d7a68',
+  });
+  drawCurveFn(plotGroup, qv => c.mc(qv), {
+    xStart: 1, xEnd: xMax * 0.95, xScale, yScale, yMax,
+    className: 'curve curve-mc', label: 'MC', strokeColor: 'var(--supply)',
+  });
+  // Demand
+  const dStart = [0, demand(0)];
+  const dEnd = [state.qMax, 0];
+  const dClampedEnd = dEnd[0] > xMax ? [xMax, demand(xMax)] : dEnd;
+  const dPath = svgEl('path', {
+    class: 'curve curve-ar',
+    d: `M ${xScale(dStart[0])} ${yScale(dStart[1])} L ${xScale(dClampedEnd[0])} ${yScale(dClampedEnd[1])}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(dPath);
+  const dLbl = svgEl('text', {
+    x: xScale(dClampedEnd[0]) - 4, y: yScale(dClampedEnd[1]) - 8, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; fill: var(--demand-shift);",
+  });
+  dLbl.textContent = 'D = AR';
+  plotGroup.appendChild(dLbl);
+
+  // MR
+  const mrXEnd = state.qMax / 2;
+  const mrPath = svgEl('path', {
+    class: 'curve curve-mr',
+    d: `M ${xScale(0)} ${yScale(state.dMax)} L ${xScale(mrXEnd)} ${yScale(0)}`,
+    fill: 'none', stroke: 'var(--demand-shift)', 'stroke-width': 1.7,
+    'stroke-dasharray': '4 3', opacity: 0.85,
+  });
+  plotGroup.appendChild(mrPath);
+  const mrLbl = svgEl('text', {
+    x: xScale(mrXEnd) + 4, y: yScale(0) - 4, 'text-anchor': 'start',
+    style: "font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; fill: var(--demand-shift);",
+  });
+  mrLbl.textContent = 'MR';
+  plotGroup.appendChild(mrLbl);
+
+  // Drop-lines and markers
+  // Vertical line at q*
+  const vLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(q), y1: yScale(0), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(vLine);
+  // Horizontal line at price from y-axis to D
+  const hLine = svgEl('line', {
+    class: 'price-line',
+    x1: xScale(0), y1: yScale(p), x2: xScale(q), y2: yScale(p),
+  });
+  plotGroup.appendChild(hLine);
+  // MR=MC marker
+  const mrmcDot = svgEl('circle', {
+    cx: xScale(q), cy: yScale(mcAtQ), r: 5,
+    fill: 'var(--supply)', stroke: '#fff', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(mrmcDot);
+  // Price-on-D marker
+  const pDot = svgEl('circle', {
+    cx: xScale(q), cy: yScale(p), r: 5,
+    fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 2,
+  });
+  plotGroup.appendChild(pDot);
+
+  // Q label on x-axis
+  const qLbl = svgEl('text', {
+    x: xScale(q), y: yScale(0) + 14, 'text-anchor': 'middle',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  qLbl.textContent = `q* = ${q.toFixed(0)}`;
+  plotGroup.appendChild(qLbl);
+
+  // Q_PC reference when comparing
+  if (showCompare && qPC > q + 0.5) {
+    const qPcLbl = svgEl('text', {
+      x: xScale(qPC), y: yScale(0) + 14, 'text-anchor': 'middle',
+      style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--welfare-loss);",
+    });
+    qPcLbl.textContent = `Q_PC = ${qPC.toFixed(0)}`;
+    plotGroup.appendChild(qPcLbl);
+    // Vertical dashed line at qPC
+    const vPC = svgEl('line', {
+      class: 'price-line',
+      x1: xScale(qPC), y1: yScale(0), x2: xScale(qPC), y2: yScale(c.mc(qPC)),
+      stroke: 'var(--welfare-loss)',
+    });
+    plotGroup.appendChild(vPC);
+  }
+
+  // P label
+  const pLbl = svgEl('text', {
+    x: xScale(0) - 8, y: yScale(p) + 3, 'text-anchor': 'end',
+    style: "font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; fill: var(--ink);",
+  });
+  pLbl.textContent = `P = £${p.toFixed(2)}`;
+  plotGroup.appendChild(pLbl);
+
+  updateRightPanel({ q, p, atcAtQ, profit, qPC });
+}
+
+function updateRightPanel(s) {
+  const c = state.cost;
+  document.getElementById('q-val').textContent = s.q.toFixed(0);
+  document.getElementById('p-val').textContent = `£${s.p.toFixed(2)}`;
+  document.getElementById('atc-val').textContent = `£${s.atcAtQ.toFixed(2)}`;
+  const profitEl = document.getElementById('profit-val');
+  if (s.profit > 0.05) profitEl.textContent = `+£${s.profit.toFixed(2)}`;
+  else if (s.profit < -0.05) profitEl.textContent = `−£${Math.abs(s.profit).toFixed(2)}`;
+  else profitEl.textContent = '£0.00';
+
+  const dwlRow = document.getElementById('dwl-row');
+  if (state.mode === 'compare' && s.qPC > s.q + 0.5) {
+    dwlRow.style.display = 'contents';
+    const dT = s.p, mT = c.mc(s.q);
+    const dwl = 0.5 * Math.abs(s.qPC - s.q) * Math.abs(dT - mT);
+    document.getElementById('dwl-val').textContent = `£${dwl.toFixed(2)}`;
+  } else {
+    dwlRow.style.display = 'none';
+  }
+}
+
+/* -----------------------------------------------------------------------
+   UI wiring
+   ----------------------------------------------------------------------- */
+
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  });
+});
+
+document.getElementById('dmax-slider').addEventListener('input', ev => {
+  state.dMax = Number(ev.target.value);
+  document.getElementById('dmax-val').textContent = `£${state.dMax.toFixed(2)}`;
+  renderAll();
+});
+
+makePlot();
+renderAll();
+</script>
+
+</body>
+</html>
