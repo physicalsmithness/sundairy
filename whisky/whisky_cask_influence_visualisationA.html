@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisky Cask Influence Layers</title>
+  <style>
+    :root {
+      --bg: #0b0a0a;
+      --panel: rgba(255,255,255,0.06);
+      --panel-2: rgba(255,255,255,0.08);
+      --line: rgba(255,255,255,0.12);
+      --text: #f7f1e8;
+      --muted: #c9bca8;
+      --gold: #f0b85a;
+      --amber: #d8872d;
+      --deep: #8d3e18;
+      --berry: #712842;
+      --shadow: 0 20px 60px rgba(0,0,0,0.38);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 15%, rgba(240,184,90,0.16), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(113,40,66,0.18), transparent 25%),
+        linear-gradient(180deg, #14100d 0%, #0b0a0a 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 32px auto;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(14, 10, 8, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .wrap::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 22%, transparent 78%, rgba(255,255,255,0.04));
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      padding: 1px;
+      mask-composite: exclude;
+      -webkit-mask-composite: xor;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      max-width: 760px;
+    }
+
+    .sub {
+      margin: 12px 0 24px;
+      color: var(--muted);
+      max-width: 780px;
+      line-height: 1.5;
+      font-size: 1rem;
+    }
+
+    .chooser {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .chip:hover { transform: translateY(-1px); background: rgba(255,255,255,0.08); }
+    .chip.active {
+      background: linear-gradient(135deg, rgba(240,184,90,0.22), rgba(216,135,45,0.12));
+      border-color: rgba(240,184,90,0.35);
+      box-shadow: 0 10px 24px rgba(216,135,45,0.16);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .leftPanel {
+      min-height: 620px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #e7c88a;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f4c46f, #d17f2a);
+      box-shadow: 0 0 14px rgba(240,184,90,0.45);
+    }
+
+    .headlineRow {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .headline h2 {
+      margin: 8px 0 6px;
+      font-size: clamp(1.65rem, 2.4vw, 2.4rem);
+      letter-spacing: -0.03em;
+    }
+
+    .headline p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 540px;
+      line-height: 1.55;
+    }
+
+    .badge {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      color: #efcf92;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .vizZone {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 360px;
+    }
+
+    .glassCard {
+      height: 380px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)),
+        radial-gradient(circle at 50% 8%, rgba(255,255,255,0.16), transparent 24%),
+        rgba(255,255,255,0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass {
+      width: 152px;
+      height: 290px;
+      border-radius: 40px 40px 28px 28px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 1px 16px rgba(255,255,255,0.06), inset 0 -14px 30px rgba(0,0,0,0.22);
+    }
+
+    .glass::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 16px;
+      width: 28px;
+      height: 180px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0));
+      border-radius: 999px;
+      filter: blur(2px);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .liquid {
+      position: absolute;
+      inset: 58px 10px 10px 10px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.12);
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.22);
+    }
+
+    .layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.92);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: height 700ms cubic-bezier(.2,.8,.2,1), transform 700ms cubic-bezier(.2,.8,.2,1);
+      transform-origin: bottom;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+
+    .layer span {
+      transform: translateY(0);
+      transition: opacity 240ms ease;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    .layer.small span { opacity: 0; }
+
+    .layer.vanillin { background: linear-gradient(180deg, #f4cf7c, #df9c2d); }
+    .layer.lactones { background: linear-gradient(180deg, #f1ad60, #ca6d2c); }
+    .layer.tannins { background: linear-gradient(180deg, #c56f36, #7f3918); }
+    .layer.driedFruit { background: linear-gradient(180deg, #8e3d28, #5b221b); }
+    .layer.spice { background: linear-gradient(180deg, #7d2f43, #4d182b); }
+
+    .glassFoot {
+      position: absolute;
+      bottom: 34px;
+      width: 110px;
+      height: 14px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(240,184,90,0.45), rgba(240,184,90,0.06) 65%, transparent 75%);
+      filter: blur(8px);
+    }
+
+    .bars {
+      display: grid;
+      gap: 14px;
+    }
+
+    .barRow {
+      display: grid;
+      grid-template-columns: 112px 1fr 46px;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.96rem;
+    }
+
+    .barLabel { color: #f6ead7; }
+
+    .track {
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      width: 0;
+      transition: width 700ms cubic-bezier(.2,.8,.2,1);
+      box-shadow: 0 0 20px rgba(255,255,255,0.08);
+    }
+
+    .fill.vanillin { background: linear-gradient(90deg, #f4cf7c, #df9c2d); }
+    .fill.lactones { background: linear-gradient(90deg, #f1ad60, #ca6d2c); }
+    .fill.tannins { background: linear-gradient(90deg, #c56f36, #7f3918); }
+    .fill.driedFruit { background: linear-gradient(90deg, #8e3d28, #5b221b); }
+    .fill.spice { background: linear-gradient(90deg, #7d2f43, #4d182b); }
+
+    .value {
+      text-align: right;
+      color: #efd2a0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bottomNote {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .miniCard {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 14px 15px;
+    }
+
+    .miniCard h3 {
+      margin: 0 0 8px;
+      font-size: 0.94rem;
+      color: #efcf92;
+      letter-spacing: 0.01em;
+    }
+
+    .miniCard p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.5;
+    }
+
+    .rightPanel {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 16px;
+      min-height: 620px;
+    }
+
+    .story h3,
+    .matrix h3,
+    .legend h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .story p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .notePills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      color: #f5e7cf;
+      font-size: 0.92rem;
+    }
+
+    .matrix {
+      background: rgba(255,255,255,0.04);
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      padding: 16px;
+    }
+
+    .reasonGrid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .reasonRow {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .reasonRow:first-child { border-top: none; padding-top: 0; }
+
+    .reasonKey {
+      color: #efcf92;
+      font-size: 0.86rem;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      line-height: 1.4;
+    }
+
+    .reasonVal {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .compare {
+      background: rgba(255,255,255,0.04);
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      padding: 16px;
+    }
+
+    .compareGrid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .compareRow {
+      display: grid;
+      grid-template-columns: 118px 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.92rem;
+    }
+
+    .compareLabel { color: #f6ead7; }
+    .compareCell {
+      height: 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+    }
+
+    .compareCell::after {
+      content: attr(data-name);
+      position: absolute;
+      top: -23px;
+      left: 0;
+      color: #bcae97;
+      font-size: 0.76rem;
+      letter-spacing: 0.02em;
+    }
+
+    .compareFill {
+      height: 100%;
+      width: 0;
+      transition: width 700ms cubic-bezier(.2,.8,.2,1);
+      border-radius: inherit;
+    }
+
+    .compareFill.current { background: linear-gradient(90deg, rgba(240,184,90,0.9), rgba(216,135,45,0.9)); }
+    .compareFill.other { background: linear-gradient(90deg, rgba(255,255,255,0.32), rgba(255,255,255,0.14)); }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+      align-self: end;
+    }
+
+    .legendRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex: 0 0 auto;
+    }
+
+    .footerNote {
+      margin-top: 14px;
+      color: #ad9c84;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .leftPanel, .rightPanel { min-height: unset; }
+      .vizZone { grid-template-columns: 1fr; }
+      .glassCard { height: 320px; }
+      .bottomNote { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 18px, 100%); padding: 18px; margin: 12px auto; }
+      .barRow { grid-template-columns: 92px 1fr 40px; gap: 10px; }
+      .compareRow { grid-template-columns: 92px 1fr 1fr; }
+      .reasonRow { grid-template-columns: 1fr; gap: 6px; }
+      .headlineRow { flex-direction: column; align-items: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cask influence layers</h1>
+    <p class="sub">
+      A quick interactive mock-up showing why different cask types push whisky in different directions.
+      Select a cask and watch the flavour layers rebalance: vanilla and coconut from oak, tannic grip from wood,
+      dried fruit from fortified-wine seasoning, and spice from extraction and oxidation.
+    </p>
+
+    <div class="chooser" id="chooser"></div>
+
+    <div class="grid">
+      <section class="panel leftPanel">
+        <div>
+          <div class="eyebrow">Interactive flavour profile</div>
+          <div class="headlineRow">
+            <div class="headline">
+              <h2 id="caskTitle">First-fill Bourbon Barrel</h2>
+              <p id="caskSummary"></p>
+            </div>
+            <div class="badge" id="styleBadge">Distillate-friendly / bright oak</div>
+          </div>
+        </div>
+
+        <div class="vizZone">
+          <div class="glassCard">
+            <div class="glassFoot"></div>
+            <div class="glass">
+              <div class="liquid" id="liquidLayers"></div>
+            </div>
+          </div>
+
+          <div class="bars" id="barRows"></div>
+        </div>
+
+        <div class="bottomNote" id="bottomCards"></div>
+      </section>
+
+      <section class="panel rightPanel">
+        <div class="story">
+          <div class="eyebrow">Why it tastes different</div>
+          <h3 id="storyTitle" style="margin-top:10px; font-size:1.28rem;">What this cask tends to do</h3>
+          <p id="storyText"></p>
+          <div class="notePills" id="notePills"></div>
+        </div>
+
+        <div class="matrix">
+          <h3>What drives the profile</h3>
+          <div class="reasonGrid" id="reasonGrid"></div>
+        </div>
+
+        <div class="compare">
+          <h3>Compared with a refill bourbon cask</h3>
+          <div class="compareGrid" id="compareGrid"></div>
+        </div>
+
+        <div class="legend">
+          <h3>Layer key</h3>
+          <div class="legendRow"><span class="swatch" style="background:linear-gradient(180deg,#f4cf7c,#df9c2d)"></span> Vanillin — sweet vanilla, custard, toffee</div>
+          <div class="legendRow"><span class="swatch" style="background:linear-gradient(180deg,#f1ad60,#ca6d2c)"></span> Lactones — coconut, cream, soft sweetness</div>
+          <div class="legendRow"><span class="swatch" style="background:linear-gradient(180deg,#c56f36,#7f3918)"></span> Tannins — grip, dryness, structure</div>
+          <div class="legendRow"><span class="swatch" style="background:linear-gradient(180deg,#8e3d28,#5b221b)"></span> Dried fruit — raisin, fig, date, jammy depth</div>
+          <div class="legendRow"><span class="swatch" style="background:linear-gradient(180deg,#7d2f43,#4d182b)"></span> Spice — clove, cinnamon, nutmeg, pepper</div>
+          <div class="footerNote">
+            These values are illustrative rather than absolute chemistry data. The aim is to show direction and balance:
+            why a bourbon cask usually feels brighter and more vanilla-led, while sherry-seasoned oak often feels darker,
+            fruitier, spicier, and more tannic.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const layers = [
+      { key: 'vanillin', label: 'Vanillin' },
+      { key: 'lactones', label: 'Lactones' },
+      { key: 'tannins', label: 'Tannins' },
+      { key: 'driedFruit', label: 'Dried fruit' },
+      { key: 'spice', label: 'Spice' },
+    ];
+
+    const casks = {
+      bourbon: {
+        name: 'First-fill Bourbon Barrel',
+        style: 'Distillate-friendly / bright oak',
+        summary: 'Leans towards vanilla, coconut cream, honeyed sweetness, and fresh oak lift without overwhelming the spirit.',
+        story: 'Ex-bourbon casks are usually American oak, which tends to deliver higher vanillin and lactone character. First fill means the cask is still quite active, so you get a clear wave of sweet oak compounds before the whisky starts moving into heavier tannin or dark-fruit territory.',
+        notes: ['vanilla fudge', 'coconut cream', 'toasted sugar', 'lemon sponge'],
+        reasons: [
+          ['Wood species', 'American oak often gives more vanillin and lactones, which can read as vanilla, coconut, cream, and sweetness.'],
+          ['Previous fill', 'Bourbon strips out some harsher oak tones but leaves a cask that still has plenty of sweet-oak potential for Scotch maturation.'],
+          ['Activity', 'First fill means stronger extraction, so sweet oak notes show up quickly and clearly.'],
+        ],
+        cards: [
+          ['Best at showing', 'When you want to highlight distillery fruit, cereal sweetness, or waxy spirit without burying it under wine richness.'],
+          ['Usually feels like', 'Brighter, cleaner, more open-textured maturation with a good balance between spirit and cask.'],
+          ['Watch for', 'Too-active casks can still become woody, especially in smaller formats or over long ageing.'],
+        ],
+        values: { vanillin: 84, lactones: 78, tannins: 38, driedFruit: 16, spice: 42 }
+      },
+      oloroso: {
+        name: 'Oloroso Sherry Butt',
+        style: 'Dark-fruit / spice / structure',
+        summary: 'Pushes whisky towards raisin, walnut, polished wood, clove, and deeper autumnal richness.',
+        story: 'Sherry casks change the profile in two ways at once: the oak itself contributes structure and spice, and the seasoning history pushes the whisky toward dried-fruit, nutty, and oxidative notes. A large butt can also mature more slowly, keeping that dense, layered feel rather than simply blasting the whisky with oak.',
+        notes: ['raisin loaf', 'walnut', 'orange peel', 'clove', 'old furniture polish'],
+        reasons: [
+          ['Seasoning', 'Oloroso seasoning can leave a dark, oxidative signature that nudges spirit toward dried fruit, nuts, and savoury richness.'],
+          ['Oak + extraction', 'European oak is often associated with more spice and tannin, helping build structure and dryness.'],
+          ['Cask size', 'Butts are large, so the cask can feel layered rather than aggressively oaky, especially over long maturation.'],
+        ],
+        cards: [
+          ['Best at showing', 'Dense, brooding styles where dried fruit and spice are welcome partners rather than background notes.'],
+          ['Usually feels like', 'Darker, richer, more structured whisky with more chew and more finish length.'],
+          ['Watch for', 'Heavy-handed sherry influence can swamp the distillate or drift into sulphury or overly woody territory.'],
+        ],
+        values: { vanillin: 45, lactones: 26, tannins: 72, driedFruit: 88, spice: 74 }
+      },
+      px: {
+        name: 'PX Sherry Cask',
+        style: 'Sweet richness / syrupy fruit',
+        summary: 'Tilts heavily towards treacle, dates, fig syrup, chocolate, and dessert-like weight.',
+        story: 'Pedro Ximénez casks often read sweeter and more confectionary than Oloroso. The flavour effect is less about simple sugar remaining in the wood and more about the aromatic direction the cask history encourages: sticky dark fruit, syrup, molasses-like richness, and warming spice around the edges.',
+        notes: ['date syrup', 'sticky fig', 'dark toffee', 'black cherry', 'milk chocolate'],
+        reasons: [
+          ['Seasoning style', 'PX seasoning tends to encourage lush dark-fruit and syrupy dessert notes rather than drier nutty complexity.'],
+          ['Balance shift', 'Sweet aromatic tones can soften perceived tannin and make the whisky feel fuller and rounder.'],
+          ['Extraction', 'Active casks can deliver a dramatic finishing effect even over a relatively short finishing period.'],
+        ],
+        cards: [
+          ['Best at showing', 'A luxurious finish or a rich house style where opulence is the point.'],
+          ['Usually feels like', 'Sweeter, softer-edged, heavier, and more obviously cask-led.'],
+          ['Watch for', 'Can become one-dimensional if the whisky turns into generic sweetness without enough distillery character underneath.'],
+        ],
+        values: { vanillin: 40, lactones: 18, tannins: 58, driedFruit: 96, spice: 62 }
+      },
+      port: {
+        name: 'Ruby Port Pipe',
+        style: 'Red-fruit / jam / chocolate',
+        summary: 'Moves whisky towards berry compote, plum skin, jammy sweetness, and dark chocolate edges.',
+        story: 'Port casks often add a red-fruit register that feels different from sherry. Instead of raisin and walnut, the effect can be more plum, berry, cherry, and jam. It can look vivid in a finish, especially when layered on top of bourbon-matured whisky that still carries vanilla and brightness underneath.',
+        notes: ['plum compote', 'raspberry jam', 'black cherry', 'cocoa', 'sweet spice'],
+        reasons: [
+          ['Wine style', 'Port casks tend to steer flavour toward red and black fruit rather than nutty oxidative sherry notes.'],
+          ['Layering effect', 'They are often used as finishes, so the result can sit as a vivid top layer over an existing bourbon-cask core.'],
+          ['Perception', 'Fruit richness can make tannins feel softer than they really are, especially at tasting strength.'],
+        ],
+        cards: [
+          ['Best at showing', 'A striking finishing note when you want to add colour, fruit, and drama.'],
+          ['Usually feels like', 'Flashier and fruitier, often with a clear before-and-after contrast against the base whisky.'],
+          ['Watch for', 'Can feel cosmetic or disconnected if the finish sits on top of the spirit rather than integrating with it.'],
+        ],
+        values: { vanillin: 36, lactones: 16, tannins: 54, driedFruit: 70, spice: 50 }
+      },
+      virgin: {
+        name: 'Virgin Oak Cask',
+        style: 'High extraction / oak-forward',
+        summary: 'Delivers maximum oak impact: vanilla, caramel, clove, char, and firm drying grip.',
+        story: 'Virgin oak has not been previously used, so it has a full charge of extractive compounds ready to go. That can make it thrilling in short bursts or finishing applications, but it can very quickly dominate the whisky if left unchecked. It is often more about intensity than subtlety.',
+        notes: ['charred caramel', 'fresh sawdust', 'clove', 'cinnamon', 'toasted coconut'],
+        reasons: [
+          ['Fresh wood', 'No previous fill means the cask has not already surrendered its most active flavour compounds.'],
+          ['Oak chemistry', 'Vanillin, spice, toast, and tannin can all come through hard and fast.'],
+          ['Risk profile', 'The same intensity that makes virgin oak exciting also makes it easy to overdo.'],
+        ],
+        cards: [
+          ['Best at showing', 'Short, energetic maturation or finishing where a bold oak statement is wanted.'],
+          ['Usually feels like', 'Louder, warmer, more extractive, and more obviously wood-driven than refill or seasoned casks.'],
+          ['Watch for', 'Drying wood, bitterness, and the loss of distillery identity.'],
+        ],
+        values: { vanillin: 92, lactones: 64, tannins: 86, driedFruit: 10, spice: 90 }
+      },
+      refill: {
+        name: 'Refill Bourbon Hogshead',
+        style: 'Subtle / spirit-led / patient',
+        summary: 'Gives softer oak contribution and leaves more room for spirit character, texture, and slow development.',
+        story: 'Refill casks are gentler because much of the first wave of extractive oak influence has already been used. That makes them ideal when the goal is to preserve distillery character and let time do more of the work. The result can be quieter, but often more transparent and elegant.',
+        notes: ['soft vanilla', 'hay', 'wax', 'green apple', 'gentle oak'],
+        reasons: [
+          ['Lower activity', 'Much of the aggressive sweet oak has already been extracted in earlier fills.'],
+          ['Spirit visibility', 'With less cask shouting, fermentation and distillation character can stay clearer.'],
+          ['Long game', 'Refill maturation can reward patience, producing subtle complexity rather than instant drama.'],
+        ],
+        cards: [
+          ['Best at showing', 'Distillate-led whisky where texture, minerality, fruit, or waxiness are the stars.'],
+          ['Usually feels like', 'Calmer, more transparent, and less sweetly oaky than first-fill or wine-seasoned casks.'],
+          ['Watch for', 'Can feel underpowered if the spirit itself is not interesting enough to carry the whisky.'],
+        ],
+        values: { vanillin: 26, lactones: 20, tannins: 24, driedFruit: 6, spice: 18 }
+      }
+    };
+
+    const chooser = document.getElementById('chooser');
+    const liquidLayers = document.getElementById('liquidLayers');
+    const barRows = document.getElementById('barRows');
+    const reasonGrid = document.getElementById('reasonGrid');
+    const notePills = document.getElementById('notePills');
+    const compareGrid = document.getElementById('compareGrid');
+    const bottomCards = document.getElementById('bottomCards');
+
+    const title = document.getElementById('caskTitle');
+    const summary = document.getElementById('caskSummary');
+    const badge = document.getElementById('styleBadge');
+    const storyTitle = document.getElementById('storyTitle');
+    const storyText = document.getElementById('storyText');
+
+    function createUI() {
+      Object.entries(casks).forEach(([key, cask], index) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (index === 0 ? ' active' : '');
+        chip.textContent = cask.name.replace(' Cask', '').replace(' Barrel', '').replace(' Hogshead', '');
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          render(key);
+        });
+        chooser.appendChild(chip);
+      });
+
+      layers.forEach(({ key, label }) => {
+        const row = document.createElement('div');
+        row.className = 'barRow';
+        row.innerHTML = `
+          <div class="barLabel">${label}</div>
+          <div class="track"><div class="fill ${key}" id="fill-${key}"></div></div>
+          <div class="value" id="value-${key}">0</div>
+        `;
+        barRows.appendChild(row);
+
+        const layer = document.createElement('div');
+        layer.className = `layer ${key}`;
+        layer.id = `layer-${key}`;
+        layer.innerHTML = `<span>${label}</span>`;
+        liquidLayers.appendChild(layer);
+      });
+
+      render('bourbon');
+    }
+
+    function render(key) {
+      const current = casks[key];
+      const baseline = casks.refill.values;
+
+      title.textContent = current.name;
+      summary.textContent = current.summary;
+      badge.textContent = current.style;
+      storyTitle.textContent = `What ${current.name.toLowerCase()} tends to do`;
+      storyText.textContent = current.story;
+
+      notePills.innerHTML = '';
+      current.notes.forEach(note => {
+        const pill = document.createElement('div');
+        pill.className = 'pill';
+        pill.textContent = note;
+        notePills.appendChild(pill);
+      });
+
+      reasonGrid.innerHTML = '';
+      current.reasons.forEach(([k, v]) => {
+        const row = document.createElement('div');
+        row.className = 'reasonRow';
+        row.innerHTML = `<div class="reasonKey">${k}</div><div class="reasonVal">${v}</div>`;
+        reasonGrid.appendChild(row);
+      });
+
+      bottomCards.innerHTML = '';
+      current.cards.forEach(([h, p]) => {
+        const card = document.createElement('div');
+        card.className = 'miniCard';
+        card.innerHTML = `<h3>${h}</h3><p>${p}</p>`;
+        bottomCards.appendChild(card);
+      });
+
+      compareGrid.innerHTML = '';
+      layers.forEach(({ key: layerKey, label }) => {
+        const row = document.createElement('div');
+        row.className = 'compareRow';
+        row.innerHTML = `
+          <div class="compareLabel">${label}</div>
+          <div class="compareCell" data-name="Current"><div class="compareFill current" id="compare-current-${layerKey}"></div></div>
+          <div class="compareCell" data-name="Refill"><div class="compareFill other" id="compare-other-${layerKey}"></div></div>
+        `;
+        compareGrid.appendChild(row);
+      });
+
+      const values = current.values;
+      const total = Object.values(values).reduce((a, b) => a + b, 0);
+      let runningBottom = 0;
+
+      layers.forEach(({ key: layerKey, label }) => {
+        const value = values[layerKey];
+        const pct = (value / total) * 100;
+        const liquidLayer = document.getElementById(`layer-${layerKey}`);
+        liquidLayer.style.height = `${pct}%`;
+        liquidLayer.style.bottom = `${runningBottom}%`;
+        liquidLayer.classList.toggle('small', pct < 14);
+        runningBottom += pct;
+
+        const barFill = document.getElementById(`fill-${layerKey}`);
+        const valueLabel = document.getElementById(`value-${layerKey}`);
+        barFill.style.width = `${value}%`;
+        valueLabel.textContent = value;
+
+        const compareCurrent = document.getElementById(`compare-current-${layerKey}`);
+        const compareOther = document.getElementById(`compare-other-${layerKey}`);
+        compareCurrent.style.width = `${value}%`;
+        compareOther.style.width = `${baseline[layerKey]}%`;
+      });
+    }
+
+    createUI();
+  </script>
+</body>
+</html>

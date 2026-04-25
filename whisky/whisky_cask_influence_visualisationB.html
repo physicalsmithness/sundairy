@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisky Cask Influence Explorer</title>
+  <style>
+    :root {
+      --bg: #120e0c;
+      --shell: rgba(18, 13, 11, 0.9);
+      --panel: rgba(255,255,255,0.045);
+      --line: rgba(255,255,255,0.10);
+      --text: #f7efe2;
+      --muted: #cab79e;
+      --gold: #f1bf6a;
+      --gold-2: #d88b31;
+      --shadow: 0 24px 70px rgba(0,0,0,0.44);
+      --radius: 20px;
+      --vanillin: #e7b85b;
+      --lactones: #d98c47;
+      --tannins: #a95a2c;
+      --fruit: #7e3928;
+      --spice: #643043;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(241,191,106,0.14), transparent 26%),
+        radial-gradient(circle at 82% 10%, rgba(100,48,67,0.15), transparent 22%),
+        linear-gradient(180deg, #18120f 0%, #120e0c 100%);
+      color: var(--text);
+    }
+
+    body { padding: 10px; }
+
+    .app {
+      width: 100%;
+      height: calc(100vh - 20px);
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent 18%, transparent 82%, rgba(255,255,255,0.04));
+      opacity: 0.8;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: end;
+      padding: 14px 18px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      z-index: 1;
+    }
+
+    .titleBlock h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.2vw, 2.35rem);
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+    }
+
+    .titleBlock p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.35;
+      max-width: 760px;
+    }
+
+    .modeTabs {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      align-self: center;
+    }
+
+    .modeBtn, .chip, .segBtn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .modeBtn {
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-weight: 700;
+      color: #eadcc5;
+      min-width: 138px;
+    }
+
+    .modeBtn.active, .chip.active, .segBtn.active {
+      background: linear-gradient(135deg, rgba(241,191,106,0.24), rgba(216,139,49,0.10));
+      border-color: rgba(241,191,106,0.30);
+      box-shadow: 0 10px 24px rgba(216,139,49,0.14);
+      color: #fff0d6;
+    }
+
+    .strip {
+      display: grid;
+      grid-template-columns: auto 1fr auto 1fr;
+      gap: 10px 12px;
+      align-items: center;
+      padding: 10px 18px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #ebcb8d;
+      font-size: 0.73rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f5cb7c, #d37c2d);
+      box-shadow: 0 0 14px rgba(241,191,106,0.46);
+    }
+
+    .rowButtons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .chip, .segBtn {
+      padding: 8px 11px;
+      border-radius: 999px;
+      border-color: var(--line);
+      background: rgba(255,255,255,0.035);
+      font-weight: 650;
+      line-height: 1;
+      font-size: 0.9rem;
+    }
+
+    .hidden { display: none !important; }
+
+    .view {
+      display: none;
+      height: 100%;
+      min-height: 0;
+      padding: 12px 16px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .view.active { display: block; }
+
+    .compareLayout {
+      display: grid;
+      grid-template-columns: 1.34fr 0.86fr;
+      gap: 14px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .builderLayout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.18fr 0.78fr;
+      gap: 14px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .panel {
+      min-height: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      min-height: 78px;
+    }
+
+    .header h2 {
+      margin: 0 0 5px;
+      font-size: 1.55rem;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.35;
+      max-width: 640px;
+    }
+
+    .badge {
+      align-self: start;
+      padding: 9px 11px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.045);
+      color: #f1d3a3;
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    .dualViz {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 12px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .vizCard {
+      min-height: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .vizHead {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .vizHead h3, .sectionTitle h3 {
+      margin: 0;
+      font-size: 0.98rem;
+      letter-spacing: -0.02em;
+    }
+
+    .vizHead span, .sectionTitle span {
+      color: #bda98a;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .bigRadar {
+      min-height: 0;
+      height: 100%;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .legendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .barsWrap {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .barRow {
+      display: grid;
+      grid-template-columns: 98px 1fr 42px;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.94rem;
+    }
+
+    .track {
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .barBaseline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: rgba(255,255,255,0.72);
+      border-radius: 999px;
+      transform: translateX(-50%);
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 260ms ease;
+    }
+
+    .value {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #f0cd94;
+      font-weight: 650;
+    }
+
+    .curveCard {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 10px;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 116px auto;
+      gap: 6px;
+    }
+
+    .sectionTitle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .curveNote {
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.88rem;
+      min-height: 38px;
+    }
+
+    .sidePanel {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+      height: 100%;
+      min-height: 0;
+      align-content: start;
+    }
+
+    .section {
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 12px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .section h3 {
+      margin: 6px 0 6px;
+      font-size: 1.18rem;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.92rem;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.045);
+      font-size: 0.88rem;
+      color: #f6e7cb;
+    }
+
+    .facts {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .fact {
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .fact:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .fact strong {
+      display: block;
+      color: #efcc92;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 5px;
+    }
+
+    .fact span {
+      color: var(--muted);
+      font-size: 0.89rem;
+      line-height: 1.34;
+    }
+
+    .miniNote {
+      color: #ac9878;
+      font-size: 0.8rem;
+      line-height: 1.32;
+      margin-top: 8px;
+    }
+
+    .controlsPanel {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .controlsHeader p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.32;
+    }
+
+    .controlsGrid {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .control {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .controlTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .controlLabel {
+      font-weight: 700;
+      font-size: 0.94rem;
+      line-height: 1.1;
+    }
+
+    .controlValue {
+      color: #efcc92;
+      font-variant-numeric: tabular-nums;
+      font-weight: 650;
+      font-size: 0.92rem;
+    }
+
+    .help {
+      color: #bda98a;
+      font-size: 0.82rem;
+      line-height: 1.28;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.28);
+      background: radial-gradient(circle at 35% 30%, #fff4d8, #e1a64a 56%, #b66326 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.28);
+      background: radial-gradient(circle at 35% 30%, #fff4d8, #e1a64a 56%, #b66326 100%);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    .fill-vanillin { background: linear-gradient(90deg, #f0c66f, var(--vanillin)); }
+    .fill-lactones { background: linear-gradient(90deg, #e0a55e, var(--lactones)); }
+    .fill-tannins { background: linear-gradient(90deg, #c97a3d, var(--tannins)); }
+    .fill-fruit { background: linear-gradient(90deg, #934830, var(--fruit)); }
+    .fill-spice { background: linear-gradient(90deg, #7a3b50, var(--spice)); }
+
+    @media (max-width: 1120px) {
+      html, body { overflow: auto; }
+      .app { height: auto; }
+      .compareLayout, .builderLayout, .dualViz, .strip {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .view { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="titleBlock">
+        <h1>Whisky cask influence explorer</h1>
+        <p>Preset comparison on one tab. Custom cask building on the other.</p>
+      </div>
+      <div class="modeTabs">
+        <button class="modeBtn active" data-mode="compare">Compare casks</button>
+        <button class="modeBtn" data-mode="builder">Build a cask</button>
+      </div>
+    </div>
+
+    <div class="strip" id="compareStrip">
+      <div class="eyebrow">Cask</div>
+      <div class="rowButtons" id="comparePresets"></div>
+      <div class="eyebrow">Baseline</div>
+      <div class="rowButtons" id="compareBaselines"></div>
+    </div>
+
+    <div class="strip hidden" id="builderStrip">
+      <div class="eyebrow">Starting point</div>
+      <div class="rowButtons" id="builderPresets"></div>
+      <div class="eyebrow">Baseline</div>
+      <div class="rowButtons" id="builderBaselines"></div>
+    </div>
+
+    <main class="view active" id="compareView">
+      <div class="compareLayout">
+        <section class="panel stack">
+          <div class="header">
+            <div>
+              <div class="eyebrow">Selected cask</div>
+              <h2 id="compareTitle">First-fill Bourbon Barrel</h2>
+              <p id="compareSummary">Bright sweet oak with clear vanilla and coconut lift, while still letting the distillate show through.</p>
+            </div>
+            <div class="badge" id="compareBadge">Bright oak / bourbon-led</div>
+          </div>
+
+          <div class="dualViz">
+            <div class="vizCard">
+              <div class="vizHead">
+                <h3>Flavour profile radar</h3>
+                <span id="compareRadarLabel">vs refill bourbon</span>
+              </div>
+              <div class="bigRadar">
+                <svg viewBox="0 0 620 520" id="compareRadar">
+                  <g id="compareRadarGrid"></g>
+                  <g id="compareRadarLabels"></g>
+                  <polygon id="compareBaselinePoly" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.36)" stroke-width="2"></polygon>
+                  <polygon id="compareCurrentPoly" fill="rgba(241,191,106,0.22)" stroke="rgba(241,191,106,0.96)" stroke-width="4"></polygon>
+                  <g id="compareRadarPoints"></g>
+                </svg>
+              </div>
+              <div class="legend">
+                <div class="legendItem"><span class="swatch" style="background: rgba(241,191,106,0.92)"></span> Selected cask</div>
+                <div class="legendItem"><span class="swatch" style="background: rgba(255,255,255,0.36)"></span> Baseline</div>
+              </div>
+            </div>
+
+            <div class="vizCard">
+              <div class="barsWrap">
+                <div class="sectionTitle"><h3>Layer intensities</h3><span>bars with baseline markers</span></div>
+                <div class="bars" id="compareBars"></div>
+                <div class="curveCard">
+                  <div class="sectionTitle"><h3>Extraction curve</h3><span>fixed 0–100 axis</span></div>
+                  <svg viewBox="0 0 420 140">
+                    <g>
+                      <line x1="34" y1="112" x2="394" y2="112" stroke="rgba(255,255,255,0.18)" stroke-width="1.4"></line>
+                      <line x1="34" y1="112" x2="34" y2="18" stroke="rgba(255,255,255,0.18)" stroke-width="1.4"></line>
+                      <line x1="34" y1="18" x2="394" y2="18" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+                      <line x1="34" y1="65" x2="394" y2="65" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+                      <text x="28" y="22" fill="rgba(204,185,159,0.9)" font-size="11">100</text>
+                      <text x="18" y="69" fill="rgba(204,185,159,0.9)" font-size="11">50</text>
+                      <text x="22" y="116" fill="rgba(204,185,159,0.9)" font-size="11">0</text>
+                      <text x="394" y="129" text-anchor="end" fill="rgba(204,185,159,0.9)" font-size="11">maturation time</text>
+                    </g>
+                    <path id="compareCurveBaseline" fill="none" stroke="rgba(255,255,255,0.42)" stroke-width="2.4" stroke-linecap="round"></path>
+                    <path id="compareCurvePath" fill="none" stroke="rgba(241,191,106,0.95)" stroke-width="4" stroke-linecap="round"></path>
+                    <path id="compareCurveShade" fill="rgba(241,191,106,0.10)"></path>
+                  </svg>
+                  <div class="curveNote" id="compareCurveNote"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel sidePanel">
+          <div class="section">
+            <div class="eyebrow">Reading the shape</div>
+            <h3 id="compareReadTitle">Why this tastes bourbon-led</h3>
+            <p id="compareReadText">High American oak and healthy cask activity push vanilla and lactones up, while low seasoning keeps the profile bright rather than dark-fruit-heavy.</p>
+          </div>
+
+          <div class="section">
+            <div class="eyebrow">Expected notes</div>
+            <div class="pills" id="comparePills"></div>
+          </div>
+
+          <div class="section">
+            <div class="eyebrow">What is driving it</div>
+            <div class="facts" id="compareFacts"></div>
+            <div class="miniNote">Compare mode is preset-only. No hidden slider state is changing the cask here.</div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <main class="view" id="builderView">
+      <div class="builderLayout">
+        <section class="panel controlsPanel">
+          <div class="controlsHeader">
+            <div class="eyebrow">Barrel drivers</div>
+            <p>Five sliders only. The starting-point buttons load a profile, then the sliders define the custom cask.</p>
+          </div>
+          <div class="controlsGrid" id="builderControls"></div>
+        </section>
+
+        <section class="panel stack">
+          <div class="header">
+            <div>
+              <div class="eyebrow">Custom cask</div>
+              <h2 id="builderTitle">Started from First-fill Bourbon Barrel</h2>
+              <p id="builderSummary">The sliders now define the cask. The baseline only changes the grey comparison overlay.</p>
+            </div>
+            <div class="badge" id="builderBadge">Baseline: refill bourbon</div>
+          </div>
+
+          <div class="dualViz">
+            <div class="vizCard">
+              <div class="vizHead">
+                <h3>Flavour profile radar</h3>
+                <span id="builderRadarLabel">custom cask vs refill bourbon</span>
+              </div>
+              <div class="bigRadar">
+                <svg viewBox="0 0 620 520" id="builderRadar">
+                  <g id="builderRadarGrid"></g>
+                  <g id="builderRadarLabels"></g>
+                  <polygon id="builderBaselinePoly" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.36)" stroke-width="2"></polygon>
+                  <polygon id="builderCurrentPoly" fill="rgba(241,191,106,0.22)" stroke="rgba(241,191,106,0.96)" stroke-width="4"></polygon>
+                  <g id="builderRadarPoints"></g>
+                </svg>
+              </div>
+              <div class="legend">
+                <div class="legendItem"><span class="swatch" style="background: rgba(241,191,106,0.92)"></span> Custom cask</div>
+                <div class="legendItem"><span class="swatch" style="background: rgba(255,255,255,0.36)"></span> Baseline</div>
+              </div>
+            </div>
+
+            <div class="vizCard">
+              <div class="barsWrap">
+                <div class="sectionTitle"><h3>Layer intensities</h3><span>0–100 scale</span></div>
+                <div class="bars" id="builderBars"></div>
+                <div class="curveCard">
+                  <div class="sectionTitle"><h3>Extraction curve</h3><span>fixed 0–100 axis</span></div>
+                  <svg viewBox="0 0 420 140">
+                    <g>
+                      <line x1="34" y1="112" x2="394" y2="112" stroke="rgba(255,255,255,0.18)" stroke-width="1.4"></line>
+                      <line x1="34" y1="112" x2="34" y2="18" stroke="rgba(255,255,255,0.18)" stroke-width="1.4"></line>
+                      <line x1="34" y1="18" x2="394" y2="18" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+                      <line x1="34" y1="65" x2="394" y2="65" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+                      <text x="28" y="22" fill="rgba(204,185,159,0.9)" font-size="11">100</text>
+                      <text x="18" y="69" fill="rgba(204,185,159,0.9)" font-size="11">50</text>
+                      <text x="22" y="116" fill="rgba(204,185,159,0.9)" font-size="11">0</text>
+                      <text x="394" y="129" text-anchor="end" fill="rgba(204,185,159,0.9)" font-size="11">maturation time</text>
+                    </g>
+                    <path id="builderCurveBaseline" fill="none" stroke="rgba(255,255,255,0.42)" stroke-width="2.4" stroke-linecap="round"></path>
+                    <path id="builderCurvePath" fill="none" stroke="rgba(241,191,106,0.95)" stroke-width="4" stroke-linecap="round"></path>
+                    <path id="builderCurveShade" fill="rgba(241,191,106,0.10)"></path>
+                  </svg>
+                  <div class="curveNote" id="builderCurveNote"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel sidePanel">
+          <div class="section">
+            <div class="eyebrow">Current interpretation</div>
+            <h3 id="builderReadTitle">Why this looks bourbon-led</h3>
+            <p id="builderReadText">The current slider mix keeps sweet oak high and dried fruit low, so the radar leans towards a bright bourbon-cask shape.</p>
+          </div>
+
+          <div class="section">
+            <div class="eyebrow">What you are building</div>
+            <div class="pills" id="builderPills"></div>
+          </div>
+
+          <div class="section">
+            <div class="eyebrow">What is driving it</div>
+            <div class="facts" id="builderFacts"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const flavourKeys = [
+      { key: 'vanillin', label: 'Vanillin', className: 'fill-vanillin' },
+      { key: 'lactones', label: 'Lactones', className: 'fill-lactones' },
+      { key: 'tannins', label: 'Tannins', className: 'fill-tannins' },
+      { key: 'driedFruit', label: 'Dried fruit', className: 'fill-fruit' },
+      { key: 'spice', label: 'Spice', className: 'fill-spice' },
+    ];
+
+    const controlDefs = [
+      { key: 'americanOak', label: 'American oak influence', help: 'Pushes vanilla and coconut-style oak sweetness.' },
+      { key: 'activity', label: 'Cask activity', help: 'How extractive the cask is.' },
+      { key: 'seasoning', label: 'Wine / sherry seasoning', help: 'Adds dried fruit and cask-led richness.' },
+      { key: 'char', label: 'Toast / char spice', help: 'Adds spice, warmth, and toasted oak.' },
+      { key: 'tannin', label: 'Tannin load', help: 'Adds dryness, grip, and structure.' },
+    ];
+
+    const presets = {
+      bourbon: {
+        name: 'First-fill Bourbon Barrel',
+        badge: 'Bright oak / bourbon-led',
+        summary: 'Bright sweet oak with clear vanilla and coconut lift, while still letting the distillate show through.',
+        sliders: { americanOak: 70, activity: 82, seasoning: 12, char: 48, tannin: 34 },
+      },
+      oloroso: {
+        name: 'Oloroso Sherry Butt',
+        badge: 'Dark fruit / spice / structure',
+        summary: 'Richer, darker, more structured maturation with dried fruit, oak grip, and layered spice.',
+        sliders: { americanOak: 18, activity: 72, seasoning: 88, char: 62, tannin: 76 },
+      },
+      px: {
+        name: 'PX Sherry Cask',
+        badge: 'Sweet richness / syrupy fruit',
+        summary: 'Very cask-led, with sticky dried fruit, chocolate-leaning richness, and soft-edged sweetness.',
+        sliders: { americanOak: 16, activity: 68, seasoning: 96, char: 54, tannin: 60 },
+      },
+      port: {
+        name: 'Ruby Port Pipe',
+        badge: 'Red fruit / jam / layered finish',
+        summary: 'Fruitier and more vivid, pushing jammy red-fruit notes over an oak framework.',
+        sliders: { americanOak: 24, activity: 58, seasoning: 78, char: 42, tannin: 50 },
+      },
+      virgin: {
+        name: 'Virgin Oak Cask',
+        badge: 'High extraction / oak-forward',
+        summary: 'Loud, extractive oak with strong vanilla, spice, and drying structure.',
+        sliders: { americanOak: 62, activity: 96, seasoning: 2, char: 84, tannin: 90 },
+      },
+      refill: {
+        name: 'Refill Bourbon Hogshead',
+        badge: 'Subtle / spirit-led / patient',
+        summary: 'Low-extraction wood that leaves room for distillate, texture, and slow development.',
+        sliders: { americanOak: 54, activity: 22, seasoning: 4, char: 20, tannin: 24 },
+      }
+    };
+
+    const presetOrder = ['bourbon', 'oloroso', 'px', 'port', 'virgin', 'refill'];
+
+    let comparePreset = 'bourbon';
+    let compareBaseline = 'refill';
+    let builderLoadedPreset = 'bourbon';
+    let builderBaseline = 'refill';
+    let builderState = { ...presets.bourbon.sliders };
+
+    const comparePresetsEl = document.getElementById('comparePresets');
+    const compareBaselinesEl = document.getElementById('compareBaselines');
+    const builderPresetsEl = document.getElementById('builderPresets');
+    const builderBaselinesEl = document.getElementById('builderBaselines');
+    const builderControlsEl = document.getElementById('builderControls');
+
+    function clamp(v) {
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function shortName(key) {
+      return {
+        bourbon: 'First-fill Bourbon',
+        oloroso: 'Oloroso',
+        px: 'PX',
+        port: 'Port',
+        virgin: 'Virgin Oak',
+        refill: 'Refill Bourbon',
+      }[key];
+    }
+
+    function computeProfile(s) {
+      return {
+        vanillin: clamp(10 + s.americanOak * 0.52 + s.activity * 0.34 - s.seasoning * 0.16 + s.char * 0.08 - s.tannin * 0.05),
+        lactones: clamp(6 + s.americanOak * 0.58 + s.activity * 0.18 - s.seasoning * 0.12 + s.char * 0.04),
+        tannins: clamp(6 + s.tannin * 0.72 + s.activity * 0.18 + s.char * 0.14 + (100 - s.americanOak) * 0.12 + s.seasoning * 0.06),
+        driedFruit: clamp(2 + s.seasoning * 0.78 + s.activity * 0.10 + s.char * 0.05 - s.americanOak * 0.06),
+        spice: clamp(6 + s.char * 0.48 + s.tannin * 0.18 + s.seasoning * 0.18 + s.activity * 0.10 + (100 - s.americanOak) * 0.10),
+      };
+    }
+
+    function computeCurveSeries(s) {
+      const steepness = 0.012 + (s.activity / 100) * 0.035;
+      const seasoningLift = s.seasoning * 0.16;
+      const tanninTail = s.tannin * 0.14;
+      const earlyBoost = s.char * 0.12;
+      const points = [];
+      for (let i = 0; i <= 40; i++) {
+        const x = 34 + (360 * i / 40);
+        const t = i / 40;
+        const extraction = 100 * (1 - Math.exp(-(1.1 + steepness * 28) * t));
+        const weighted = Math.min(100, extraction * 0.72 + seasoningLift * t + tanninTail * (t * t) + earlyBoost * (1 - Math.exp(-4 * t)));
+        const y = 112 - (weighted / 100) * 94;
+        points.push([x, y]);
+      }
+      return points;
+    }
+
+    function pathFromPoints(points) {
+      return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ');
+    }
+
+    function shadeFromPoints(points) {
+      return `${pathFromPoints(points)} L 394 112 L 34 112 Z`;
+    }
+
+    function pointFor(axisIndex, value, cx = 310, cy = 262, maxR = 184) {
+      const angle = -Math.PI / 2 + axisIndex * ((Math.PI * 2) / flavourKeys.length);
+      const r = (value / 100) * maxR;
+      return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+    }
+
+    function drawRadar(prefix, profile, baselineProfile) {
+      const grid = document.getElementById(`${prefix}RadarGrid`);
+      const labels = document.getElementById(`${prefix}RadarLabels`);
+      const baselinePoly = document.getElementById(`${prefix}BaselinePoly`);
+      const currentPoly = document.getElementById(`${prefix}CurrentPoly`);
+      const pointsGroup = document.getElementById(`${prefix}RadarPoints`);
+      grid.innerHTML = '';
+      labels.innerHTML = '';
+      pointsGroup.innerHTML = '';
+
+      const cx = 310, cy = 262, maxR = 184;
+      [20, 40, 60, 80, 100].forEach(level => {
+        const pts = flavourKeys.map((_, i) => {
+          const p = pointFor(i, level, cx, cy, maxR);
+          return `${p.x},${p.y}`;
+        }).join(' ');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke', 'rgba(255,255,255,0.11)');
+        poly.setAttribute('stroke-width', level === 100 ? '1.4' : '1');
+        grid.appendChild(poly);
+      });
+
+      flavourKeys.forEach(({ label }, i) => {
+        const axis = pointFor(i, 100, cx, cy, maxR);
+        const edge = pointFor(i, 100, cx, cy, maxR + 24);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cx);
+        line.setAttribute('y1', cy);
+        line.setAttribute('x2', axis.x);
+        line.setAttribute('y2', axis.y);
+        line.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+        line.setAttribute('stroke-width', '1');
+        grid.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', edge.x);
+        text.setAttribute('y', edge.y);
+        text.setAttribute('fill', 'rgba(244,235,223,0.95)');
+        text.setAttribute('font-size', '15');
+        text.setAttribute('font-weight', '600');
+        text.setAttribute('text-anchor', edge.x < cx - 8 ? 'end' : edge.x > cx + 8 ? 'start' : 'middle');
+        text.textContent = label;
+        labels.appendChild(text);
+      });
+
+      const currentPts = flavourKeys.map(({ key }, i) => {
+        const p = pointFor(i, profile[key], cx, cy, maxR);
+        return `${p.x},${p.y}`;
+      }).join(' ');
+      const basePts = flavourKeys.map(({ key }, i) => {
+        const p = pointFor(i, baselineProfile[key], cx, cy, maxR);
+        return `${p.x},${p.y}`;
+      }).join(' ');
+
+      currentPoly.setAttribute('points', currentPts);
+      baselinePoly.setAttribute('points', basePts);
+
+      flavourKeys.forEach(({ key }, i) => {
+        const p = pointFor(i, profile[key], cx, cy, maxR);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', p.x);
+        dot.setAttribute('cy', p.y);
+        dot.setAttribute('r', '5.5');
+        dot.setAttribute('fill', 'rgba(241,191,106,0.96)');
+        dot.setAttribute('stroke', 'rgba(255,255,255,0.7)');
+        dot.setAttribute('stroke-width', '1.4');
+        pointsGroup.appendChild(dot);
+      });
+    }
+
+    function renderBars(containerId, profile, baselineProfile) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      flavourKeys.forEach(({ key, label, className }) => {
+        const row = document.createElement('div');
+        row.className = 'barRow';
+        row.innerHTML = `
+          <div>${label}</div>
+          <div class="track">
+            <div class="barBaseline" style="left:${baselineProfile[key]}%"></div>
+            <div class="fill ${className}" style="width:${profile[key]}%"></div>
+          </div>
+          <div class="value">${profile[key]}</div>
+        `;
+        el.appendChild(row);
+      });
+    }
+
+    function renderCurve(prefix, sliderState, baselineSliderState) {
+      const currentPoints = computeCurveSeries(sliderState);
+      const basePoints = computeCurveSeries(baselineSliderState);
+      document.getElementById(`${prefix}CurvePath`).setAttribute('d', pathFromPoints(currentPoints));
+      document.getElementById(`${prefix}CurveShade`).setAttribute('d', shadeFromPoints(currentPoints));
+      document.getElementById(`${prefix}CurveBaseline`).setAttribute('d', pathFromPoints(basePoints));
+
+      let text = 'Moderate, steady extraction over time.';
+      if (sliderState.activity > 80 && sliderState.tannin > 75) text = 'Fast early extraction, then a strong climb into woody structure and spice.';
+      else if (sliderState.activity > 75 && sliderState.seasoning < 30) text = 'Quick early oak grab: active wood and clear sweet-oak lift.';
+      else if (sliderState.seasoning > 70) text = 'Heavier cask signature building over time, with seasoning staying obvious.';
+      else if (sliderState.activity < 35) text = 'More patient and spirit-led: slower extraction, gentler oak.';
+      document.getElementById(`${prefix}CurveNote`).textContent = text;
+    }
+
+    function classify(sliderState, profile) {
+      let title = 'Why this tastes balanced';
+      let text = 'The cask profile is fairly even, with no single force completely overwhelming the others.';
+      let notes = ['distillate-led sweetness'];
+
+      if (profile.vanillin > 68 && profile.lactones > 50 && profile.driedFruit < 35) {
+        title = 'Why this tastes bourbon-led';
+        text = 'Sweet oak is leading the shape: lots of vanilla and lactone lift, but not much wine-seasoned fruit depth.';
+        notes = ['vanilla fudge', 'coconut cream', 'bright oak', 'toasted sugar'];
+      } else if (profile.driedFruit > 72 && profile.tannins > 55) {
+        title = 'Why this tastes sherry-led';
+        text = 'Seasoning and structure are pulling the profile toward dried fruit, richer oak, and longer spice.';
+        notes = ['raisin / fig', 'Christmas cake', 'clove', 'oak grip'];
+      } else if (profile.spice > 72 && profile.tannins > 72) {
+        title = 'Why this feels oak-forward';
+        text = 'This looks like an assertive cask: spice, grip, warmth, and a stronger sense of wood on the finish.';
+        notes = ['charred oak', 'clove', 'cinnamon', 'dry finish'];
+      } else if (profile.driedFruit > 55 && profile.vanillin > 45) {
+        title = 'Why this feels layered';
+        text = 'Sweet oak and seasoning are both speaking, giving a hybrid shape rather than a single-axis cask style.';
+        notes = ['dark fruit depth', 'vanilla', 'sweet spice', 'layered finish'];
+      } else if (profile.vanillin < 35 && profile.lactones < 30 && profile.tannins < 35) {
+        title = 'Why this stays spirit-led';
+        text = 'Low extraction keeps the cask quieter, so the distillate has more space to show through.';
+        notes = ['gentle oak', 'wax / cereal', 'subtle sweetness', 'quiet finish'];
+      }
+
+      const facts = [
+        ['Sweet oak source', sliderState.americanOak > 55 ? 'American-oak influence is helping drive vanillin and lactones upward.' : 'Lower American-oak influence is holding back coconut-vanilla sweetness.'],
+        ['Extraction pace', sliderState.activity > 65 ? 'This is an active cask, so the wood is likely to stamp itself on the spirit relatively quickly.' : 'This suggests gentler extraction and a more patient maturation path.'],
+        ['Fruit depth', sliderState.seasoning > 55 ? 'Seasoning is strong enough to create a clear dried-fruit axis in the profile.' : 'Low seasoning keeps the profile out of obvious sherry or wine-cask territory.'],
+        ['Wood grip', sliderState.tannin > 55 ? 'Tannins are high enough to add structure, dryness, and finish length.' : 'Tannin load remains moderate, so the whisky should feel softer and less drying.']
+      ];
+
+      return { title, text, notes, facts };
+    }
+
+    function renderPills(containerId, notes) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      notes.forEach(note => {
+        const div = document.createElement('div');
+        div.className = 'pill';
+        div.textContent = note;
+        el.appendChild(div);
+      });
+    }
+
+    function renderFacts(containerId, facts) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      facts.forEach(([k, v]) => {
+        const div = document.createElement('div');
+        div.className = 'fact';
+        div.innerHTML = `<strong>${k}</strong><span>${v}</span>`;
+        el.appendChild(div);
+      });
+    }
+
+    function makePresetButtons(container, activeKey, onClick) {
+      container.innerHTML = '';
+      presetOrder.forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'chip' + (key === activeKey ? ' active' : '');
+        btn.textContent = shortName(key);
+        btn.addEventListener('click', () => onClick(key));
+        container.appendChild(btn);
+      });
+    }
+
+    function makeBaselineButtons(container, activeKey, onClick) {
+      container.innerHTML = '';
+      presetOrder.forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'segBtn' + (key === activeKey ? ' active' : '');
+        btn.textContent = shortName(key);
+        btn.addEventListener('click', () => onClick(key));
+        container.appendChild(btn);
+      });
+    }
+
+    function renderCompare() {
+      makePresetButtons(comparePresetsEl, comparePreset, key => { comparePreset = key; renderCompare(); });
+      makeBaselineButtons(compareBaselinesEl, compareBaseline, key => { compareBaseline = key; renderCompare(); });
+
+      const preset = presets[comparePreset];
+      const base = presets[compareBaseline];
+      const profile = computeProfile(preset.sliders);
+      const baselineProfile = computeProfile(base.sliders);
+      const interpretation = classify(preset.sliders, profile);
+
+      document.getElementById('compareTitle').textContent = preset.name;
+      document.getElementById('compareSummary').textContent = preset.summary;
+      document.getElementById('compareBadge').textContent = preset.badge;
+      document.getElementById('compareRadarLabel').textContent = `vs ${base.name.toLowerCase()}`;
+      document.getElementById('compareReadTitle').textContent = interpretation.title;
+      document.getElementById('compareReadText').textContent = interpretation.text;
+
+      drawRadar('compare', profile, baselineProfile);
+      renderBars('compareBars', profile, baselineProfile);
+      renderCurve('compare', preset.sliders, base.sliders);
+      renderPills('comparePills', interpretation.notes);
+      renderFacts('compareFacts', interpretation.facts);
+    }
+
+    function buildControls() {
+      builderControlsEl.innerHTML = '';
+      controlDefs.forEach(control => {
+        const wrap = document.createElement('div');
+        wrap.className = 'control';
+        wrap.innerHTML = `
+          <div class="controlTop">
+            <div class="controlLabel">${control.label}</div>
+            <div class="controlValue" id="val-${control.key}">${builderState[control.key]}</div>
+          </div>
+          <input id="input-${control.key}" type="range" min="0" max="100" value="${builderState[control.key]}" />
+          <div class="help">${control.help}</div>
+        `;
+        builderControlsEl.appendChild(wrap);
+        wrap.querySelector('input').addEventListener('input', e => {
+          builderState[control.key] = Number(e.target.value);
+          document.getElementById(`val-${control.key}`).textContent = builderState[control.key];
+          renderBuilder();
+        });
+      });
+    }
+
+    function syncBuilderInputs() {
+      controlDefs.forEach(({ key }) => {
+        const input = document.getElementById(`input-${key}`);
+        const val = document.getElementById(`val-${key}`);
+        if (input) input.value = builderState[key];
+        if (val) val.textContent = builderState[key];
+      });
+    }
+
+    function loadBuilderPreset(key) {
+      builderLoadedPreset = key;
+      builderState = { ...presets[key].sliders };
+      syncBuilderInputs();
+      renderBuilder();
+    }
+
+    function renderBuilder() {
+      makePresetButtons(builderPresetsEl, builderLoadedPreset, key => loadBuilderPreset(key));
+      makeBaselineButtons(builderBaselinesEl, builderBaseline, key => { builderBaseline = key; renderBuilder(); });
+
+      const profile = computeProfile(builderState);
+      const base = presets[builderBaseline];
+      const baselineProfile = computeProfile(base.sliders);
+      const interpretation = classify(builderState, profile);
+
+      document.getElementById('builderTitle').textContent = `Started from ${presets[builderLoadedPreset].name}`;
+      document.getElementById('builderSummary').textContent = 'The sliders now define the cask. The baseline only changes the grey comparison overlay.';
+      document.getElementById('builderBadge').textContent = `Baseline: ${base.name.toLowerCase()}`;
+      document.getElementById('builderRadarLabel').textContent = `custom cask vs ${base.name.toLowerCase()}`;
+      document.getElementById('builderReadTitle').textContent = interpretation.title;
+      document.getElementById('builderReadText').textContent = interpretation.text;
+
+      drawRadar('builder', profile, baselineProfile);
+      renderBars('builderBars', profile, baselineProfile);
+      renderCurve('builder', builderState, base.sliders);
+      renderPills('builderPills', interpretation.notes);
+      renderFacts('builderFacts', interpretation.facts);
+    }
+
+    document.querySelectorAll('.modeBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        document.querySelectorAll('.modeBtn').forEach(b => b.classList.toggle('active', b === btn));
+        document.getElementById('compareView').classList.toggle('active', mode === 'compare');
+        document.getElementById('builderView').classList.toggle('active', mode === 'builder');
+        document.getElementById('compareStrip').classList.toggle('hidden', mode !== 'compare');
+        document.getElementById('builderStrip').classList.toggle('hidden', mode !== 'builder');
+      });
+    });
+
+    buildControls();
+    renderCompare();
+    renderBuilder();
+  </script>
+</body>
+</html>
