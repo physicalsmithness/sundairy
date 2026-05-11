@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WKYGJYERSR"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-WKYGJYERSR');
+</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Short-run aggregate supply · IB Economics interactive diagrams</title>
@@ -66,6 +75,109 @@
     .shift-pill.right { background: #dff0e3; color: #2d6b46; }
     .shift-pill.left  { background: #f6d9d4; color: var(--welfare-loss); }
   </style>
+<!-- GA4 interaction tracking -->
+<script>
+(function () {
+  if (window.__ga4InteractionTrackingInstalled) return;
+  window.__ga4InteractionTrackingInstalled = true;
+
+  var trackableSelector = 'a, button, input, select, textarea, summary, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [data-ga4-click], [onclick]';
+  var maxLength = 120;
+
+  function clean(value, limit) {
+    var text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text.slice(0, limit || maxLength);
+  }
+
+  function getLabel(element) {
+    if (!element) return '';
+    var tag = (element.tagName || '').toLowerCase();
+    var type = (element.getAttribute('type') || '').toLowerCase();
+    if ((tag === 'input' || tag === 'textarea') && !/^(button|submit|reset|checkbox|radio)$/.test(type)) {
+      return clean(element.getAttribute('aria-label') || element.getAttribute('title') || element.getAttribute('name') || tag);
+    }
+    return clean(
+      element.getAttribute('data-ga4-label') ||
+      element.getAttribute('aria-label') ||
+      element.getAttribute('title') ||
+      element.innerText ||
+      element.textContent ||
+      element.getAttribute('name') ||
+      element.getAttribute('id') ||
+      tag
+    );
+  }
+
+  function getClasses(element) {
+    if (!element || !element.classList) return '';
+    return clean(Array.prototype.slice.call(element.classList, 0, 6).join(' '));
+  }
+
+  function getTargetPath(element) {
+    var parts = [];
+    var current = element;
+    while (current && current.nodeType === 1 && current !== document.body && parts.length < 5) {
+      var part = (current.tagName || '').toLowerCase();
+      var id = current.getAttribute('id');
+      var testId = current.getAttribute('data-testid') || current.getAttribute('data-test') || current.getAttribute('data-ga4-id');
+      if (id) {
+        part += '#' + clean(id, 60);
+        parts.unshift(part);
+        break;
+      }
+      if (testId) part += '[data-id="' + clean(testId, 60) + '"]';
+      var classes = getClasses(current).split(' ').filter(Boolean).slice(0, 2);
+      if (classes.length) part += '.' + classes.join('.');
+      parts.unshift(part);
+      current = current.parentElement;
+    }
+    return clean(parts.join(' > '), 220);
+  }
+
+  function sendClickEvent(element) {
+    if (typeof gtag !== 'function') return;
+    var tag = (element.tagName || '').toLowerCase();
+    var params = {
+      event_category: 'engagement',
+      element_type: tag,
+      element_id: clean(element.getAttribute('id')),
+      element_name: clean(element.getAttribute('name')),
+      element_role: clean(element.getAttribute('role')),
+      element_classes: getClasses(element),
+      element_label: getLabel(element),
+      click_target: getTargetPath(element),
+      page_path: clean(window.location.pathname, 220)
+    };
+
+    if (tag === 'input') params.input_type = clean(element.getAttribute('type') || 'text');
+
+    var href = element.getAttribute('href') || element.href;
+    if (href) {
+      try {
+        var url = new URL(href, window.location.href);
+        params.link_url = clean(url.href, 500);
+        params.link_domain = clean(url.hostname);
+        params.outbound = url.hostname !== window.location.hostname ? 'true' : 'false';
+      } catch (error) {
+        params.link_url = clean(href, 500);
+      }
+    }
+
+    try {
+      gtag('event', 'site_click', params);
+    } catch (error) {
+      // Analytics should never interfere with the page.
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!event.target || !event.target.closest) return;
+    var element = event.target.closest(trackableSelector);
+    if (!element || !document.documentElement.contains(element)) return;
+    sendClickEvent(element);
+  }, true);
+})();
+</script>
 </head>
 
 <body>
