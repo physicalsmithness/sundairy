@@ -984,6 +984,85 @@ const QUESTIONS = [
     {name:'Pressure the surface can withstand', correct:'up', fb:'Tarmac can hold a far higher pressure than soft grass before giving way.'}
   ],
   explain:'The pressure under the heel is the same on both surfaces. On grass it’s above what grass can hold, so the heels sink in. On tarmac it’s well below tarmac’s limit, so the heels stay on top. The shoes haven’t changed — the surface’s limit has.'
+},
+
+/* ---------- SOLIDS · Cutting and crushing (the other side of the threshold) ---------- */
+{ id:69, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
+  q:'A <b>sharp</b> knife cuts a bread roll cleanly. A <b>blunt</b> knife of the same metal squashes the bread without cutting through it. Both knives are pushed with the same force. Why does only the sharp one cut?',
+  options:[
+    {t:'The sharp knife concentrates the same force onto a much smaller contact area. The pressure under its edge rises above the bread crust’s <b>yield strength</b>, so the crust gives way. The blunt knife’s pressure stays below that yield strength, so the bread just deforms (squashes).', c:true, fb:'Yes. "Yield strength" is the proper name for what we’ve been calling "what the surface can withstand". Above it, the material fails (cuts, dents, cracks). Below it, the material just deforms. Sharper = higher pressure under the edge = above the threshold = cuts.'},
+    {t:'The sharp knife is heavier so it pushes harder.', fb:'Force is stated as the same. And shoe-vs-knife mass barely matters once the person pushing is supplying the force. The change is to the <b>contact area</b>, which changes the pressure.'},
+    {t:'The sharp knife is hotter and melts through the bread.', fb:'Nothing in the scenario is hot. The physics is purely mechanical: pressure vs the bread’s yield strength.'},
+    {t:'The sharp knife meets the bread at a steeper angle.', fb:'Angle isn’t the dominant story — even held the same way, a sharp blade has a much smaller contact line. Smaller area, same force, bigger pressure.'}
+  ],
+  explain:'Cutting is the *opposite* of walking on snow. There you want to keep pressure <i>below</i> the surface’s yield strength so you don’t sink. Here you want to push pressure <i>above</i> the food’s yield strength so it gives way. Same threshold idea, opposite goal.'
+},
+
+{ id:70, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
+  q:'A <b>blunt</b> knife will happily cut through a fillet of fish but stalls on a <b>crusty bread roll</b>. The same knife, the same person, the same push. Why?',
+  options:[
+    {t:'Fish flesh has a much lower yield strength than bread crust. The knife’s pressure is above what fish flesh can resist, so it cuts. The same pressure is below what bread crust can resist, so the bread just deforms.', c:true, fb:'Right. Same knife = same area; same push = same force; so same pressure under the blade in both cases. What differs is the *material*: fish is mechanically weak; bread crust is mechanically tough.'},
+    {t:'Fish flesh tears more easily than it cuts because of its grain.', fb:'Tearing does play a small role, but the dominant reason is yield strength. Fish flesh fails (cuts or tears) at a far lower pressure than bread crust does.'},
+    {t:'The bread crust deflects the knife sideways, so the cut never gets started.', fb:'Geometry isn’t the issue. Even when the knife sits squarely on the crust, the pressure isn’t high enough to exceed the crust’s yield strength.'},
+    {t:'The knife is effectively sharper on fish because fish is softer.', fb:'The knife is what it is — its sharpness doesn’t change when you swap foods. The blade is identical; the food’s yield strength is not.'}
+  ],
+  explain:'Same blade, same push, same pressure under the edge. The material has changed: fish’s yield strength is below that pressure, so fish gives way; bread crust’s yield strength is above that pressure, so the bread holds.'
+},
+
+{ id:71, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'compare',
+  q:'You swap from cutting a <b>bread crust</b> to cutting a <b>fillet of fish</b>, using the same knife and the same push.',
+  vars:[
+    {name:'Force on the food', correct:'same', fb:'Same push.'},
+    {name:'Contact area between blade and food', correct:'same', fb:'Same blade, same way of holding it.'},
+    {name:'Pressure under the blade', correct:'same', fb:'Same F, same A, so same P. The blade doesn’t know what food it’s on.'},
+    {name:'Yield strength of the food', correct:'down', fb:'Fish flesh has a much lower yield strength than bread crust.'}
+  ],
+  explain:'Identical pressure under the blade in both cases. The difference is whether that pressure exceeds the food’s yield strength. On bread crust: pressure below yield strength → the bread deforms (squashes) but doesn’t cut. On fish: pressure above yield strength → the fish parts cleanly. (Compare with Q64: lorry from motorway to mud — same pressure, lower tolerance → sinks. Same shape of argument, opposite direction of value-judgement.)'
+},
+
+{ id:72, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
+  q:'A tomato has a tough <b>skin</b> on the outside and soft <b>flesh</b> inside. Pressed with a <b>blunt</b> knife, the flesh squashes before the skin breaks. Why?',
+  options:[
+    {t:'The flesh has a much lower yield strength than the skin. The blunt knife’s pressure is above what the flesh can resist (so the flesh fails — squashes) but still below what the skin can resist (so the skin holds). A sharper blade concentrates the same force onto a smaller area, pushing the pressure above the skin’s yield strength too — and then the skin breaks first, cleanly.', c:true, fb:'Yes. Two materials in one object, each with its own yield strength. The blunt blade’s pressure lies between them; a sharper blade’s pressure lies above both.'},
+    {t:'The skin is sticky and grips the knife.', fb:'Stickiness isn’t the issue. The blade is pressing on the skin from above; whether it breaks depends on whether the pressure exceeds the skin’s yield strength.'},
+    {t:'The flesh has more water in it, so it gives way first.', fb:'Water content matters indirectly (it sets the flesh’s yield strength), but the framing here is the threshold: the flesh’s yield strength is low, so it fails at the blunt knife’s pressure; the skin’s is higher, so it holds.'},
+    {t:'The flesh is heavier than the skin, so it bears more force.', fb:'Mass of the flesh isn’t carrying force here — the knife is. The flesh fails because the *pressure* the knife puts on it exceeds the *flesh’s* yield strength.'}
+  ],
+  explain:'This is why a sharp knife is so important for tomatoes. With a blunt knife the pressure is high enough only to fail the soft flesh, not the tougher skin — so you squash before you cut. A sharp knife’s smaller contact area gives a higher pressure, enough to fail the skin straight away.'
+},
+
+{ id:73, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
+  q:'What is the <b>same physics</b> in walking on snow without sinking <i>and</i> cutting through bread?',
+  options:[
+    {t:'Both depend on a contest between a pressure and a yield strength. Walking on snow: keep your pressure <b>below</b> the snow’s yield strength so the snow holds. Cutting bread: push your pressure <b>above</b> the bread’s yield strength so the bread gives way. Same threshold idea, opposite goal.', c:true, fb:'Yes. This is the unifying idea in the bank. Threshold + pressure on one side = "does this material give way?". You either want the answer to be "no" (snow, soft soil) or "yes" (bread crust, tomato skin, wood under a nail).'},
+    {t:'Both depend on the surface getting heavier under load and pushing back.', fb:'The surface doesn’t get heavier when you press on it. It either holds (below yield strength) or fails (above it). That’s the only number that decides which.'},
+    {t:'Both depend on the grip (friction) between the object and the surface.', fb:'Friction is a sideways force. Both sinking-into-snow and cutting-through-bread are <i>vertical</i> problems — about whether the material can withstand the pressure pushing down on it.'},
+    {t:'Both depend on the thickness of the surface or material.', fb:'Thickness matters in some other situations (like whether a thin sheet of ice will support you), but here the dominant idea is yield strength — a property of the material per square metre, not its overall size.'}
+  ],
+  explain:'The Y9 pressure topic boils down to one mental tool: compare your pressure (F ÷ A) with the material’s yield strength. Whichever is bigger decides what happens. You change F by changing what you carry or push with; you change A by choosing a sharp tool or a wide foot. The threshold belongs to the material.'
+},
+
+{ id:74, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
+  q:'A wood-splitting axe is shaped like a <b>wedge</b>: thin and sharp at the front, wide and chunky at the back. Why does this shape work for splitting wood?',
+  options:[
+    {t:'The thin front edge concentrates the swing’s force onto a tiny contact area, giving a pressure far above the wood’s yield strength so the wood splits. The wide back of the wedge then forces the split apart as the axe drives deeper.', c:true, fb:'Right. Two jobs in one shape: (1) sharp edge to *start* the split (small area, high pressure, exceeds wood’s yield strength); (2) wide body to *widen* the split (mechanical advantage as the wood is forced apart).'},
+    {t:'The wedge shape makes the axe heavier, so the swing carries more force.', fb:'A heavier axe does swing with more force, but the wedge isn’t there for mass — it’s there for area. A bigger, blunter lump of the same mass wouldn’t split wood at all.'},
+    {t:'The wedge shape balances the axe so it’s easier to swing.', fb:'Axe ergonomics matter, but they’re a separate question. The wedge shape is doing physics, not just feeling nice — it’s changing the pressure on the wood.'},
+    {t:'The wedge shape reduces friction between the axe and the wood.', fb:'Friction isn’t the bottleneck here. Splitting wood is about exceeding the wood’s yield strength under the blade, which means small area + big force.'}
+  ],
+  explain:'An axe is a textbook example of the cutting-side of the threshold idea: tiny contact area at the edge = huge pressure = wood fibres exceeding their yield strength and parting. Then the wedge body keeps levering the split open.'
+},
+
+/* ---------- GASES · Collapsing-can demo (extra angle) ---------- */
+{ id:75, topic:'gases', sub:'Collapsing-can demo', type:'mcq',
+  q:'In the collapsing-can demo, what would happen if instead of plunging the hot, sealed can into <b>cold water</b>, you just left it sitting <b>on the bench</b> in a warm room with the lid still on?',
+  options:[
+    {t:'The can would still collapse — just much more slowly. The steam inside cools to room temperature over time, condenses to a tiny amount of water, and the inside pressure drops below atmospheric. Atmospheric pressure on the outside then crushes the can.', c:true, fb:'Right. The cold water isn’t the *cause* of the crush; it just speeds the cooling up. Any sealed cool-down works in principle — it’s the pressure difference that matters, not where it came from.'},
+    {t:'The can wouldn’t collapse, because it needs the cold water to push it inward.', fb:'Common misconception: the water doesn’t push the can — atmospheric pressure does. The cold water just makes the steam condense faster.'},
+    {t:'The can would explode outward as the air around it warms the steam.', fb:'Wrong direction. The room is cooler than the steam inside — the steam is going to cool down and condense, not get hotter and expand.'},
+    {t:'The can would stay exactly the same shape, because the room is room temperature.', fb:'The room is cooler than the boiling-hot steam inside. The steam will cool, condense, and the pressure will drop — same end state as plunging in cold water, just slower.'}
+  ],
+  explain:'The collapsing-can demo is really a "trap a low-pressure pocket and let the atmosphere crush it" demo. Cold water is a fast way to drop the inside pressure (steam condenses quickly); room temperature is a slow way. The crushing mechanism is the same.'
 }
 
 ];
