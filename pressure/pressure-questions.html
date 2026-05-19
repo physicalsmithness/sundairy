@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Y9 Pressure — Question Bank</title>
+<style>
+  :root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --ink:#1b2330;
+    --ink-soft:#4b5563;
+    --line:#e3e7ef;
+    --accent:#2c6cf0;
+    --accent-soft:#e6efff;
+    --good:#0c8a4a;
+    --good-soft:#e3f6ec;
+    --bad:#c5293c;
+    --bad-soft:#fdecef;
+    --warn:#a26a00;
+    --warn-soft:#fdf3df;
+    --solid:#5a3aaa;
+    --solid-soft:#ede7fb;
+    --gas:#0a7d8a;
+    --gas-soft:#dff5f7;
+    --shadow:0 1px 2px rgba(20,30,60,.04),0 6px 24px rgba(20,30,60,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
+    font-size:16px;line-height:1.45}
+  .wrap{max-width:920px;margin:0 auto;padding:24px 20px 80px}
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+  h1{margin:0 0 4px;font-size:24px;letter-spacing:-.01em}
+  .subtitle{margin:0;color:var(--ink-soft);font-size:14px}
+  .scorebox{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;font-size:14px;min-width:180px;box-shadow:var(--shadow)}
+  .scorebox .row{display:flex;justify-content:space-between;gap:14px}
+  .scorebox .row + .row{margin-top:4px}
+  .scorebox b{font-variant-numeric:tabular-nums}
+
+  .controls{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;box-shadow:var(--shadow);display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 16px;margin-bottom:18px}
+  .ctrl label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.02em;text-transform:uppercase}
+  .ctrl select,.ctrl input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;font:inherit;color:var(--ink)}
+  .ctrl.actions{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid transparent;
+    padding:8px 12px;background:var(--accent);color:#fff;transition:.15s}
+  button.secondary{background:#fff;color:var(--ink);border-color:var(--line)}
+  button.ghost{background:transparent;color:var(--ink-soft);border-color:transparent}
+  button:hover{filter:brightness(.97)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+
+  .progress-shell{height:6px;background:#eef2f8;border-radius:6px;overflow:hidden;margin:6px 0 14px}
+  .progress-bar{height:100%;background:linear-gradient(90deg,#2c6cf0,#5a3aaa);width:0;transition:width .25s}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:22px 22px 18px;margin-bottom:16px}
+  .tagrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .tag{font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid transparent;letter-spacing:.02em;text-transform:uppercase}
+  .tag.solid{background:var(--solid-soft);color:var(--solid);border-color:#dccdf8}
+  .tag.gas{background:var(--gas-soft);color:var(--gas);border-color:#bfe8ed}
+  .tag.type{background:#eef2f8;color:#3a4660;border-color:#dde3ee}
+  .tag.sub{background:#f5f0e8;color:#7a5b1c;border-color:#ecdfc4}
+
+  .qtext{font-size:17.5px;line-height:1.5;margin:4px 0 14px}
+  .qtext em{font-style:normal;color:var(--solid)}
+  .qtext .hl{background:#fff5d0;padding:0 3px;border-radius:3px}
+
+  .options{display:flex;flex-direction:column;gap:14px}
+  .opt{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;cursor:pointer;transition:.12s}
+  .opt:hover{border-color:#bfd0f5;background:#fafcff}
+  .opt .letter{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+    border-radius:8px;background:#eef2f8;color:#3a4660;font-weight:600;font-size:15px;flex:none;margin-top:1px}
+  .opt.correct{background:var(--good-soft);border-color:#a6dec0}
+  .opt.correct .letter{background:#bce7cf;color:#0c8a4a}
+  .opt.wrong{background:var(--bad-soft);border-color:#f1b7c0}
+  .opt.wrong .letter{background:#f3c6cd;color:#a01e2f}
+  .opt.picked{outline:2px solid #5a87ec;outline-offset:1px}
+  .opt.locked{cursor:default}
+  .opt .body{flex:1;min-width:0}
+  .opt .text{font-size:16.5px;line-height:1.55}
+  .feedback{font-size:14.5px;line-height:1.5;color:var(--ink-soft);margin-top:10px;border-left:3px solid var(--line);padding:4px 0 4px 12px}
+  .opt.correct .feedback{border-left-color:#0c8a4a;color:#236a48}
+  .opt.wrong .feedback{border-left-color:#c5293c;color:#7a2230}
+
+  .compare{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
+  .compare .row{display:grid;grid-template-columns:1fr 160px;gap:10px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .compare .row.correct{background:var(--good-soft);border-color:#a6dec0}
+  .compare .row.wrong{background:var(--bad-soft);border-color:#f1b7c0}
+  .compare select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}
+  .compare .var{font-size:15px}
+  .compare .var small{display:block;color:var(--ink-soft);font-size:12.5px;margin-top:2px}
+  .compare .vfeedback{grid-column:1/-1;font-size:13.5px;color:var(--ink-soft);border-top:1px dashed #d8deea;padding-top:6px;margin-top:4px}
+  .compare .row.correct .vfeedback{color:#236a48}
+  .compare .row.wrong .vfeedback{color:#7a2230}
+
+  .calcbox{display:flex;flex-direction:column;gap:8px;margin:4px 0}
+  .calcbox .input-row{display:flex;align-items:center;gap:10px}
+  .calcbox input{flex:1;padding:9px 11px;font:inherit;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .calcbox .unit{color:var(--ink-soft);font-size:14px;min-width:50px}
+  .calcbox.locked input{background:#f7f9fc;color:#5a6478}
+
+  .explain{margin-top:12px;padding:12px 14px;background:var(--accent-soft);border:1px solid #c9dafc;
+    border-radius:10px;font-size:14.5px;color:#23355c}
+  .explain b{color:#1a2a4d}
+  .explain.warn{background:var(--warn-soft);border-color:#eed9a3;color:#5a4310}
+
+  .controls-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;flex-wrap:wrap}
+  .controls-bottom .left{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-size:13px;color:var(--ink-soft);background:#eef2f8;border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+
+  .end{padding:30px;text-align:center}
+  .end h2{margin:0 0 6px}
+  .review-list{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+  .review-item{text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px}
+  .review-item .qt{font-size:14.5px;margin-bottom:4px}
+  .review-item .meta{font-size:12.5px;color:var(--ink-soft)}
+
+  .footernote{margin-top:24px;text-align:center;font-size:12.5px;color:#8893a6}
+  kbd{background:#eef2f8;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;font-size:12px;font-family:inherit}
+
+  @media (max-width:560px){
+    .compare .row{grid-template-columns:1fr}
+    .scorebox{min-width:0;width:100%}
+  }
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .tab-btn{background:transparent;color:var(--ink-soft);border:none;border-bottom:3px solid transparent;
+    padding:10px 16px;border-radius:0;font-weight:500;font-size:14.5px;letter-spacing:.01em;
+    transition:.12s;margin-bottom:-1px}
+  .tab-btn:hover{color:var(--ink);background:transparent}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* ---------- statistics ---------- */
+  .stats-empty{padding:36px 24px;text-align:center;color:var(--ink-soft);background:var(--card);
+    border:1px dashed var(--line);border-radius:14px}
+  .stats-section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .stats-section h3{margin:0 0 12px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:600}
+  .stats-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+  .stat-card{background:#f8faff;border:1px solid #e3eaf6;border-radius:10px;padding:12px 14px}
+  .stat-card .num{font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .stat-card .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:2px;letter-spacing:.02em}
+
+  .recent-list{display:flex;flex-direction:column;gap:6px}
+  .recent-item{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;
+    padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .recent-item.right{background:#f1faf4;border-color:#cdebd9}
+  .recent-item.wrong{background:#fdf1f3;border-color:#f1c3cc}
+  .recent-item .mark{font-size:18px;line-height:1.4;font-weight:700;text-align:center}
+  .recent-item.right .mark{color:var(--good)}
+  .recent-item.wrong .mark{color:var(--bad)}
+  .recent-item .qstem{font-size:14.5px;color:var(--ink);line-height:1.4}
+  .recent-item .qmeta{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+  .recent-item .qpick{font-size:13px;color:#7a2230;margin-top:4px;font-style:italic}
+  .recent-item .right-side{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;text-align:right}
+
+  .stats-table{width:100%;border-collapse:collapse;font-size:14px}
+  .stats-table th,.stats-table td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+  .stats-table th{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .stats-table td.num,.stats-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .stats-table tr:last-child td{border-bottom:none}
+  .stats-table .pctbar{display:inline-block;height:6px;width:80px;background:#eef2f8;border-radius:3px;
+    overflow:hidden;vertical-align:middle;margin-left:8px}
+  .stats-table .pctbar span{display:block;height:100%;background:linear-gradient(90deg,#2c6cf0,#5a3aaa)}
+  .stats-table tr.untouched td{color:#9aa3b8}
+  .stats-table tr.untouched td .pctbar span{background:#cdd5e2}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>Y9 Pressure — Question Bank</h1>
+    <p class="subtitle">Solids &amp; gases. Pick an answer, read the per-option feedback, drill into your misconception.</p>
+  </div>
+  <div class="scorebox" id="scorebox">
+    <div class="row"><span>Question</span><b id="qcount">— / —</b></div>
+    <div class="row"><span>Correct (first try)</span><b id="qright">0</b></div>
+    <div class="row"><span>Accuracy</span><b id="qacc">—</b></div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="quiz">Quiz</button>
+  <button class="tab-btn" data-tab="stats">Statistics</button>
+</nav>
+
+<div id="tab-quiz" class="tab-panel active">
+
+<div class="controls">
+  <div class="ctrl">
+    <label for="filterTopic">Topic</label>
+    <select id="filterTopic">
+      <option value="all">All topics</option>
+      <option value="solids">Solids only</option>
+      <option value="gases">Gases only</option>
+    </select>
+  </div>
+  <div class="ctrl">
+    <label for="filterSub">Sub-topic</label>
+    <select id="filterSub"><option value="all">All sub-topics</option></select>
+  </div>
+  <div class="ctrl">
+    <label for="filterType">Question type</label>
+    <select id="filterType">
+      <option value="all">All types</option>
+      <option value="mcq">Multiple choice</option>
+      <option value="compare">Compare (up / down / same)</option>
+      <option value="calc">Calculation</option>
+    </select>
+  </div>
+  <div class="ctrl">
+    <label for="filterMode">Selection</label>
+    <select id="filterMode">
+      <option value="shuffle">Shuffled deck (full bank)</option>
+      <option value="wrong">Only the ones I got wrong</option>
+    </select>
+  </div>
+  <div class="ctrl actions">
+    <button id="applyBtn">Apply &amp; restart</button>
+  </div>
+</div>
+
+<div class="progress-shell"><div class="progress-bar" id="progressBar"></div></div>
+
+<div id="stage"></div>
+
+<div class="controls-bottom">
+  <div class="left">
+    <button class="secondary" id="prevBtn">&larr; Previous</button>
+    <button id="nextBtn">Next &rarr;</button>
+  </div>
+  <div class="pill" id="hintRow">Press <kbd>1</kbd>–<kbd>4</kbd> to pick an option, <kbd>Enter</kbd> for next</div>
+</div>
+
+</div><!-- /#tab-quiz -->
+
+<div id="tab-stats" class="tab-panel">
+  <div id="statsContent"></div>
+</div>
+
+<p class="footernote">Y9 pressure question bank. Designed for drill-down on misconceptions — every wrong option tells you <i>why</i> it&rsquo;s wrong.</p>
+
+</div>
+
+<script>
+/* ============================================================
+   QUESTION BANK
+   Each question: { id, topic ('solids'|'gases'), sub, type ('mcq'|'compare'|'calc'),
+                    q, ... }
+   MCQ: options:[{t,c?,fb}], explain
+   Compare: vars:[{name, note?, correct: 'up'|'down'|'same', fb}], explain
+   Calc: answer (number), tol, unit, explain, hint
+   ============================================================ */
+const QUESTIONS = [
+
+/* ---------- SOLIDS · Reducing area (sharp things) ---------- */
+{ id:1, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
+  q:'A <b>sharp</b> knife cuts through a tomato much more easily than a <b>blunt</b> one, even when you push with the same force. Why?',
+  options:[
+    {t:'The sharp knife exerts a greater force on the tomato.', fb:'No — the question says the force is the <b>same</b>. The knife itself doesn’t change your push; only the contact area changes.'},
+    {t:'The contact area is smaller, so the pressure is greater.', c:true, fb:'Yes. Same force ÷ smaller area = bigger pressure under the blade. High pressure cuts through the skin.'},
+    {t:'The sharp knife has a lower pressure at the edge.', fb:'The opposite — pressure goes <b>up</b> when the area shrinks. Think P = F ÷ A: smaller A means bigger P.'},
+    {t:'Sharp knives are made of a different metal that cuts better.', fb:'Material can matter a little, but the physics here is about <b>area</b>. Even a blunt knife of the same metal struggles.'}
+  ],
+  explain:'P = F ÷ A. The blade focuses your force onto a tiny line of contact, so the pressure under that line is enormous — high enough to break the skin of the tomato.'
+},
+
+{ id:2, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
+  q:'A drawing pin has a <b>sharp point</b> at one end and a <b>flat head</b> at the other. Why is the pointy end sharp?',
+  options:[
+    {t:'So the point can grip the wall by friction.', fb:'It’s not really about friction — it’s about getting <i>into</i> the wall in the first place, which needs high pressure.'},
+    {t:'So the same force gives a very high pressure at the wall.', c:true, fb:'Yes. Tiny contact area → huge pressure → the point pushes into the wood/cork.'},
+    {t:'So less force is needed.', fb:'Careful with words. The <b>force</b> from your thumb is the same whether the pin is sharp or blunt — it’s the <b>pressure</b> that changes because the area changes.'},
+    {t:'So the pin sticks because of magnetism with the wall.', fb:'No — most walls aren’t magnetic, and pins don’t need to be either.'}
+  ],
+  explain:'Sharp end = tiny area = high pressure into the wall. Flat head = large area = low pressure on your thumb (so it doesn’t hurt).'
+},
+
+{ id:3, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
+  q:'And the <b>flat head</b> of the drawing pin — why is it flat and wide?',
+  options:[
+    {t:'So the pressure on your thumb is small and it doesn’t hurt.', c:true, fb:'Right. Same force from your thumb, but spread over a much bigger area, so the pressure on your skin is low.'},
+    {t:'So you push with more force.', fb:'The force from your thumb is roughly the same. The wide head just spreads it over a larger area.'},
+    {t:'So the pin lasts longer and doesn’t bend.', fb:'That might be a small bonus, but the main reason is comfort — keeping pressure on your thumb low.'},
+    {t:'So the pin doesn’t fall out of the wall.', fb:'That’s mostly the sharp end gripping the wall, not the flat head.'}
+  ],
+  explain:'Same force, bigger area on your thumb → lower pressure → no pain. Same force, tiny area at the point → enormous pressure → pin goes in. Two clever uses of the same idea on one object.'
+},
+
+{ id:4, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
+  q:'Two students push two knives into a piece of cheese using <b>the same force</b>. Knife A is sharp, Knife B is blunt. Which exerts the greater pressure on the cheese?',
+  options:[
+    {t:'Knife A (sharp) — smaller area means greater pressure.', c:true, fb:'Yes. Same force, smaller area, so bigger P = F ÷ A under the blade.'},
+    {t:'Knife B (blunt) — it’s heavier so it pushes harder.', fb:'Weight wasn’t mentioned and the forces are stated to be the same. Compare areas, not weights.'},
+    {t:'Both the same — they have the same force.', fb:'Same force doesn’t mean same pressure. Pressure also depends on the <b>area</b> the force is spread over.'},
+    {t:'Knife B (blunt) — the larger area pushes harder.', fb:'Bigger area means the force is <b>spread out more</b>, so pressure is <b>lower</b>, not higher.'}
+  ],
+  explain:'Same force, different areas. P = F ÷ A. Smaller A (sharp blade) wins.'
+},
+
+{ id:5, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
+  q:'A nail has a sharp point. When you hit the head with a hammer, the nail goes into wood. Why does sharpening the point make it go in <b>even more easily</b>?',
+  options:[
+    {t:'It reduces the force needed because friction is lower.', fb:'Friction plays a role, but the dominant idea is that a sharper tip <b>concentrates</b> the same force onto a smaller area.'},
+    {t:'It makes the nail lighter, so it accelerates more.', fb:'Sharpening barely changes the mass. The big change is to the contact area.'},
+    {t:'It makes the contact area smaller, so the pressure at the tip is much higher.', c:true, fb:'Right. The hammer force is concentrated onto a tinier point, so the pressure on the wood is enormous.'},
+    {t:'It increases the force that the hammer applies.', fb:'The hammer force is the same. What changes is how that force is <b>distributed</b> at the tip of the nail.'}
+  ],
+  explain:'Hammer force is the same; sharper tip means smaller contact area on the wood; same F ÷ smaller A = bigger pressure → easier to push the wood fibres apart.'
+},
+
+{ id:6, topic:'solids', sub:'Reducing area (sharp things)', type:'compare',
+  q:'You take an old knife and <b>sharpen</b> it. You then cut a carrot with the <b>same push</b> as before.',
+  vars:[
+    {name:'Force from your hand', correct:'same', fb:'You push the same way, so the force stays the same.'},
+    {name:'Area of contact between blade and carrot', correct:'down', fb:'Sharpening makes the cutting edge thinner — the contact area is smaller.'},
+    {name:'Pressure under the blade', correct:'up', fb:'P = F ÷ A. F is the same, A is smaller, so P goes up.'}
+  ],
+  explain:'Classic “same force, smaller area” case. Pressure rises, which is why a sharp blade cuts better.'
+},
+
+{ id:7, topic:'solids', sub:'Reducing area (sharp things)', type:'compare',
+  q:'You use the <b>same</b> knife as before, but now you <b>push harder</b>.',
+  vars:[
+    {name:'Force from your hand', correct:'up', fb:'You’re pushing harder — the force you apply is bigger.'},
+    {name:'Area of contact between blade and food', correct:'same', fb:'You haven’t changed the knife or how it sits on the food, so the contact area is the same.'},
+    {name:'Pressure under the blade', correct:'up', fb:'P = F ÷ A. F is bigger, A is the same, so P goes up.'}
+  ],
+  explain:'Same area, bigger force → bigger pressure. You can boost pressure either by sharpening (smaller A) or pushing harder (bigger F).'
+},
+
+/* ---------- SOLIDS · Increasing area (spreading the load) ---------- */
+{ id:8, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'In deep snow, a person in <b>ordinary boots</b> sinks in. In <b>snowshoes</b>, the same person can walk on top. Why?',
+  options:[
+    {t:'The snowshoes spread the person’s weight over a much larger area, so the pressure on the snow stays below what the snow can support.', c:true, fb:'Yes. Same downward force, bigger area, smaller pressure. As long as that pressure is below what soft snow can withstand, the snow holds the person up.'},
+    {t:'The snowshoes make the person lighter overall.', fb:'Weight is unchanged — the snowshoes don’t alter the person’s mass. What they change is the <b>area</b> the weight is spread over, and so the pressure. Force stays the same.'},
+    {t:'The snowshoes grip the snow, and that grip is what stops them sinking.', fb:'Grip is friction — it stops you sliding sideways. Sinking is a downward problem: pressing too hard <i>into</i> the snow. That’s a pressure issue, not a friction one.'},
+    {t:'Each step compresses the snow into a firmer layer underneath, which holds the person up.', fb:'A small amount of compaction happens, but it isn’t what keeps you up. A boot does the same compaction over a smaller area and still sinks. What changes with snowshoes is the much larger contact area, which keeps the pressure under the snow’s limit.'}
+  ],
+  explain:'Same force (weight) ÷ bigger area = smaller pressure on the snow. Once pressure drops below what the snow can hold, the snow supports you.'
+},
+
+{ id:9, topic:'solids', sub:'Increasing area (spreading load)', type:'compare',
+  q:'You put on snowshoes and walk on snow that you would normally sink into.',
+  vars:[
+    {name:'Your weight pulling down', correct:'same', fb:'Your weight depends on your mass — snowshoes don’t change that.'},
+    {name:'Area of contact with the snow', correct:'up', fb:'The whole point of a snowshoe is a much bigger footprint.'},
+    {name:'Pressure on the snow', correct:'down', fb:'P = F ÷ A. F is the same, A is bigger, so P drops. That’s why you don’t sink.'}
+  ],
+  explain:'“Same force, bigger area” — the textbook way of <i>reducing</i> pressure. Skis, snowboards, tank tracks and camel feet all use the same trick.'
+},
+
+{ id:10, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A <b>camel’s foot</b> is broad and flat, while a horse’s hoof is narrow. Why is this useful in the desert?',
+  options:[
+    {t:'A broad foot spreads the camel’s weight over a much larger area, so the pressure on the sand stays below what soft sand can support before giving way.', c:true, fb:'Yes. The camel’s weight hasn’t changed; the area has. Big area, small pressure. Sand can only support a small pressure before it gives way, so a narrow foot would exceed that limit and sink.'},
+    {t:'The broad foot reduces the camel’s overall weight.', fb:'The shape of the foot doesn’t change the camel’s weight — that’s set by its mass and gravity. What the broad foot changes is the area, and so the pressure.'},
+    {t:'The broad foot grips the sand, and that grip is what stops it sinking.', fb:'Grip is friction — it stops the camel sliding around. Sinking is a pressure problem: pressing too hard <i>into</i> the sand. Different physics, different direction.'},
+    {t:'The broad foot presses the sand hard enough to pack it solid underneath before each step.', fb:'A small amount of compaction happens, but soft sand can’t be packed firm enough to support a horse — that’s why horses sink in dunes. The real benefit is the lower pressure on still-soft sand.'}
+  ],
+  explain:'Wide foot → big contact area → low pressure → stays under what soft sand can support. A horse’s narrow hoof puts the same weight on a much smaller area, so the pressure shoots above the sand’s limit and the horse sinks.'
+},
+
+{ id:11, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A tractor has very <b>wide tyres</b>, not narrow car tyres. Why?',
+  options:[
+    {t:'Wide tyres give a big contact area with the soil, so the pressure under the tyres stays below what soft, wet soil can support before giving way.', c:true, fb:'Right. Wider tyres don’t reduce the tractor’s weight — they spread it. Pressure drops below the soil’s limit, so the soil holds the tractor up instead of letting it sink.'},
+    {t:'Wide tyres make the tractor lighter overall.', fb:'Wide tyres are usually heavier than narrow ones, not lighter. The tractor’s weight is whatever it is — the tyres just decide how that weight is spread.'},
+    {t:'Wide tyres grip the soil more, and the extra grip is what stops the tractor sinking.', fb:'Grip is friction — it stops the tyres slipping sideways. Sinking is a vertical pressure problem: too much force per square metre on soft ground. Different physics.'},
+    {t:'Wide tyres press the soil hard enough to compact it solid underneath, so it can hold the tractor.', fb:'A bit of compaction happens, but it’s not the main effect. Wide tyres press <i>more gently</i> per square metre than narrow tyres — that’s the whole point. They keep the pressure under the soil’s limit, rather than crushing the soil into a base.'}
+  ],
+  explain:'Big contact area → low pressure → below what soft soil can support → tractor doesn’t sink. A car tyre on the same field would exceed the soil’s limit and sink in.'
+},
+
+{ id:12, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A heavy lorry often has <b>many sets of tyres</b> (sometimes eight or more), rather than just four like a car. Why?',
+  options:[
+    {t:'More tyres share the lorry’s huge weight across more contact patches, so the pressure under each tyre stays below what the road can withstand without being crushed or rutted.', c:true, fb:'Yes. More tyres = more total contact area = lower pressure per square metre. That keeps the pressure on the road under what tarmac can support, even under a 40-tonne lorry.'},
+    {t:'More tyres are mostly there to grip the road on tight bends.', fb:'Grip helps with cornering, but four good tyres are normally plenty for that. The real reason lorries have so many is to spread a much heavier load over more area, so the road doesn’t fail under the pressure.'},
+    {t:'More tyres make the lorry lighter overall.', fb:'They don’t — they add a bit of weight, in fact. Their job is to split the lorry’s existing weight across more contact patches, not to change what that weight is.'},
+    {t:'More tyres make the lorry push down on the road with less total force.', fb:'Classic force-vs-pressure mix-up. The total <b>force</b> on the road is the lorry’s full weight no matter how many tyres there are. What changes is how that force is shared — and so how much <b>pressure</b> is under each tyre.'}
+  ],
+  explain:'Total force on the road is the lorry’s weight, fixed. More tyres = more area to share that force across = lower pressure under each tyre. Below the tarmac’s limit, the road holds.'
+},
+
+{ id:13, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'Tanks and bulldozers have wide <b>caterpillar tracks</b> rather than wheels. The main physics reason is:',
+  options:[
+    {t:'Tracks spread the vehicle’s weight over a much larger area, so the pressure on the ground stays below what soft mud or sand can support.', c:true, fb:'Yes. A 50-tonne tank on wheels would put enormous pressure on a small contact patch — far above what mud can hold. Tracks turn that into a long, broad footprint where the pressure stays under the ground’s limit.'},
+    {t:'Tracks grip the ground much better than wheels would, and that grip is what stops the tank sinking.', fb:'Tracks <i>do</i> grip better than wheels on soft ground — that’s a real bonus. But grip is a sideways effect (friction); sinking is a vertical pressure effect. For Y9, the main reason is area: the tracks reduce the pressure on the ground, not the sideways slip.'},
+    {t:'Tracks make the tank lighter.', fb:'Tracks add a lot of weight, they don’t subtract any. The tank is heavier with tracks than it would be without. The benefit is the much bigger contact area, not a lower weight.'},
+    {t:'Tracks compact the ground hard enough that the ground becomes firm enough to hold the tank.', fb:'A bit of compaction happens, but the tank is far too heavy for mud to be compacted into a base that could support it. Without tracks, it would just sink. Tracks work by reducing the pressure on still-soft ground, not by hardening the ground first.'}
+  ],
+  explain:'Caterpillar tracks are a classic “increase the contact area to reduce the pressure” design — they keep ground pressure below what soft ground can hold.'
+},
+
+{ id:14, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'You buy small <b>felt pads</b> to stick on the bottom of your table legs. Apart from stopping scratches, what do they do in terms of pressure?',
+  options:[
+    {t:'They spread each leg’s force over a slightly larger area, so the pressure on the floor stays below what the wood can withstand without denting.', c:true, fb:'Yes. The table’s weight is unchanged, but the contact area under each leg is a bit bigger. The pressure drops, and the wood stays just below its denting limit.'},
+    {t:'They reduce the table’s weight.', fb:'The pads are tiny — they barely add any mass, let alone subtract any. The table’s weight is the same. What changes is how that weight is shared with the floor.'},
+    {t:'They grip the floor, and that grip is what stops the legs digging in.', fb:'Felt is grippy and stops the table sliding around — true. But sliding (a sideways problem) is friction. Denting the floor (a downward problem) is pressure. Different physics, different direction.'},
+    {t:'They squish under load, absorbing the pressure into themselves rather than letting it reach the floor.', fb:'The pads do squash a little, but they don’t absorb the force — the floor still receives every newton of the table’s weight. What the pad changes is the <i>area</i> that force is spread over, not how much force gets through.'}
+  ],
+  explain:'A thin pad under each leg gives a slightly bigger contact area, so the pressure on the floor drops below the wood’s denting limit. Same total force, just spread out more.'
+},
+
+{ id:15, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A heavy school bag has <b>two thin straps</b> instead of two wide ones. The straps feel as if they are cutting into your shoulders. Why?',
+  options:[
+    {t:'Thin straps press the same downward force into a small contact area, so the pressure on your shoulders is high.', c:true, fb:'Exactly. Same weight, smaller strap area, so big pressure on your skin.'},
+    {t:'Thin straps are heavier.', fb:'Usually lighter. Mass isn’t the issue — area is.'},
+    {t:'Thin straps push down with more force.', fb:'The bag’s weight is the same. The straps just hand that same force to your shoulders through a smaller area.'},
+    {t:'Thin straps stretch more, increasing the force.', fb:'Some stretching happens, but the main physics here is the small area giving a big pressure.'}
+  ],
+  explain:'Replace thin straps with wide ones: same weight, but bigger area on your shoulders → lower pressure → much more comfortable.'
+},
+
+{ id:16, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A “bed of nails” has <b>hundreds</b> of nails close together. A person can lie on it without injury, even though one nail alone would hurt badly. Why?',
+  options:[
+    {t:'The hundreds of nails between them give a large total contact area, so the person’s weight produces a low pressure at each point.', c:true, fb:'Yes. Adding up all the tips gives a fairly large total area, so the pressure under each nail is small enough not to break the skin.'},
+    {t:'The bed of nails removes the person’s weight.', fb:'It can’t — their weight is exactly the same. It’s shared, not removed.'},
+    {t:'Nails next to each other repel each other and lift the person.', fb:'Not a real effect. The physics is about shared weight and small pressure per nail.'},
+    {t:'The nails bend, so they don’t pierce the skin.', fb:'Usually they don’t bend — they stay stiff. The trick is shared load.'}
+  ],
+  explain:'One nail under your whole weight = a huge pressure → it pierces you. Five hundred nails = each nail only takes a tiny share of the weight, so each one is well below the pressure needed to break skin.'
+},
+
+{ id:17, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
+  q:'A person walks across a soft wooden floor in <b>stilettos</b> and leaves dents. The same person in <b>flat trainers</b> leaves none. Why?',
+  options:[
+    {t:'The stiletto heel has a tiny contact area, so under the same body weight the pressure on the wood is huge — high enough to exceed what the wood can withstand. The trainer’s large area keeps the pressure well below that limit.', c:true, fb:'Right. Same person, same weight, same downward force on the floor. The only thing that changes is the area — and so the pressure. Under the heel, that pressure is above what soft wood can take; under the trainer’s sole, it’s far below.'},
+    {t:'The stilettos push the floor down with more force because they concentrate the body’s weight.', fb:'Classic force-vs-pressure mix-up. The person’s weight (and so the downward force on the floor) is the same in either shoe. What “concentrates” isn’t the force but the <b>pressure</b>: same force, smaller area, bigger force-per-square-metre.'},
+    {t:'The stilettos are heavier shoes than the trainers.', fb:'The shoe weights barely differ compared with the person’s body weight, and the person’s body weight is doing nearly all the work either way. The damage comes from area, not from a tiny difference in shoe mass.'},
+    {t:'The trainers grip the floor better, so they don’t slide across it and gouge it.', fb:'Grip stops shoes sliding sideways — that’s friction. Denting a wooden floor is a downward problem: too much pressure per square millimetre under the heel. Different physics, different direction.'}
+  ],
+  explain:'Same person, same body weight = same downward force on the floor in either shoe. Stiletto heel = tiny area → pressure shoots up past what wood can withstand → wood gives way and dents.'
+},
+
+{ id:18, topic:'solids', sub:'Comparing scenarios', type:'compare',
+  q:'The <b>same person</b> swaps from flat shoes into stiletto heels.',
+  vars:[
+    {name:'Force from their weight on the floor', correct:'same', fb:'Their weight depends only on their mass and gravity — unchanged.'},
+    {name:'Contact area with the floor', correct:'down', fb:'The flat sole is replaced by a tiny heel — much smaller contact area.'},
+    {name:'Pressure on the floor under the heel', correct:'up', fb:'Same force ÷ smaller area = bigger pressure. That’s what dents the floorboards.'}
+  ],
+  explain:'A great “qualitative pressure” case. Force is the same, area drops, pressure shoots up.'
+},
+
+{ id:19, topic:'solids', sub:'Comparing scenarios', type:'compare',
+  q:'A <b>heavier</b> person now wears the <b>same flat shoes</b> as a lighter person.',
+  vars:[
+    {name:'Force on the floor', correct:'up', fb:'Heavier person → bigger weight → bigger force pushing the floor.'},
+    {name:'Contact area with the floor', correct:'same', fb:'Same shoes, so the contact area is essentially the same.'},
+    {name:'Pressure on the floor', correct:'up', fb:'Bigger F ÷ same A = bigger P.'}
+  ],
+  explain:'Force has gone up, area is unchanged — so pressure has gone up.'
+},
+
+{ id:20, topic:'solids', sub:'Comparing scenarios', type:'compare',
+  q:'A skier comes off the slope and stands on the snow in <b>just boots</b>, leaving the skis behind.',
+  vars:[
+    {name:'Force from the skier’s weight', correct:'same', fb:'Their weight is unchanged.'},
+    {name:'Area of contact with the snow', correct:'down', fb:'Boots have a much smaller area than skis.'},
+    {name:'Pressure on the snow', correct:'up', fb:'Same force, smaller area — pressure rises and the skier sinks in.'}
+  ],
+  explain:'This is why skis work in the first place: huge area = tiny pressure on snow. Take them off, area collapses, pressure shoots up.'
+},
+
+/* ---------- SOLIDS · Calculations (straightforward) ---------- */
+{ id:21, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
+  q:'A force of <b>20 N</b> is applied to a flat surface of area <b>4 m²</b>. What is the pressure?',
+  answer:5, tol:0.05, unit:'Pa',
+  explain:'P = F ÷ A = 20 ÷ 4 = <b>5 Pa</b>. Just direct substitution — no rearranging needed.'
+},
+
+{ id:22, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
+  q:'A box pushes down on the floor with a force of <b>100 N</b> through an area of <b>10 m²</b>. What is the pressure on the floor?',
+  answer:10, tol:0.05, unit:'Pa',
+  explain:'P = F ÷ A = 100 ÷ 10 = <b>10 Pa</b>. The unit pascal (Pa) is the same as N/m².'
+},
+
+{ id:23, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
+  q:'A force of <b>60 N</b> acts over an area of <b>3 m²</b>. What is the pressure?',
+  answer:20, tol:0.05, unit:'Pa',
+  explain:'P = F ÷ A = 60 ÷ 3 = <b>20 Pa</b>.'
+},
+
+{ id:24, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
+  q:'A force of <b>12 N</b> is spread over an area of <b>6 m²</b>. What is the pressure?',
+  answer:2, tol:0.05, unit:'Pa',
+  explain:'P = F ÷ A = 12 ÷ 6 = <b>2 Pa</b>.'
+},
+
+{ id:25, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
+  q:'A small block presses down with <b>50 N</b> over an area of <b>0.5 m²</b>. What is the pressure?',
+  answer:100, tol:0.5, unit:'Pa',
+  explain:'P = F ÷ A = 50 ÷ 0.5 = <b>100 Pa</b>. Halving the area doubles the pressure — bigger numbers!'
+},
+
+{ id:26, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'mcq',
+  q:'Box A puts a force of <b>50 N</b> on the floor through an area of <b>5 m²</b>. Box B puts the same <b>50 N</b> through an area of <b>10 m²</b>. Which exerts the <b>greater pressure</b>?',
+  options:[
+    {t:'Box A — same force on a smaller area means a higher pressure.', c:true, fb:'Right. 50 ÷ 5 = 10 Pa for A; 50 ÷ 10 = 5 Pa for B. A wins.'},
+    {t:'Box B — bigger area means more pressure.', fb:'Common slip. Bigger area actually <b>reduces</b> pressure for the same force, because P = F ÷ A.'},
+    {t:'They are equal because the forces are equal.', fb:'Same force does not mean same pressure. You also have to divide by the area, and the areas differ.'},
+    {t:'You can’t tell without knowing the weights of the boxes.', fb:'You can — the force on the floor is given. Just use P = F ÷ A.'}
+  ],
+  explain:'A: 50 ÷ 5 = 10 Pa. B: 50 ÷ 10 = 5 Pa. Same force, smaller area → bigger pressure.'
+},
+
+{ id:27, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'mcq',
+  q:'Box X has a force of <b>100 N</b> over <b>2 m²</b>. Box Y has <b>200 N</b> over <b>4 m²</b>. Which has the bigger pressure?',
+  options:[
+    {t:'Box X — it has the smaller area.', fb:'Tempting, but you have to compare F ÷ A for each. Try it: 100 ÷ 2 vs 200 ÷ 4.'},
+    {t:'Box Y — it has the bigger force.', fb:'Force alone doesn’t decide pressure. You also need to divide by the area. Try the sums.'},
+    {t:'They have the same pressure.', c:true, fb:'Yes. 100 ÷ 2 = 50 Pa. 200 ÷ 4 = 50 Pa. Doubling both force and area keeps the ratio the same.'},
+    {t:'You can’t tell without knowing the masses.', fb:'You can — pressure is F ÷ A and both are given.'}
+  ],
+  explain:'P = F ÷ A. If you double F <i>and</i> double A, the ratio (the pressure) is unchanged.'
+},
+
+{ id:28, topic:'solids', sub:'Formula and units', type:'mcq',
+  q:'Which is the correct formula for pressure?',
+  options:[
+    {t:'Pressure = force × area', fb:'No — this would mean a tiny needle gives no pressure (small area). Pressure is about how concentrated the force is.'},
+    {t:'Pressure = force ÷ area', c:true, fb:'Yes. P = F ÷ A. Same force on a smaller area gives a bigger pressure.'},
+    {t:'Pressure = area ÷ force', fb:'Upside down. With this formula a tiny force on a big area would give a huge pressure — not physical.'},
+    {t:'Pressure = mass × acceleration', fb:'That’s a formula for <b>force</b>, not pressure.'}
+  ],
+  explain:'P = F ÷ A. Pressure is the force per unit area.'
+},
+
+{ id:29, topic:'solids', sub:'Formula and units', type:'mcq',
+  q:'Which is the standard SI unit of pressure?',
+  options:[
+    {t:'Newton (N)', fb:'That’s the unit of <b>force</b>.'},
+    {t:'Pascal (Pa), equal to N/m²', c:true, fb:'Yes — 1 Pa is the pressure when 1 N is spread over 1 m².'},
+    {t:'Joule (J)', fb:'That’s the unit of <b>energy</b>.'},
+    {t:'Watt (W)', fb:'That’s the unit of <b>power</b>.'}
+  ],
+  explain:'The pascal (Pa) is the SI unit of pressure: 1 Pa = 1 N/m². Atmospheric pressure is about 100 000 Pa.'
+},
+
+/* ---------- GASES · What is air pressure ---------- */
+{ id:30, topic:'gases', sub:'What is air pressure', type:'mcq',
+  q:'What actually <b>causes</b> air pressure?',
+  options:[
+    {t:'Gas particles colliding with surfaces — billions of tiny hits per second.', c:true, fb:'Yes. Gas particles are moving in all directions; every time one hits a wall it gives a tiny push, and the total of all those pushes is the pressure.'},
+    {t:'The weight of one large air “blob” pressing down.', fb:'Air isn’t one solid blob. It’s a sea of fast-moving particles, and their <b>collisions</b> are what cause the pressure.'},
+    {t:'Static electricity between air and your skin.', fb:'Not the right idea. Pressure is mechanical: particles bouncing off surfaces.'},
+    {t:'Magnetism inside the air.', fb:'Air isn’t magnetic in any useful way for this. Think tiny particles, lots of collisions.'}
+  ],
+  explain:'Picture a swarm of tiny balls zipping around. Every collision with a wall = a tiny push. Add up all those pushes over the wall area and you get the pressure.'
+},
+
+{ id:31, topic:'gases', sub:'What is air pressure', type:'mcq',
+  q:'Air pressure pushes on our bodies all the time. Why don’t we feel crushed by it?',
+  options:[
+    {t:'Because air pressure only acts downward.', fb:'Not true. Gas particles hit you from <b>all directions</b>. So the push from below is just as strong as from above.'},
+    {t:'Because the pressure inside our bodies pushes outward and matches the pressure outside.', c:true, fb:'Right. We’re in balance — inside pressure ≈ outside pressure, so there’s no net push.'},
+    {t:'Because air is too light to push on anything.', fb:'Air is light per particle but there are <b>huge numbers</b> of particles. Atmospheric pressure is enormous (~100 000 Pa). We just don’t notice because of the balance.'},
+    {t:'Because our skin is too tough for air to push on.', fb:'Skin doesn’t block air pressure. The reason we don’t collapse is the balance between inside and outside.'}
+  ],
+  explain:'Atmospheric pressure is real and large, but the pressure inside us (fluids, gases in our cavities) matches it, so we feel nothing.'
+},
+
+{ id:32, topic:'gases', sub:'What is air pressure', type:'mcq',
+  q:'In which direction does air pressure act on a small object sitting in still air?',
+  options:[
+    {t:'Only downward.', fb:'No — gas particles hit it from all sides, not just from above.'},
+    {t:'Only upward, lifting things up.', fb:'No — particles come at it from every direction.'},
+    {t:'In all directions, roughly equally.', c:true, fb:'Yes. The object is being bombarded from every side. That’s why a balanced object doesn’t get pushed by air pressure on its own.'},
+    {t:'Only sideways.', fb:'No, all directions.'}
+  ],
+  explain:'Gas pressure acts in <b>all directions</b>. It’s only when one side has a different pressure that you feel a net push.'
+},
+
+{ id:33, topic:'gases', sub:'What is air pressure', type:'mcq',
+  q:'Atmospheric pressure at sea level is roughly:',
+  options:[
+    {t:'About 1 Pa', fb:'Far too small. 1 Pa is tiny — the pressure under a sheet of paper.'},
+    {t:'About 100 Pa', fb:'Still far too small. You’re a factor of about 1000 off.'},
+    {t:'About 100 000 Pa (100 kPa)', c:true, fb:'Yes — about 100 000 Pa, often written as 100 kPa or 1 bar. Roughly the pressure of a column of air about 100 km tall sitting on you.'},
+    {t:'About 10 000 000 Pa', fb:'Far too big — that’s closer to the pressure deep inside the ocean.'}
+  ],
+  explain:'Atmospheric pressure ≈ 100 000 Pa at sea level. It drops with altitude because there’s less air above pushing down.'
+},
+
+{ id:34, topic:'gases', sub:'What is air pressure', type:'mcq',
+  q:'Why does atmospheric pressure <b>decrease</b> as you go higher up a mountain?',
+  options:[
+    {t:'Because air is heavier at the bottom and lighter at the top.', fb:'Closer, but the real reason is about the <b>amount of air above you</b>.'},
+    {t:'There is less air above you, so fewer particles pressing down through collisions.', c:true, fb:'Right. The higher you climb, the less air there is above, so fewer particles per second hit you.'},
+    {t:'Because it gets colder.', fb:'Temperature does change, but the main reason pressure drops is the smaller weight (and amount) of air above you.'},
+    {t:'Because there is less gravity higher up.', fb:'Gravity hardly changes over the height of a mountain. The big factor is how much air is above you.'}
+  ],
+  explain:'Air pressure is, in effect, the weight of all the air above you (divided by area). Climb up, less air above, lower pressure.'
+},
+
+/* ---------- GASES · Sealed containers (plane, mountain) ---------- */
+{ id:35, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'mcq',
+  q:'You fill a thin plastic water bottle on the ground, screw the lid on tight, and take it up in an aeroplane. At cruising altitude the cabin pressure is lower than ground pressure. What happens to the bottle?',
+  options:[
+    {t:'It is crushed inward.', fb:'Wrong direction. Inside has the higher (ground) pressure trapped in; outside (cabin) is lower. So it tries to push <b>out</b>.'},
+    {t:'It bulges outward (it can even leak or pop).', c:true, fb:'Yes. The trapped air inside is at ground pressure; the cabin is at lower pressure; so the inside pushes the walls outward.'},
+    {t:'Nothing — the bottle is sealed.', fb:'Sealing doesn’t make it immune. The pressure difference across the wall is what bends it. Sealing actually <b>causes</b> the difference.'},
+    {t:'It expands only if heated.', fb:'It doesn’t need heating. A pressure difference alone is enough to bulge a thin plastic bottle.'}
+  ],
+  explain:'Inside ≈ ground pressure. Outside drops to cabin pressure. Inside pushes harder, so the bottle bulges outward.'
+},
+
+{ id:36, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'mcq',
+  q:'Now imagine you fly <b>with the lid OFF</b> the whole time. Does the bottle bulge or crush?',
+  options:[
+    {t:'It bulges outward.', fb:'No — air can flow in and out, so there’s nothing trapped to push outward.'},
+    {t:'It is crushed inward.', fb:'No — same reason. Air can flow freely, so inside and outside pressures stay equal.'},
+    {t:'It stays the same shape, because air flows in and out to keep inside and outside pressures equal.', c:true, fb:'Yes. With the lid off, the bottle just shares air with the cabin. No pressure difference → no force on the walls.'},
+    {t:'It explodes after a few minutes.', fb:'Not without a sealed pressure difference building up.'}
+  ],
+  explain:'No seal = no trapped air = no pressure difference. The bottle doesn’t deform.'
+},
+
+{ id:37, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'mcq',
+  q:'A passenger drinks from a plastic bottle at altitude (low cabin pressure) and screws the lid on tight at altitude. The plane lands, and on the ground the bottle is <b>crushed</b>. Why?',
+  options:[
+    {t:'The cabin reheats the bottle, melting it.', fb:'Heat isn’t the cause. The cause is a pressure difference.'},
+    {t:'Air inside was sealed at low pressure. On landing, outside pressure is higher and pushes the bottle inward.', c:true, fb:'Yes. Inside pressure was locked in at the cabin (lower) pressure. Outside pressure rises as the plane descends, so outside &gt; inside → bottle is pushed in.'},
+    {t:'The bottle leaks air out when you screw the lid on.', fb:'Not really — sealing locks in the air at whatever pressure was already inside.'},
+    {t:'Gravity is stronger on the ground and crushes it.', fb:'Gravity hardly differs between cabin and ground. The real cause is the air pressure difference.'}
+  ],
+  explain:'Inside the bottle is at low cabin pressure. On the ground, outside ≈ 100 kPa. Outside &gt; inside, so the bottle gets squashed inward.'
+},
+
+{ id:38, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'mcq',
+  q:'You seal an empty bag of crisps at sea level and drive to the top of a mountain. What happens to the bag?',
+  options:[
+    {t:'It puffs up like a balloon.', c:true, fb:'Yes. Inside is at sea-level pressure (higher). Outside air pressure drops with altitude. Inside pushes out → bag expands.'},
+    {t:'It is crushed flat.', fb:'Wrong way round. On a mountain the outside pressure is <b>lower</b>, so the trapped higher-pressure air inside pushes out.'},
+    {t:'It stays exactly the same shape.', fb:'There’s a pressure difference across the bag, so it must deform. Outside is lower, so it puffs up.'},
+    {t:'It freezes solid because it gets cold.', fb:'It does get colder, but the obvious effect is the bag bulging because of the pressure difference.'}
+  ],
+  explain:'Sealed bag = inside air is locked at sea-level pressure. Mountain top = lower outside pressure. So inside &gt; outside, and the bag puffs up.'
+},
+
+{ id:39, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'mcq',
+  q:'You go up a mountain, fill a plastic bottle at the top, screw the lid on, and bring it down to sea level. What happens to the bottle?',
+  options:[
+    {t:'It bulges outward.', fb:'Wrong way round. Inside is at mountain (low) pressure. Outside (sea level) is higher. So outside pushes in.'},
+    {t:'It is crushed inward.', c:true, fb:'Yes. Inside air was trapped at low mountain pressure. Outside is at higher sea-level pressure, so outside wins.'},
+    {t:'Nothing happens.', fb:'There’s a real pressure difference across the bottle wall, so it must deform.'},
+    {t:'It catches fire from friction.', fb:'No friction is involved — just the difference in air pressures.'}
+  ],
+  explain:'Same physics as the plane bottle on landing: inside pressure is locked in at low altitude pressure, outside is now higher, bottle is crushed.'
+},
+
+{ id:40, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'compare',
+  q:'A sealed (lid-on) bottle is taken from the ground up to cruising altitude in a plane.',
+  vars:[
+    {name:'Pressure inside the bottle', correct:'same', fb:'The bottle is sealed — the trapped air can’t escape, so its pressure stays close to what it was on the ground.'},
+    {name:'Pressure outside the bottle (in the cabin)', correct:'down', fb:'Cabin pressure at altitude is lower than on the ground.'},
+    {name:'How much the bottle bulges outward', correct:'up', fb:'A bigger inside-outside pressure difference (inside higher) pushes the walls out more.'}
+  ],
+  explain:'Sealed bottle: inside pressure ≈ same. Outside drops with altitude. Inside &gt; outside → bottle bulges.'
+},
+
+{ id:41, topic:'gases', sub:'Sealed containers (planes & mountains)', type:'compare',
+  q:'A sealed (lid-on at altitude) bottle is brought from cruising altitude down to the ground.',
+  vars:[
+    {name:'Pressure inside the bottle', correct:'same', fb:'Still sealed — the air inside can’t escape, so its pressure barely changes.'},
+    {name:'Pressure outside the bottle', correct:'up', fb:'Outside pressure rises as the plane descends — more air above to push down.'},
+    {name:'How much the bottle is crushed', correct:'up', fb:'Now outside &gt; inside, so the outside pushes the walls in.'}
+  ],
+  explain:'Sealed at altitude, then descend: outside rises, inside stays low, bottle is crushed.'
+},
+
+/* ---------- GASES · Collapsing can ---------- */
+{ id:42, topic:'gases', sub:'Collapsing-can demo', type:'mcq',
+  q:'A small amount of water is boiled inside an empty drinks can. The can is then sealed and placed in cold water. It collapses with a loud bang. What collapses it?',
+  options:[
+    {t:'The cold water freezing the can and shrinking it.', fb:'Cold helps the steam condense, but the squeezing force is air pressure, not freezing.'},
+    {t:'Steam inside condensing back to water, leaving low pressure inside; outside air pressure then pushes the can in.', c:true, fb:'Yes. Hot steam filled the can, pushing air out. When cooled, the steam condenses into a tiny volume of water, leaving very low pressure inside. Atmospheric pressure outside crushes the can.'},
+    {t:'The can is squeezed by the cold water itself, which is heavier than air.', fb:'Water is denser than air, but the crush force here is from the very <b>large pressure difference</b> across the can wall, not from being underwater.'},
+    {t:'Pressure inside the can increases and bursts it inward.', fb:'Pressure inside actually <b>drops</b>. If it had risen, the can would have bulged outward.'}
+  ],
+  explain:'Boiling fills the can with steam, pushing air out. Sealing and cooling makes the steam condense, dropping the pressure inside. Outside atmospheric pressure (~100 kPa) is then much bigger than inside, and it crushes the can.'
+},
+
+{ id:43, topic:'gases', sub:'Collapsing-can demo', type:'compare',
+  q:'In the collapsing-can demo: a hot can full of steam is sealed and dropped into cold water.',
+  vars:[
+    {name:'Pressure inside the can', correct:'down', fb:'Steam condenses to liquid water — far fewer gas particles, much lower pressure.'},
+    {name:'Pressure outside the can (atmospheric)', correct:'same', fb:'Atmospheric pressure outside doesn’t change just because the can is being cooled.'},
+    {name:'Inward push on the can walls', correct:'up', fb:'Outside is now much bigger than inside, so the net inward push is huge — the can collapses.'}
+  ],
+  explain:'Inside drops, outside stays at ~100 kPa, and the pressure difference is large enough to squash the can.'
+},
+
+{ id:44, topic:'gases', sub:'Collapsing-can demo', type:'mcq',
+  q:'In the collapsing-can demo, what would happen if you forgot to <b>seal</b> the can before plunging it into cold water?',
+  options:[
+    {t:'The can would collapse even more dramatically.', fb:'No — without a seal, air can flow in to replace the condensing steam, so no pressure difference builds up.'},
+    {t:'The can would still collapse, just more slowly.', fb:'Without a seal there’s no trapped low-pressure pocket, so there’s nothing to crush the can.'},
+    {t:'Air rushes in to replace the condensing steam, keeping inside and outside pressures equal — the can does not collapse.', c:true, fb:'Right. Sealing is essential. It’s what locks in the low-pressure space when the steam condenses.'},
+    {t:'The can would heat up.', fb:'The can is being plunged into cold water — it cools.'}
+  ],
+  explain:'No seal = air flows in to fill the can as the steam condenses = no pressure difference = no collapse. Sealing is what creates the pressure trap.'
+},
+
+/* ---------- GASES · Vacuum chamber demos ---------- */
+{ id:45, topic:'gases', sub:'Vacuum-chamber demos', type:'mcq',
+  q:'A marshmallow is placed in a bell jar. The pump removes most of the air. The marshmallow <b>expands</b>. Why?',
+  options:[
+    {t:'The marshmallow gets heavier and pushes outward.', fb:'It doesn’t change mass. The expansion is about the air <b>inside</b> the marshmallow pushing out.'},
+    {t:'Trapped air inside the marshmallow is now at higher pressure than the surroundings, so it pushes the marshmallow outward.', c:true, fb:'Yes. The marshmallow has lots of small air pockets at normal pressure. Once the outside drops, the trapped gas pushes the soft walls outward.'},
+    {t:'Sugar in the marshmallow boils.', fb:'It doesn’t boil at the temperatures involved. The effect is purely about pressure inside the pockets vs outside.'},
+    {t:'The bell jar squeezes the marshmallow.', fb:'The bell jar doesn’t touch the marshmallow. The pump just removes air, lowering the pressure inside the jar.'}
+  ],
+  explain:'Marshmallow has air pockets at ~1 atm. Pump the bell jar → outside pressure drops. Inside &gt; outside → pockets expand → marshmallow swells.'
+},
+
+{ id:46, topic:'gases', sub:'Vacuum-chamber demos', type:'mcq',
+  q:'When the air is let back into the bell jar, the marshmallow <b>shrivels</b> to even smaller than at the start. Why?',
+  options:[
+    {t:'During the expansion, some of the trapped air escaped. So now the marshmallow has less internal air than before, and outside air pressure squashes it.', c:true, fb:'Yes — that’s the key. Expanding stretched and burst some pockets, letting gas out. With less air inside, atmospheric pressure outside now wins.'},
+    {t:'The marshmallow lost water by evaporating.', fb:'A tiny bit might, but the dramatic shrivelling is because gas escaped from the pockets — not water loss.'},
+    {t:'The bell jar squeezed it.', fb:'The bell jar doesn’t touch the marshmallow. The squeeze is from outside atmospheric pressure on a now-low-pressure inside.'},
+    {t:'The marshmallow cooled down too much.', fb:'Cooling is small here. The big effect is the loss of trapped air.'}
+  ],
+  explain:'The expansion releases some of the air that was inside the marshmallow. When atmospheric pressure returns, there’s less inside to push back, so it ends up smaller than it started.'
+},
+
+{ id:47, topic:'gases', sub:'Vacuum-chamber demos', type:'mcq',
+  q:'A balloon is placed in a vacuum chamber and the air is pumped out. The balloon:',
+  options:[
+    {t:'Gets smaller.', fb:'Wrong direction. The gas inside is suddenly at higher pressure than the gas outside, so it pushes the rubber out.'},
+    {t:'Gets bigger.', c:true, fb:'Yes. Inside the balloon stays at roughly the same pressure; outside drops; inside &gt; outside → balloon expands. (If you keep pumping, it can pop.)'},
+    {t:'Stays exactly the same.', fb:'There’s a pressure difference building up across the rubber, so it must change shape.'},
+    {t:'Falls to the bottom.', fb:'Gravity is the same. The big visible effect is expansion, not motion.'}
+  ],
+  explain:'Less air outside, same amount inside. Inside pressure pushes harder, so the balloon inflates further.'
+},
+
+{ id:48, topic:'gases', sub:'Vacuum-chamber demos', type:'compare',
+  q:'A balloon is placed in a bell jar and the pump starts removing air.',
+  vars:[
+    {name:'Pressure outside the balloon', correct:'down', fb:'The pump is taking air out of the jar — that’s exactly what reduces pressure.'},
+    {name:'Amount of air trapped inside the balloon', correct:'same', fb:'The balloon is sealed — its trapped air can’t escape.'},
+    {name:'Size of the balloon', correct:'up', fb:'Inside pressure now beats outside, so the rubber gets pushed outward and the balloon expands.'}
+  ],
+  explain:'Drop the outside pressure, keep the same amount of gas inside, and the balloon inflates.'
+},
+
+{ id:49, topic:'gases', sub:'Vacuum-chamber demos', type:'mcq',
+  q:'A sealed bag of shaving foam is placed in the vacuum chamber. As the air is pumped out, the foam:',
+  options:[
+    {t:'Compresses to a thin layer.', fb:'Opposite — bubbles inside foam are little gas pockets. They push out when outside pressure drops.'},
+    {t:'Expands and overflows.', c:true, fb:'Right. Foam is mostly tiny gas bubbles. Drop the outside pressure and every bubble grows, making the foam puff up.'},
+    {t:'Stays the same shape.', fb:'Each tiny bubble has a pressure difference across it, so the foam must change.'},
+    {t:'Boils because of the heat from the pump.', fb:'The pump doesn’t heat the foam meaningfully. The effect is mechanical — bubble expansion.'}
+  ],
+  explain:'Foam = small gas bubbles surrounded by liquid. Drop the outside pressure and each bubble grows, so the whole foam swells.'
+},
+
+/* ---------- GASES · Boiling & pressure ---------- */
+{ id:50, topic:'gases', sub:'Boiling and pressure', type:'mcq',
+  q:'Why does water <b>boil at a lower temperature</b> on top of a high mountain than at sea level?',
+  options:[
+    {t:'Because there is less gravity on the mountain.', fb:'Gravity barely changes. The real reason is the lower air pressure pressing down on the water surface.'},
+    {t:'Because atmospheric pressure is lower, so water molecules can escape into vapour more easily.', c:true, fb:'Yes. Boiling happens when the water’s vapour pressure equals the atmospheric pressure above it. With less air pressure pushing down, that balance is reached at a lower temperature.'},
+    {t:'Because the air is colder, so water boils sooner.', fb:'Air temperature isn’t the cause. Even if the air around were warm, low pressure alone would still drop the boiling point.'},
+    {t:'Because water is purer at altitude.', fb:'Purity isn’t the issue here. It’s about the pressure on the water’s surface.'}
+  ],
+  explain:'Water boils when vapour pressure = atmospheric pressure. High up, atmospheric pressure is small, so the boiling point falls — sometimes below 90 °C.'
+},
+
+{ id:51, topic:'gases', sub:'Boiling and pressure', type:'mcq',
+  q:'A mountaineer complains that their tea on Everest tastes weak and watery. Why?',
+  options:[
+    {t:'The water boils at a lower temperature, so it isn’t hot enough to fully extract flavour from the tea.', c:true, fb:'Yes. Low atmospheric pressure → low boiling point (sometimes ~70 °C). The water is hot but not hot enough to brew tea well.'},
+    {t:'Tea bags don’t work in cold places.', fb:'Tea bags are fine; the issue is the water temperature, which is limited by the low boiling point.'},
+    {t:'Tea leaves are different at altitude.', fb:'The tea is the same. What’s different is the maximum temperature the water can reach.'},
+    {t:'Sugar doesn’t dissolve at altitude.', fb:'Sugar dissolves fine. The problem is the temperature, set by the lower atmospheric pressure.'}
+  ],
+  explain:'Low pressure → low boiling point → cooler water → poor tea extraction. Same logic explains why food cooks slowly at high altitude.'
+},
+
+{ id:52, topic:'gases', sub:'Boiling and pressure', type:'mcq',
+  q:'A <b>pressure cooker</b> seals the steam inside while it heats. Why does this make food cook <b>faster</b>?',
+  options:[
+    {t:'It traps heat so the air in the kitchen warms up.', fb:'That’s a side effect, not the point. The real reason involves the boiling point of water inside the cooker.'},
+    {t:'It raises the pressure inside, which raises the boiling point of water, so the water cooks the food at a higher temperature.', c:true, fb:'Right. Trapped steam can’t escape, so pressure builds. Higher pressure pushes the boiling point up (e.g. to ~120 °C). Hotter water = faster cooking.'},
+    {t:'It puts the food directly into a flame.', fb:'No — the food is still in water. The water just gets hotter than 100 °C because of the higher pressure.'},
+    {t:'It removes water from the food, so it cooks like in an oven.', fb:'It actually keeps water in. The trick is the higher boiling point under raised pressure.'}
+  ],
+  explain:'Pressure cooker: sealed → pressure rises → boiling point of water rises → water can be hotter → food cooks more quickly. Opposite trick to a mountain top.'
+},
+
+{ id:53, topic:'gases', sub:'Boiling and pressure', type:'mcq',
+  q:'In a vacuum chamber, room-temperature water can be made to <b>boil</b> without heating it. Why?',
+  options:[
+    {t:'The pump heats the water.', fb:'It doesn’t — and boiling happens long before any heating would be noticeable.'},
+    {t:'When the outside pressure is reduced enough, the water’s vapour pressure equals the surrounding pressure even at room temperature, so it boils.', c:true, fb:'Yes. Boiling is about pressure balance, not just temperature. Drop the surrounding pressure low enough and any temperature is "hot enough" to boil.'},
+    {t:'The water gets less dense and turns to gas.', fb:'It does turn to gas, but the reason is the low surrounding pressure, not a density change.'},
+    {t:'The vacuum sucks the water into gas.', fb:'There’s no "sucking" — water molecules escape into the low-pressure space because the air pushing down has been removed.'}
+  ],
+  explain:'Boiling happens when vapour pressure ≥ atmospheric pressure. Lower the atmospheric pressure enough and water boils at room temperature.'
+},
+
+{ id:54, topic:'gases', sub:'Boiling and pressure', type:'compare',
+  q:'You move from sea level up to the top of a high mountain.',
+  vars:[
+    {name:'Atmospheric pressure around you', correct:'down', fb:'Less air above you means less pressure pushing down.'},
+    {name:'Boiling point of water', correct:'down', fb:'Lower surrounding pressure means the water doesn’t need to be as hot for its vapour pressure to match.'},
+    {name:'Time to cook food in boiling water', correct:'up', fb:'Boiling water is cooler than at sea level, so it transfers less heat per second — food takes longer.'}
+  ],
+  explain:'Altitude up → pressure down → boiling point down → water cooler → cooking slower. (Pressure cookers fix this by going the other way.)'
+},
+
+/* ---------- GASES · Everyday applications ---------- */
+{ id:55, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'How does a drinking <b>straw</b> work?',
+  options:[
+    {t:'You suck the drink up into your mouth using a vacuum force.', fb:'There is no "sucking force" — what you actually do is reduce the pressure in your mouth, and the atmosphere does the pushing.'},
+    {t:'You lower the pressure inside your mouth (and the top of the straw). Atmospheric pressure on the surface of the drink then pushes liquid up the straw.', c:true, fb:'Yes. The drink isn’t pulled up; it’s pushed up by atmospheric pressure on the surface of the liquid in the glass.'},
+    {t:'The straw heats the drink and pushes it up.', fb:'No heating happens. It’s a cold-pressure effect.'},
+    {t:'The drink is light enough to defy gravity.', fb:'Gravity still pulls the drink down. Something has to push it up — and that something is atmospheric pressure on the liquid surface.'}
+  ],
+  explain:'Mouth lowers pressure at the top of the straw. The atmosphere, pressing down on the liquid in the glass, has more pressure, so it pushes liquid up the straw.'
+},
+
+{ id:56, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'How does a <b>suction cup</b> stick to a window?',
+  options:[
+    {t:'It glues itself to the glass with a sticky surface.', fb:'It isn’t sticky — many suction cups are just smooth rubber.'},
+    {t:'It uses static electricity.', fb:'No, that’s a different effect and far too weak to hold one up.'},
+    {t:'Pressing it flattens out the air, leaving very little air behind. Atmospheric pressure on the outside then pushes the cup hard against the glass.', c:true, fb:'Yes. The squashed cup has very low pressure trapped behind it. Atmospheric pressure pushes the cup tight against the glass from outside.'},
+    {t:'It uses magnetism with the glass.', fb:'Glass isn’t magnetic, and the cup isn’t either.'}
+  ],
+  explain:'A pressed suction cup leaves a low-pressure pocket between itself and the surface. The atmosphere outside then holds it tightly in place.'
+},
+
+{ id:57, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'In a vacuum cleaner, why does dust get sucked up?',
+  options:[
+    {t:'The motor creates a vacuum that pulls things in with a special force.', fb:'There is no "pull". A vacuum just means low pressure. The dust is <b>pushed</b> in by the surrounding air at higher pressure.'},
+    {t:'A fan lowers the pressure inside the hose. Atmospheric pressure outside then pushes air (with dust in it) into the hose.', c:true, fb:'Yes. The motor’s fan moves air out the back; pressure inside the hose drops; outside air rushes in carrying the dust.'},
+    {t:'It uses heat to drive dust upward.', fb:'No significant heating is involved.'},
+    {t:'Dust is attracted by static electricity to the cleaner.', fb:'A little electric attraction can happen, but the main effect is the air pressure difference moving the air (and dust) into the hose.'}
+  ],
+  explain:'It’s a flow driven by a pressure difference. Pressure inside &lt; pressure outside, so air flows in, carrying dust.'
+},
+
+{ id:58, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'A nurse pulls back the plunger of a syringe and medicine flows up into it from a bottle. What pushes the medicine in?',
+  options:[
+    {t:'A force from the plunger pulling the liquid up.', fb:'Plungers can’t "pull" liquid up directly — they just reduce the pressure inside the syringe.'},
+    {t:'Atmospheric pressure on the surface of the medicine in the bottle pushes the liquid up into the lower-pressure syringe.', c:true, fb:'Yes. Pulling the plunger drops the pressure inside the syringe. The atmosphere then pushes the medicine up the needle.'},
+    {t:'Gravity pulls the medicine into the syringe.', fb:'Gravity is pulling it the wrong way — downward. Something has to push it up, and that’s atmospheric pressure.'},
+    {t:'Static electricity in the plastic.', fb:'Tiny effect at best — definitely not what fills the syringe.'}
+  ],
+  explain:'Pulling the plunger lowers the pressure inside the syringe. Atmospheric pressure on the medicine bottle does the pushing.'
+},
+
+{ id:59, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'Your ears "pop" as a plane takes off or you go up a fast lift. Why?',
+  options:[
+    {t:'Air outside your ear gets colder than air inside.', fb:'Temperature isn’t the main effect. It’s the change in <b>pressure</b> outside that causes the popping.'},
+    {t:'There is trapped air in the middle ear at the old pressure. As outside pressure changes, a pressure difference builds up across your eardrum until air can flow in or out, equalising the pressure.', c:true, fb:'Yes. The "pop" is air rushing through a small tube (the Eustachian tube) to balance inside-ear pressure with outside.'},
+    {t:'The plane shakes the eardrum.', fb:'Vibration isn’t the cause. The pop is a pressure-balancing event in the middle ear.'},
+    {t:'Sound waves bounce around inside the ear.', fb:'Pops are not really sound waves — they’re your eardrum suddenly snapping back as pressures equalise.'}
+  ],
+  explain:'Outside pressure changes fast; the middle ear lags; eardrum bulges; small tube opens; air flows in/out; pop.'
+},
+
+{ id:60, topic:'gases', sub:'Everyday applications', type:'mcq',
+  q:'A sealed crisp packet on a plane <b>swells up</b> at cruising altitude. Why?',
+  options:[
+    {t:'The cabin air leaks into the packet and inflates it.', fb:'A sealed packet doesn’t take in new air — but the air already inside is the cause.'},
+    {t:'Air sealed inside the packet at ground pressure is now at higher pressure than the cabin around it, so it pushes the packet outward.', c:true, fb:'Yes. Sealed at sea level, the inside is "stuck" at sea-level pressure. The cabin is at lower pressure. So inside &gt; outside → packet bulges.'},
+    {t:'Crisps release gas when warm.', fb:'Crisps don’t release significant gas. The bulge is from the trapped air at sea-level pressure.'},
+    {t:'The plane shakes air bubbles loose.', fb:'Not how this works. It’s purely a pressure difference across the packet.'}
+  ],
+  explain:'Same physics as the sealed bottle on the plane: trapped air at higher (ground) pressure, surrounded by lower (cabin) pressure, so the packet expands.'
+},
+
+/* ---------- SOLIDS · Surfaces and what they can support (tolerance) ---------- */
+{ id:61, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
+  q:'We say that a surface can "support" or "withstand" a certain amount of pressure. What does that actually mean?',
+  options:[
+    {t:'Above that pressure, the surface gives way: it cracks, dents, or lets things sink into it.', c:true, fb:'Yes. Every surface has a limit. Below it, the surface holds. Above it, the surface fails. Concrete’s limit is enormous; soft sand’s limit is tiny.'},
+    {t:'Above that pressure, things slide across the surface more easily.', fb:'You’re thinking about sliding, which is a friction effect — sideways. "Withstanding pressure" is about whether the surface can hold up under a vertical squeeze.'},
+    {t:'Above that pressure, the surface gets heavier.', fb:'Pressure and weight are different things. A surface doesn’t gain mass just because something presses on it. What can happen is that the surface gives way — cracks, dents, or lets you sink.'},
+    {t:'Above that pressure, the surface heats up and softens.', fb:'Heating up under pressure is a real but tiny effect. The everyday "gives way" we mean here is mechanical: dents, cracks, or sinking — and it happens whether the surface heats up or not.'}
+  ],
+  explain:'Different surfaces have very different limits. Concrete: huge. Tarmac: large. Wood: medium. Hard soil: small. Soft sand or mud: tiny. The job of a wide foot or a wide tyre is to keep <i>your</i> pressure below the limit of the surface you’re on.'
+},
+
+{ id:62, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
+  q:'A horse walks happily down a concrete road without sinking. The same horse sinks into soft sand. The horse and its hooves haven’t changed. What has?',
+  options:[
+    {t:'Soft sand can only withstand a much smaller pressure than concrete before giving way. The horse’s hoof pressure is below concrete’s limit but above sand’s.', c:true, fb:'Yes. Same horse, same weight, same hoof area = same pressure under the hoof in both cases. What flips the outcome is the surface: concrete holds, sand fails.'},
+    {t:'The horse weighs more when standing on sand than on the road.', fb:'Weight depends on the horse, not what it’s standing on. The horse weighs the same on concrete, sand, or grass — gravity doesn’t care.'},
+    {t:'The horse’s hooves get bigger on the sand and smaller on the road.', fb:'Hooves don’t change shape between surfaces. Same hoof, same contact area, same pressure on the ground. What changes is the surface, not the hoof.'},
+    {t:'Sand pushes back less because it’s heavier.', fb:'Sand <i>is</i> heavier than air, but that’s nothing to do with whether it can hold the horse up. The real question is whether the sand can withstand the pressure the hoof puts on it. It can’t — concrete can.'}
+  ],
+  explain:'Same horse, same hoof, same pressure under the hoof. What differs is the <b>surface’s limit</b>. Concrete can handle huge pressures. Soft sand fails far sooner. This is why "wide feet" matter on soft ground but not on hard ground.'
+},
+
+{ id:63, topic:'solids', sub:'Surfaces and what they can support', type:'compare',
+  q:'Imagine a camel kept the same body, but had narrow <b>horse hooves</b> instead of broad camel feet, walking on the <b>same sand</b>.',
+  vars:[
+    {name:'Force the camel pushes on the sand', correct:'same', fb:'Same camel, same weight, same downward force.'},
+    {name:'Contact area with the sand', correct:'down', fb:'Hooves have a much smaller contact area than wide camel feet.'},
+    {name:'Pressure on the sand', correct:'up', fb:'P = F ÷ A. Force same, area smaller, pressure goes up.'},
+    {name:'Pressure the sand can withstand', correct:'same', fb:'The sand hasn’t changed — its limit is whatever it always was.'}
+  ],
+  explain:'Pressure went up; the sand’s limit didn’t. So the camel’s pressure is now above what the sand can hold, and the camel sinks where it used to walk easily. This is exactly <i>why</i> camels evolved wide feet — to keep the pressure under the sand’s limit.'
+},
+
+{ id:64, topic:'solids', sub:'Surfaces and what they can support', type:'compare',
+  q:'A heavy lorry drives off a concrete motorway onto a soft muddy field. Nothing about the lorry changes.',
+  vars:[
+    {name:'Force the lorry pushes on the ground', correct:'same', fb:'Same lorry, same weight — the force on the ground hasn’t changed.'},
+    {name:'Contact area of the tyres', correct:'same', fb:'Same tyres, same contact patches.'},
+    {name:'Pressure under each tyre', correct:'same', fb:'Same F, same A, so same P. The lorry hasn’t changed.'},
+    {name:'Pressure the surface can withstand', correct:'down', fb:'Soft mud holds much less pressure than concrete before it gives way.'}
+  ],
+  explain:'The pressure under the lorry is exactly the same as on the motorway. What changed is the <b>surface</b>: the mud can withstand far less pressure, so the same lorry now exceeds the mud’s limit and starts to sink. (This is why off-road and agricultural vehicles need <i>even wider</i> tyres than road lorries.)'
+},
+
+{ id:65, topic:'solids', sub:'Surfaces and what they can support', type:'compare',
+  q:'A person wearing snowshoes walks off the snow onto a <b>concrete pavement</b>. They keep the snowshoes on.',
+  vars:[
+    {name:'Force on the ground', correct:'same', fb:'Same person, same weight.'},
+    {name:'Contact area', correct:'same', fb:'Still wearing the same snowshoes.'},
+    {name:'Pressure on the ground', correct:'same', fb:'Same F, same A, so same P. The pressure hasn’t changed.'},
+    {name:'Pressure the surface can withstand', correct:'up', fb:'Concrete can hold a far higher pressure than snow before giving way.'}
+  ],
+  explain:'The snowshoes still spread the load — they always do, regardless of surface. The pressure under the shoes is whatever it always was. But concrete’s limit is so much higher than that pressure that the snowshoes give no real benefit; you’d be fine in boots, in trainers, even in stilettos. Spreading the load below a limit you were never going to exceed is wasted effort.'
+},
+
+{ id:66, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
+  q:'Snowshoes are essential in deep snow but pointless on a hard wooden floor. Why?',
+  options:[
+    {t:'The hard floor can already support a much higher pressure than ordinary boots produce. Reducing the pressure further (with snowshoes) doesn’t matter once you’re already below the floor’s limit.', c:true, fb:'Right. Snowshoes only help when your usual pressure exceeds what the surface can hold. Boots exceed snow’s limit, so snowshoes help. Boots are way below a wooden floor’s limit, so snowshoes change nothing useful.'},
+    {t:'Snowshoes only work when the air is cold.', fb:'They’re used in cold places, but the physics doesn’t care about temperature. What matters is whether the pressure you exert is above or below what the surface can support.'},
+    {t:'On a hard floor, snowshoes increase the pressure rather than decrease it.', fb:'Wrong direction. Snowshoes <i>always</i> reduce the pressure compared to boots — a bigger area gives a smaller pressure regardless of surface. The point is that on a hard floor, reducing pressure doesn’t buy you anything because boots were already under the limit.'},
+    {t:'Hard floors have more friction, so the snowshoes don’t slide properly.', fb:'You’ve switched problems — that’s about sideways motion (friction). The question is about the vertical squeeze on the floor (pressure). Snowshoes are about pressure, and pressure isn’t the problem on a wooden floor.'}
+  ],
+  explain:'A surface gives way when pressure exceeds its limit. On snow, boots exceed snow’s limit — snowshoes drop the pressure back under it. On a wooden floor, boots are already far below the floor’s limit — there’s nothing left to fix, so snowshoes do no useful work.'
+},
+
+{ id:67, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
+  q:'What actually determines whether someone or something <b>sinks</b> into a surface?',
+  options:[
+    {t:'Whether the pressure they exert is greater than the maximum pressure that surface can support.', c:true, fb:'Yes. Sinking is a contest between two numbers — the pressure you put on the surface (F ÷ A) and the maximum the surface can hold. Whichever wins decides the outcome.'},
+    {t:'How heavy they are, on its own.', fb:'Weight matters, but not on its own. A very heavy tracked vehicle can sit on mud quite happily; a much lighter person in stilettos can sink into the same mud. Weight is half the story; area is the other half.'},
+    {t:'The size of their feet, on its own.', fb:'Area matters, but not on its own. Big feet on a very heavy animal can still sink; tiny feet on a very light animal can still walk freely. You have to look at force <i>and</i> area together — i.e., the pressure.'},
+    {t:'How fast they’re walking.', fb:'Speed isn’t really the issue here. A standing tractor sinks just as much as a moving one if its pressure exceeds the soil’s limit. The contest is pressure vs. surface limit, not speed.'}
+  ],
+  explain:'Two numbers: (1) <b>your pressure</b> = your weight ÷ contact area; (2) <b>the surface’s limit</b> = the maximum pressure that surface can hold. If (1) &gt; (2), you sink. If (1) &lt; (2), you stay on top. Same person can sink in one place and not another; same surface can hold one thing and fail another.'
+},
+
+{ id:68, topic:'solids', sub:'Surfaces and what they can support', type:'compare',
+  q:'A person wearing stilettos walks off a soft grass lawn and onto a hard <b>tarmac path</b>.',
+  vars:[
+    {name:'Force on the ground (under the heels)', correct:'same', fb:'Same person, same weight.'},
+    {name:'Contact area under the heels', correct:'same', fb:'Same shoes, same heel.'},
+    {name:'Pressure under each heel', correct:'same', fb:'Same F, same A, so same P. The shoes haven’t changed.'},
+    {name:'Pressure the surface can withstand', correct:'up', fb:'Tarmac can hold a far higher pressure than soft grass before giving way.'}
+  ],
+  explain:'The pressure under the heel is the same on both surfaces. On grass it’s above what grass can hold, so the heels sink in. On tarmac it’s well below tarmac’s limit, so the heels stay on top. The shoes haven’t changed — the surface’s limit has.'
+}
+
+];
+
+/* ============================================================
+   ENGINE
+   ============================================================ */
+const stage    = document.getElementById('stage');
+const qcountEl = document.getElementById('qcount');
+const qrightEl = document.getElementById('qright');
+const qaccEl   = document.getElementById('qacc');
+const progress = document.getElementById('progressBar');
+const prevBtn  = document.getElementById('prevBtn');
+const nextBtn  = document.getElementById('nextBtn');
+const applyBtn = document.getElementById('applyBtn');
+const filterTopic = document.getElementById('filterTopic');
+const filterSub   = document.getElementById('filterSub');
+const filterType  = document.getElementById('filterType');
+const filterMode  = document.getElementById('filterMode');
+
+let state = {
+  list: [],
+  index: 0,
+  attempts: {},
+  history: [],   // chronological log of answer events: {id, correct, ts}
+  shuffled: false
+};
+
+function populateSubFilter(topic){
+  const subs = new Set();
+  QUESTIONS.forEach(q=>{
+    if(topic==='all' || q.topic===topic) subs.add(q.sub);
+  });
+  filterSub.innerHTML='<option value="all">All sub-topics</option>';
+  [...subs].sort().forEach(s=>{
+    const o=document.createElement('option'); o.value=s; o.textContent=s; filterSub.appendChild(o);
+  });
+}
+
+filterTopic.addEventListener('change',()=>populateSubFilter(filterTopic.value));
+
+function buildList(){
+  const topic = filterTopic.value;
+  const sub   = filterSub.value;
+  const type  = filterType.value;
+  const mode  = filterMode.value;
+  let list = QUESTIONS.filter(q=>{
+    if(topic!=='all' && q.topic!==topic) return false;
+    if(sub!=='all'   && q.sub!==sub) return false;
+    if(type!=='all'  && q.type!==type) return false;
+    if(mode==='wrong'){
+      const a = state.attempts[q.id];
+      if(!a || a.firstTryCorrect) return false;
+    }
+    return true;
+  });
+  // Always shuffle (in-order mode removed)
+  list = list.slice();
+  for(let i=list.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [list[i],list[j]]=[list[j],list[i]];
+  }
+  return list;
+}
+
+function startSession(){
+  state.list = buildList();
+  state.index = 0;
+  render();
+}
+
+function updateScore(){
+  const total = state.list.length;
+  const cur   = total ? (state.index+1) : 0;
+  qcountEl.textContent = total ? (cur + ' / ' + total) : '— / —';
+  const answered = Object.values(state.attempts).filter(a=>a.answered).length;
+  const rightCount = Object.values(state.attempts).filter(a=>a.firstTryCorrect).length;
+  qrightEl.textContent = rightCount + (answered? ' (' + answered + ' attempted)' : '');
+  qaccEl.textContent = answered ? Math.round(100*rightCount/answered)+'%' : '—';
+  progress.style.width = total ? (100*cur/total)+'%' : '0%';
+}
+
+function render(){
+  updateScore();
+  if(!state.list.length){
+    stage.innerHTML =
+      `<div class="card end">
+         <h2>No questions match those filters.</h2>
+         <p>Try widening the filters above. If you picked "Only the ones I got wrong", you haven't got any wrong yet — nice.</p>
+       </div>`;
+    prevBtn.disabled = true; nextBtn.disabled = true;
+    return;
+  }
+  if(state.index >= state.list.length){
+    const answered = state.list.filter(q=>state.attempts[q.id]?.answered);
+    const wrong    = answered.filter(q=>!state.attempts[q.id].firstTryCorrect);
+    const right    = answered.filter(q=> state.attempts[q.id].firstTryCorrect);
+    stage.innerHTML =
+      `<div class="card end">
+         <h2>Session complete</h2>
+         <p>${right.length} correct on first try out of ${answered.length} attempted (of ${state.list.length} in this session).</p>
+         ${wrong.length? `<p style="margin-top:12px">Wrong on first try — worth a re-look:</p>
+           <div class="review-list">${wrong.map(q=>`
+             <div class="review-item">
+               <div class="qt">${stripTags(q.q)}</div>
+               <div class="meta">${q.topic[0].toUpperCase()+q.topic.slice(1)} · ${q.sub}</div>
+             </div>`).join('')}</div>
+           <p style="margin-top:14px"><button onclick="document.getElementById('filterMode').value='wrong';document.getElementById('applyBtn').click();">Run a session of just the ones I got wrong &rarr;</button></p>
+         `:''}
+         <p style="margin-top:18px"><button class="secondary" onclick="state.index=0;render();">Restart this set</button></p>
+       </div>`;
+    prevBtn.disabled = (state.list.length===0);
+    nextBtn.disabled = true;
+    return;
+  }
+  const q = state.list[state.index];
+  const att = state.attempts[q.id] = state.attempts[q.id] || {answered:false, firstTryCorrect:false};
+  const topicTag = `<span class="tag ${q.topic}">${q.topic==='solids'?'Solids':'Gases'}</span>`;
+  const typeName = q.type==='mcq'?'Multiple choice':q.type==='compare'?'Compare (up / down / same)':'Calculation';
+  const typeTag  = `<span class="tag type">${typeName}</span>`;
+  let body='';
+  if(q.type==='mcq')      body = renderMCQ(q, att);
+  if(q.type==='compare')  body = renderCompare(q, att);
+  if(q.type==='calc')     body = renderCalc(q, att);
+  stage.innerHTML = `<div class="card">
+    <div class="tagrow">${topicTag}${typeTag}</div>
+    <div class="qtext">${q.q}</div>
+    ${body}
+  </div>`;
+  wireUp(q, att);
+  prevBtn.disabled = state.index===0;
+  nextBtn.disabled = false;
+}
+
+function renderMCQ(q, att){
+  const letters=['A','B','C','D','E','F'];
+  let opts = q.options.map((o,i)=>{
+    const locked = att.answered;
+    let cls = 'opt';
+    if(locked){
+      if(o.c) cls += ' correct';
+      else if(att.picked===i) cls += ' wrong';
+      cls += ' locked';
+    }
+    const fb = locked ? `<div class="feedback">${o.fb}</div>` : '';
+    return `<div class="${cls}" data-idx="${i}">
+       <span class="letter">${letters[i]}</span>
+       <div class="body"><div class="text">${o.t}</div>${fb}</div>
+     </div>`;
+  }).join('');
+  let explain = '';
+  if(att.answered){
+    explain = `<div class="explain"><b>Big-picture:</b> ${q.explain}</div>`;
+  }
+  return `<div class="options">${opts}</div>${explain}`;
+}
+
+function renderCompare(q, att){
+  const choices = [
+    {v:'up',   t:'Goes up ↑'},
+    {v:'down', t:'Goes down ↓'},
+    {v:'same', t:'Stays the same ='}
+  ];
+  const rows = q.vars.map((v,i)=>{
+    const picked = att.varsPicked?.[i] ?? '';
+    const correct = picked && picked===v.correct;
+    let cls = 'row';
+    if(att.answered){
+      cls += correct? ' correct' : ' wrong';
+    }
+    const opts = choices.map(c=>`<option value="${c.v}" ${picked===c.v?'selected':''}>${c.t}</option>`).join('');
+    const fb = att.answered ?
+      `<div class="vfeedback"><b>${correct?'Right.':'Not quite.'}</b> ${v.fb}</div>` : '';
+    return `<div class="${cls}" data-i="${i}">
+      <div class="var">${v.name}${v.note?`<small>${v.note}</small>`:''}</div>
+      <select ${att.answered?'disabled':''} data-i="${i}">
+        <option value="" ${picked===''?'selected':''}>— pick one —</option>
+        ${opts}
+      </select>
+      ${fb}
+    </div>`;
+  }).join('');
+  const submitDisabled = att.answered? 'disabled':'';
+  const submitBtn = !att.answered ?
+    `<button id="cmpSubmit" ${submitDisabled}>Submit answers</button>` : '';
+  let explain = '';
+  if(att.answered){
+    explain = `<div class="explain"><b>Big-picture:</b> ${q.explain}</div>`;
+  }
+  return `<div class="compare">${rows}</div>
+    <div style="margin-top:10px">${submitBtn}</div>
+    ${explain}`;
+}
+
+function renderCalc(q, att){
+  const v = att.calcInput ?? '';
+  const locked = att.answered? 'locked':'';
+  const dis    = att.answered? 'disabled':'';
+  const submitBtn = !att.answered ?
+    `<button id="calcSubmit">Submit</button>` :'';
+  let explain = '';
+  if(att.answered){
+    const ok = att.firstTryCorrect || isCalcCorrect(q,v);
+    explain = `<div class="explain ${ok?'':'warn'}"><b>${ok?'Right.':'The answer is '+q.answer+' '+q.unit+'.'}</b> ${q.explain}</div>`;
+  }
+  return `<div class="calcbox ${locked}">
+    <div class="input-row">
+      <input id="calcInput" type="text" inputmode="decimal" placeholder="Type a number" value="${v}" ${dis}>
+      <span class="unit">${q.unit}</span>
+      ${submitBtn}
+    </div>
+  </div>`;
+}
+
+function isCalcCorrect(q,val){
+  const n = parseFloat(val);
+  if(isNaN(n)) return false;
+  return Math.abs(n-q.answer) <= (q.tol ?? 0.01);
+}
+
+function stripTags(s){return s.replace(/<[^>]*>/g,'');}
+
+function wireUp(q, att){
+  if(q.type==='mcq'){
+    stage.querySelectorAll('.opt').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        if(att.answered) return;
+        const i = parseInt(el.getAttribute('data-idx'),10);
+        att.picked = i;
+        att.answered = true;
+        att.firstTryCorrect = !!q.options[i].c;
+        state.history.push({id:q.id, correct:att.firstTryCorrect, ts:Date.now()});
+        render();
+      });
+    });
+  }
+  if(q.type==='compare'){
+    att.varsPicked = att.varsPicked || q.vars.map(()=>'');
+    stage.querySelectorAll('select[data-i]').forEach(s=>{
+      s.addEventListener('change', ()=>{
+        const i = parseInt(s.getAttribute('data-i'),10);
+        att.varsPicked[i] = s.value;
+      });
+    });
+    const btn = document.getElementById('cmpSubmit');
+    if(btn){
+      btn.addEventListener('click',()=>{
+        if(att.varsPicked.some(v=>v==='')){
+          btn.textContent='Pick every variable first';
+          setTimeout(()=>btn.textContent='Submit answers',1200);
+          return;
+        }
+        att.answered = true;
+        att.firstTryCorrect = q.vars.every((v,i)=>v.correct===att.varsPicked[i]);
+        state.history.push({id:q.id, correct:att.firstTryCorrect, ts:Date.now()});
+        render();
+      });
+    }
+  }
+  if(q.type==='calc'){
+    const input = document.getElementById('calcInput');
+    if(input){
+      input.addEventListener('input', ()=>{ att.calcInput = input.value; });
+      input.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ document.getElementById('calcSubmit')?.click(); }
+      });
+    }
+    const btn = document.getElementById('calcSubmit');
+    if(btn){
+      btn.addEventListener('click',()=>{
+        const ok = isCalcCorrect(q, att.calcInput);
+        att.answered = true;
+        att.firstTryCorrect = ok;
+        state.history.push({id:q.id, correct:ok, ts:Date.now()});
+        render();
+      });
+    }
+  }
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.target && (e.target.tagName==='INPUT' || e.target.tagName==='SELECT')) return;
+  const q = state.list[state.index];
+  if(!q) return;
+  if(q.type==='mcq' && !state.attempts[q.id]?.answered){
+    if(e.key>='1' && e.key<='9'){
+      const i = parseInt(e.key,10)-1;
+      const el = stage.querySelector(`.opt[data-idx="${i}"]`);
+      if(el) el.click();
+      return;
+    }
+  }
+  if(e.key==='Enter'){
+    if(state.attempts[q.id]?.answered) nextBtn.click();
+  }
+  if(e.key==='ArrowRight'){ nextBtn.click(); }
+  if(e.key==='ArrowLeft'){ prevBtn.click(); }
+});
+
+prevBtn.addEventListener('click', ()=>{ if(state.index>0){ state.index--; render(); } });
+nextBtn.addEventListener('click', ()=>{ state.index++; render(); });
+applyBtn.addEventListener('click', startSession);
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tab = btn.getAttribute('data-tab');
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
+    if(tab==='stats') renderStats();
+  });
+});
+
+/* ---------- statistics view ---------- */
+function tallyGroup(qs){
+  const att = qs.filter(q=>state.attempts[q.id]?.answered);
+  const ok  = att.filter(q=>state.attempts[q.id].firstTryCorrect);
+  const acc = att.length ? Math.round(100*ok.length/att.length) : null;
+  return {total:qs.length, attempted:att.length, right:ok.length, acc};
+}
+
+function renderStatsTable(groups){
+  return `<table class="stats-table"><thead><tr>
+      <th>Group</th><th class="num">Attempted</th><th class="num">Correct</th><th class="num">Accuracy</th>
+    </tr></thead><tbody>${groups.map(g=>{
+      const qs = QUESTIONS.filter(g.filter);
+      if(!qs.length) return '';
+      const r = tallyGroup(qs);
+      const cls = r.attempted ? '' : 'untouched';
+      const pct = r.acc==null ? 0 : r.acc;
+      return `<tr class="${cls}">
+        <td>${g.label}</td>
+        <td class="num">${r.attempted} / ${r.total}</td>
+        <td class="num">${r.right}</td>
+        <td class="num">${r.acc==null?'—':r.acc+'%'} <span class="pctbar"><span style="width:${pct}%"></span></span></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function pickedDescription(q, att){
+  if(q.type==='mcq' && att.picked!=null){
+    return `You picked: <i>"${stripTags(q.options[att.picked].t)}"</i>`;
+  }
+  if(q.type==='compare' && att.varsPicked){
+    const wrongVars = q.vars
+      .map((v,i)=>({v, picked:att.varsPicked[i]}))
+      .filter(x=>x.picked!==x.v.correct);
+    if(wrongVars.length){
+      return 'Missed: '+wrongVars.map(x=>`${stripTags(x.v.name)} (said <i>${x.picked}</i>, should be <i>${x.v.correct}</i>)`).join('; ');
+    }
+  }
+  if(q.type==='calc'){
+    return `You typed: <i>"${att.calcInput || '(blank)'}"</i>. Correct answer: ${q.answer} ${q.unit}.`;
+  }
+  return '';
+}
+
+function renderStats(){
+  const totalQs   = QUESTIONS.length;
+  const attempted = QUESTIONS.filter(q=>state.attempts[q.id]?.answered);
+  const right     = attempted.filter(q=>state.attempts[q.id].firstTryCorrect);
+  const acc       = attempted.length ? Math.round(100*right.length/attempted.length) : null;
+
+  let html = `<div class="stats-section">
+    <h3>Summary</h3>
+    <div class="stats-summary">
+      <div class="stat-card"><div class="num">${attempted.length}</div><div class="lbl">Attempted (of ${totalQs})</div></div>
+      <div class="stat-card"><div class="num">${right.length}</div><div class="lbl">Correct first try</div></div>
+      <div class="stat-card"><div class="num">${attempted.length-right.length}</div><div class="lbl">Wrong first try</div></div>
+      <div class="stat-card"><div class="num">${acc==null?'—':acc+'%'}</div><div class="lbl">First-try accuracy</div></div>
+    </div>
+  </div>`;
+
+  if(state.history.length){
+    const last = state.history.slice(-10).reverse();
+    html += `<div class="stats-section"><h3>Last ${last.length} attempt${last.length===1?'':'s'}</h3>
+      <div class="recent-list">${last.map(h=>{
+        const q = QUESTIONS.find(x=>x.id===h.id);
+        if(!q) return '';
+        const cls  = h.correct ? 'right' : 'wrong';
+        const mark = h.correct ? '✓' : '✗';
+        const att  = state.attempts[h.id] || {};
+        const pickLine = h.correct ? '' : `<div class="qpick">${pickedDescription(q, att)}</div>`;
+        return `<div class="recent-item ${cls}">
+          <div class="mark">${mark}</div>
+          <div>
+            <div class="qstem">${stripTags(q.q)}</div>
+            <div class="qmeta">${q.topic==='solids'?'Solids':'Gases'} · ${q.sub}</div>
+            ${pickLine}
+          </div>
+          <div class="right-side">Q${q.id}</div>
+        </div>`;
+      }).join('')}</div></div>`;
+  } else {
+    html += `<div class="stats-empty">No attempts yet. Try a few questions in the Quiz tab — they'll show up here as you go, with ticks for right and crosses for wrong.</div>`;
+  }
+
+  html += `<div class="stats-section"><h3>By topic</h3>${renderStatsTable([
+    {label:'Solids', filter:q=>q.topic==='solids'},
+    {label:'Gases',  filter:q=>q.topic==='gases'}
+  ])}</div>`;
+
+  const allSubs = [...new Set(QUESTIONS.map(q=>q.sub))];
+  const solSubs = allSubs.filter(s=>QUESTIONS.some(q=>q.sub===s && q.topic==='solids')).sort();
+  const gasSubs = allSubs.filter(s=>QUESTIONS.some(q=>q.sub===s && q.topic==='gases')).sort();
+  const subOrdered = [...solSubs, ...gasSubs];
+  html += `<div class="stats-section"><h3>By sub-topic</h3>${renderStatsTable(
+    subOrdered.map(s=>({label:s, filter:q=>q.sub===s}))
+  )}</div>`;
+
+  html += `<div class="stats-section"><h3>By question type</h3>${renderStatsTable([
+    {label:'Multiple choice',     filter:q=>q.type==='mcq'},
+    {label:'Compare (↑/↓/=)',     filter:q=>q.type==='compare'},
+    {label:'Calculation',         filter:q=>q.type==='calc'}
+  ])}</div>`;
+
+  document.getElementById('statsContent').innerHTML = html;
+}
+
+populateSubFilter('all');
+startSession();
+</script>
+</body>
+</html>
