@@ -1337,17 +1337,20 @@ function reportAttempt(q, att){
     questionStem:  stripTags(q.q).slice(0,200),
     ts:            new Date().toISOString()
   };
-  // Use text/plain content-type to avoid a CORS preflight that Apps Script
-  // can't respond to. Apps Script reads the raw body via e.postData.contents.
+  // Apps Script web apps don't expose CORS headers on the response, so we use
+  // mode: 'no-cors'. The request still reaches the script and the row is
+  // written; we just can't read the response body. That's fine — server errors
+  // will show up in the Apps Script "Executions" dashboard with a >0% error
+  // rate, which is the right place to look for problems anyway.
+  // text/plain content-type is "CORS-safelisted" → no preflight required.
   fetch(REPORT_URL, {
     method: 'POST',
-    mode:   'cors',
+    mode:   'no-cors',
     headers:{ 'Content-Type': 'text/plain;charset=utf-8' },
     body:   JSON.stringify(payload),
     keepalive: true
-  }).then(r => {
-    if(r && r.ok) flashReportStatus('sent ✓','ok');
-    else flashReportStatus('send failed','bad');
+  }).then(() => {
+    flashReportStatus('sent ✓','ok');
   }).catch(()=>{
     flashReportStatus('offline','bad');
   });
