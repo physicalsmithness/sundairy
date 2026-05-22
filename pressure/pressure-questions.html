@@ -1321,7 +1321,7 @@ function flashReportStatus(text, cls){
 }
 
 function reportAttempt(q, att){
-  if(!REPORT_URL || REPORT_URL === 'https://script.google.com/macros/s/AKfycbwanBX05wv0DScsX3j7Y_0Y3lPxBxJpvg3pj6DB7dB1nzDxjGtdrzJuO9L851Ul-yZ_/exec') return;     // not configured yet
+  if(!REPORT_URL || REPORT_URL.indexOf('script.google.com') === -1) return;     // not configured yet
   if(!IDENTITY.name || !IDENTITY.classCode) return;                    // not signed in (shouldn't happen)
   const payload = {
     studentName:   IDENTITY.name,
