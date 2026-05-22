@@ -182,6 +182,39 @@
   .stats-table .pctbar span{display:block;height:100%;background:linear-gradient(90deg,#2c6cf0,#5a3aaa)}
   .stats-table tr.untouched td{color:#9aa3b8}
   .stats-table tr.untouched td .pctbar span{background:#cdd5e2}
+
+  /* ----- login gate ----- */
+  .login-overlay{position:fixed;inset:0;background:rgba(20,30,60,.55);backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+  .login-overlay.hidden{display:none}
+  .login-card{background:#fff;border-radius:14px;box-shadow:0 12px 48px rgba(20,30,60,.25);
+    padding:28px 30px;width:100%;max-width:420px}
+  .login-card h2{margin:0 0 6px;font-size:20px;letter-spacing:-.01em}
+  .login-card .login-sub{margin:0 0 18px;color:var(--ink-soft);font-size:14px;line-height:1.5}
+  .login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .login-field label{font-size:12.5px;color:var(--ink-soft);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600}
+  .login-input{font:inherit;padding:11px 13px;border:1px solid var(--line);border-radius:9px;
+    font-size:15px;background:#fafbfd}
+  .login-input:focus{outline:none;border-color:var(--accent);background:#fff;
+    box-shadow:0 0 0 3px var(--accent-soft)}
+  .login-btn{margin-top:6px;width:100%;padding:12px 16px;border:0;border-radius:9px;
+    background:var(--accent);color:#fff;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+  .login-btn:hover{background:#1f57d4}
+  .login-btn:disabled{background:#a8b8d8;cursor:not-allowed}
+  .login-note{margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+
+  /* ----- identity strip ----- */
+  .identity-strip{display:flex;align-items:center;justify-content:space-between;
+    font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;padding:6px 12px;
+    background:#f0f3f9;border-radius:8px;border:1px solid var(--line)}
+  .identity-strip b{color:var(--ink);font-weight:600}
+  .identity-strip .signout{background:none;border:0;color:var(--accent);cursor:pointer;
+    font:inherit;font-size:12.5px;padding:2px 6px;border-radius:4px}
+  .identity-strip .signout:hover{background:var(--accent-soft)}
+  .report-status{font-size:11.5px;color:var(--ink-soft)}
+  .report-status.ok{color:var(--good)}
+  .report-status.bad{color:var(--bad)}
 </style>
 <!-- GA4 interaction tracking -->
 <script>
@@ -288,7 +321,31 @@
 </script>
 </head>
 <body>
+
+<!-- Login gate: appears on first load, or after sign-out. Stays up until both fields are filled. -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <h2>Sign in to start</h2>
+    <p class="login-sub">Type your name and class code so your teacher can see how you're getting on. Your answers are sent to your teacher's tracking sheet as you go.</p>
+    <div class="login-field">
+      <label for="loginName">Your name</label>
+      <input id="loginName" class="login-input" type="text" autocomplete="off" placeholder="e.g. Sam Smith">
+    </div>
+    <div class="login-field">
+      <label for="loginClass">Class code</label>
+      <input id="loginClass" class="login-input" type="text" autocomplete="off" placeholder="e.g. Y9B-2026">
+    </div>
+    <button id="loginBtn" class="login-btn" disabled>Start quiz</button>
+    <p class="login-note">Your name and class code are saved on this device so you don't have to re-type them next time.</p>
+  </div>
+</div>
+
 <div class="wrap">
+
+<div id="identityStrip" class="identity-strip" style="display:none">
+  <div>Signed in as <b id="idName">—</b> · class <b id="idClass">—</b> <span class="report-status" id="reportStatus"></span></div>
+  <button class="signout" id="signoutBtn">Sign out</button>
+</div>
 
 <header class="top">
   <div>
@@ -1203,6 +1260,162 @@ let state = {
   shuffled: false
 };
 
+/* ============================================================
+   TEACHER REPORTING
+   Each answer is POSTed to a Google Apps Script Web App, which
+   appends a row to a Google Sheet. See teacher-setup.md for the
+   one-time setup. While REPORT_URL is left as PASTE_YOUR_URL_HERE
+   the quiz still works — reporting just silently no-ops.
+   ============================================================ */
+const REPORT_URL = 'https://script.google.com/macros/s/AKfycbwanBX05wv0DScsX3j7Y_0Y3lPxBxJpvg3pj6DB7dB1nzDxjGtdrzJuO9L851Ul-yZ_/exec';
+
+const IDENTITY = { name: '', classCode: '', sessionId: '' };
+
+function getOrCreateSessionId(){
+  // sessionStorage = lasts as long as this browser tab. New tab = new session id.
+  let id = sessionStorage.getItem('pressure_session_id');
+  if(!id){
+    id = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+       : 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+    sessionStorage.setItem('pressure_session_id', id);
+  }
+  return id;
+}
+
+function describePicked(q, att){
+  // Human-readable picked answer for the sheet.
+  if(q.type === 'mcq'){
+    return (att.picked != null && q.options[att.picked]) ? stripTags(q.options[att.picked].t) : '';
+  }
+  if(q.type === 'compare'){
+    return (att.varsPicked || []).map((v,i)=>{
+      const lab = q.vars[i] ? q.vars[i].label : ('var'+i);
+      return lab + '=' + v;
+    }).join(' | ');
+  }
+  if(q.type === 'calc'){
+    return att.calcInput != null ? String(att.calcInput) : '';
+  }
+  return '';
+}
+
+function describeCorrect(q){
+  if(q.type === 'mcq'){
+    const c = q.options.find(o=>o.c);
+    return c ? stripTags(c.t) : '';
+  }
+  if(q.type === 'compare'){
+    return q.vars.map(v => v.label + '=' + v.correct).join(' | ');
+  }
+  if(q.type === 'calc'){
+    return String(q.answer);
+  }
+  return '';
+}
+
+const reportStatusEl = ()=>document.getElementById('reportStatus');
+function flashReportStatus(text, cls){
+  const el = reportStatusEl(); if(!el) return;
+  el.textContent = text; el.className = 'report-status ' + (cls||'');
+  if(cls === 'ok') setTimeout(()=>{ if(el.textContent===text){ el.textContent=''; el.className='report-status'; } }, 1400);
+}
+
+function reportAttempt(q, att){
+  if(!REPORT_URL || REPORT_URL === 'https://script.google.com/macros/s/AKfycbwanBX05wv0DScsX3j7Y_0Y3lPxBxJpvg3pj6DB7dB1nzDxjGtdrzJuO9L851Ul-yZ_/exec') return;     // not configured yet
+  if(!IDENTITY.name || !IDENTITY.classCode) return;                    // not signed in (shouldn't happen)
+  const payload = {
+    studentName:   IDENTITY.name,
+    classCode:     IDENTITY.classCode,
+    sessionId:     IDENTITY.sessionId,
+    qid:           q.id,
+    topic:         q.topic,
+    sub:           q.sub,
+    type:          q.type,
+    isCorrect:     !!att.firstTryCorrect,
+    picked:        describePicked(q, att),
+    correctAnswer: describeCorrect(q),
+    questionStem:  stripTags(q.q).slice(0,200),
+    ts:            new Date().toISOString()
+  };
+  // Use text/plain content-type to avoid a CORS preflight that Apps Script
+  // can't respond to. Apps Script reads the raw body via e.postData.contents.
+  fetch(REPORT_URL, {
+    method: 'POST',
+    mode:   'cors',
+    headers:{ 'Content-Type': 'text/plain;charset=utf-8' },
+    body:   JSON.stringify(payload),
+    keepalive: true
+  }).then(r => {
+    if(r && r.ok) flashReportStatus('sent ✓','ok');
+    else flashReportStatus('send failed','bad');
+  }).catch(()=>{
+    flashReportStatus('offline','bad');
+  });
+}
+
+/* ============================================================
+   LOGIN GATE
+   ============================================================ */
+function setupLoginGate(){
+  const overlay = document.getElementById('loginOverlay');
+  const nameEl  = document.getElementById('loginName');
+  const clsEl   = document.getElementById('loginClass');
+  const btn     = document.getElementById('loginBtn');
+  const strip   = document.getElementById('identityStrip');
+  const idName  = document.getElementById('idName');
+  const idClass = document.getElementById('idClass');
+
+  // Pre-fill from localStorage so a student doesn't have to re-type each time.
+  const savedName = localStorage.getItem('pressure_student_name') || '';
+  const savedClass = localStorage.getItem('pressure_class_code') || '';
+  nameEl.value = savedName;
+  clsEl.value  = savedClass;
+
+  function refreshButton(){
+    btn.disabled = !(nameEl.value.trim() && clsEl.value.trim());
+  }
+  nameEl.addEventListener('input', refreshButton);
+  clsEl.addEventListener('input', refreshButton);
+  refreshButton();
+
+  function startWith(name, classCode){
+    IDENTITY.name = name;
+    IDENTITY.classCode = classCode;
+    IDENTITY.sessionId = getOrCreateSessionId();
+    localStorage.setItem('pressure_student_name', name);
+    localStorage.setItem('pressure_class_code', classCode);
+    idName.textContent = name;
+    idClass.textContent = classCode;
+    strip.style.display = 'flex';
+    overlay.classList.add('hidden');
+  }
+
+  btn.addEventListener('click', ()=>{
+    const n = nameEl.value.trim();
+    const c = clsEl.value.trim();
+    if(!n || !c) return;
+    startWith(n, c);
+  });
+  [nameEl, clsEl].forEach(el => el.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' && !btn.disabled) btn.click();
+  }));
+
+  document.getElementById('signoutBtn').addEventListener('click', ()=>{
+    localStorage.removeItem('pressure_student_name');
+    localStorage.removeItem('pressure_class_code');
+    sessionStorage.removeItem('pressure_session_id');
+    location.reload();
+  });
+
+  // If both fields are already saved, auto-start without showing the overlay.
+  if(savedName && savedClass){
+    startWith(savedName, savedClass);
+  } else {
+    // Focus the empty field for quick entry.
+    (savedName ? clsEl : nameEl).focus();
+  }
+}
+
 function populateSubFilter(topic){
   const subs = new Set();
   QUESTIONS.forEach(q=>{
@@ -1407,6 +1620,7 @@ function wireUp(q, att){
         att.answered = true;
         att.firstTryCorrect = !!q.options[i].c;
         state.history.push({id:q.id, correct:att.firstTryCorrect, ts:Date.now()});
+        reportAttempt(q, att);
         render();
       });
     });
@@ -1430,6 +1644,7 @@ function wireUp(q, att){
         att.answered = true;
         att.firstTryCorrect = q.vars.every((v,i)=>v.correct===att.varsPicked[i]);
         state.history.push({id:q.id, correct:att.firstTryCorrect, ts:Date.now()});
+        reportAttempt(q, att);
         render();
       });
     }
@@ -1449,6 +1664,7 @@ function wireUp(q, att){
         att.answered = true;
         att.firstTryCorrect = ok;
         state.history.push({id:q.id, correct:ok, ts:Date.now()});
+        reportAttempt(q, att);
         render();
       });
     }
@@ -1595,6 +1811,7 @@ function renderStats(){
 }
 
 populateSubFilter('all');
+setupLoginGate();
 startSession();
 </script>
 </body>
