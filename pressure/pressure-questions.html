@@ -127,9 +127,9 @@
   .calcbox .feedline.right{background:var(--good-soft);border-left-color:#0c8a4a;color:#0a6a3a}
   .calcbox .feedline.wrong{background:var(--bad-soft);border-left-color:#c5293c;color:#7a2230}
   .calcbox .feedline.partial{background:var(--warn-soft);border-left-color:#a26a00;color:#7a5400}
-  .calcbox .marks{font-size:14.5px;font-weight:600;margin-top:6px;padding:6px 10px;
+  .marks{font-size:14.5px;font-weight:600;margin-top:8px;padding:6px 10px;
     background:#f0f3f9;border-radius:7px;display:inline-block}
-  .calcbox .marks.full{background:var(--good-soft);color:#0a6a3a}
+  .marks.full{background:var(--good-soft);color:#0a6a3a}
   .calcbox button#calcSubmit{padding:10px 18px;border:0;border-radius:8px;background:var(--accent);
     color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:14.5px}
   .calcbox button#calcSubmit:hover{background:#1f57d4}
@@ -1364,8 +1364,12 @@ function reportAttempt(q, att){
     picked:        describePicked(q, att),
     correctAnswer: describeCorrect(q),
     questionStem:  stripTags(q.q).slice(0,200),
-    marks:         (q.type === 'calc' && att.calcMarks != null) ? att.calcMarks : (att.firstTryCorrect ? 1 : 0),
-    maxMarks:      (q.type === 'calc') ? 2 : 1,
+    marks:         (q.type === 'calc'    && att.calcMarks    != null) ? att.calcMarks
+                  :(q.type === 'compare' && att.compareMarks != null) ? att.compareMarks
+                  :(att.firstTryCorrect ? 1 : 0),
+    maxMarks:      (q.type === 'calc')    ? 2
+                  :(q.type === 'compare') ? (att.compareMaxMarks ?? q.vars.length)
+                  :1,
     ts:            new Date().toISOString()
   };
   // Apps Script web apps don't expose CORS headers on the response, so we use
@@ -1608,11 +1612,16 @@ function renderCompare(q, att){
   const submitBtn = !att.answered ?
     `<button id="cmpSubmit" ${submitDisabled}>Submit answers</button>` : '';
   let explain = '';
+  let marksLine = '';
   if(att.answered){
+    const correctCount = q.vars.reduce((n, v, i) => n + (att.varsPicked?.[i] === v.correct ? 1 : 0), 0);
+    const total = q.vars.length;
+    marksLine = `<div class="marks ${correctCount === total ? 'full' : ''}">Marks: ${correctCount} / ${total}${correctCount === total ? ' ✓' : ''}</div>`;
     explain = `<div class="explain"><b>Big-picture:</b> ${q.explain}</div>`;
   }
   return `<div class="compare">${rows}</div>
     <div style="margin-top:10px">${submitBtn}</div>
+    ${marksLine}
     ${explain}`;
 }
 
@@ -1757,8 +1766,11 @@ function wireUp(q, att){
           return;
         }
         att.answered = true;
-        att.firstTryCorrect = q.vars.every((v,i)=>v.correct===att.varsPicked[i]);
-        state.history.push({id:q.id, correct:att.firstTryCorrect, ts:Date.now()});
+        const correctCount = q.vars.reduce((n, v, i) => n + (att.varsPicked[i] === v.correct ? 1 : 0), 0);
+        att.compareMarks    = correctCount;
+        att.compareMaxMarks = q.vars.length;
+        att.firstTryCorrect = correctCount === q.vars.length;
+        state.history.push({id:q.id, correct:att.firstTryCorrect, marks:correctCount, maxMarks:q.vars.length, ts:Date.now()});
         reportAttempt(q, att);
         render();
       });
