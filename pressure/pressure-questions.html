@@ -107,11 +107,32 @@
   .compare .row.correct .vfeedback{color:#236a48}
   .compare .row.wrong .vfeedback{color:#7a2230}
 
-  .calcbox{display:flex;flex-direction:column;gap:8px;margin:4px 0}
-  .calcbox .input-row{display:flex;align-items:center;gap:10px}
-  .calcbox input{flex:1;padding:9px 11px;font:inherit;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .calcbox{display:flex;flex-direction:column;gap:10px;margin:4px 0}
+  .calcbox .input-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .calcbox .input-group{display:flex;flex-direction:column;gap:3px}
+  .calcbox .input-label{font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600}
+  .calcbox input{padding:10px 12px;font:inherit;font-size:15px;border:1.5px solid var(--line);
+    border-radius:8px;background:#fff;width:140px;transition:border-color .15s,background .15s}
+  .calcbox input#calcInput{width:130px}
+  .calcbox input#calcUnitInput{width:130px}
+  .calcbox input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .calcbox input.right{background:var(--good-soft);border-color:#74c89e;color:#0a6a3a}
+  .calcbox input.wrong{background:var(--bad-soft);border-color:#e08a96;color:#7a2230}
+  .calcbox input.partial{background:var(--warn-soft);border-color:#dfb463;color:#7a5400}
   .calcbox .unit{color:var(--ink-soft);font-size:14px;min-width:50px}
-  .calcbox.locked input{background:#f7f9fc;color:#5a6478}
+  .calcbox.locked input{cursor:not-allowed}
+  .calcbox .calc-feedlines{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+  .calcbox .feedline{font-size:14px;padding:7px 11px;border-radius:7px;border-left:3px solid var(--line)}
+  .calcbox .feedline.right{background:var(--good-soft);border-left-color:#0c8a4a;color:#0a6a3a}
+  .calcbox .feedline.wrong{background:var(--bad-soft);border-left-color:#c5293c;color:#7a2230}
+  .calcbox .feedline.partial{background:var(--warn-soft);border-left-color:#a26a00;color:#7a5400}
+  .calcbox .marks{font-size:14.5px;font-weight:600;margin-top:6px;padding:6px 10px;
+    background:#f0f3f9;border-radius:7px;display:inline-block}
+  .calcbox .marks.full{background:var(--good-soft);color:#0a6a3a}
+  .calcbox button#calcSubmit{padding:10px 18px;border:0;border-radius:8px;background:var(--accent);
+    color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:14.5px}
+  .calcbox button#calcSubmit:hover{background:#1f57d4}
 
   .explain{margin-top:12px;padding:12px 14px;background:var(--accent-soft);border:1px solid #c9dafc;
     border-radius:10px;font-size:14.5px;color:#23355c}
@@ -438,7 +459,7 @@ const QUESTIONS = [
   q:'A <b>sharp</b> knife cuts through a tomato much more easily than a <b>blunt</b> one, even when you push with the same force. Why?',
   options:[
     {t:'The sharp knife exerts a greater force on the tomato.', fb:'No — the question says the force is the <b>same</b>. The knife itself doesn’t change your push; only the contact area changes.'},
-    {t:'The contact area is smaller, so the pressure is greater.', c:true, fb:'Yes. Same force ÷ smaller area = bigger pressure under the blade. High pressure cuts through the skin.'},
+    {t:'The contact area is smaller.', c:true, fb:'Yes. Same force ÷ smaller area = bigger pressure under the blade. High pressure cuts through the skin.'},
     {t:'The sharp knife has a lower pressure at the edge.', fb:'The opposite — pressure goes <b>up</b> when the area shrinks. Think P = F ÷ A: smaller A means bigger P.'},
     {t:'Sharp knives are made of a different metal that cuts better.', fb:'Material can matter a little, but the physics here is about <b>area</b>. Even a blunt knife of the same metal struggles.'}
   ],
@@ -449,7 +470,7 @@ const QUESTIONS = [
   q:'A drawing pin has a <b>sharp point</b> at one end and a <b>flat head</b> at the other. Why is the pointy end sharp?',
   options:[
     {t:'So the point can grip the wall by friction.', fb:'It’s not really about friction — it’s about getting <i>into</i> the wall in the first place, which needs high pressure.'},
-    {t:'So the same force gives a very high pressure at the wall.', c:true, fb:'Yes. Tiny contact area → huge pressure → the point pushes into the wood/cork.'},
+    {t:'So your push acts on a very small contact area of wall.', c:true, fb:'Yes. Tiny contact area → huge pressure under the point → the point pushes into the wood/cork.'},
     {t:'So less force is needed.', fb:'Careful with words. The <b>force</b> from your thumb is the same whether the pin is sharp or blunt — it’s the <b>pressure</b> that changes because the area changes.'},
     {t:'So the pin sticks because of magnetism with the wall.', fb:'No — most walls aren’t magnetic, and pins don’t need to be either.'}
   ],
@@ -459,18 +480,18 @@ const QUESTIONS = [
 { id:3, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
   q:'And the <b>flat head</b> of the drawing pin — why is it flat and wide?',
   options:[
-    {t:'So the pressure on your thumb is small and it doesn’t hurt.', c:true, fb:'Right. Same force from your thumb, but spread over a much bigger area, so the pressure on your skin is low.'},
+    {t:'So your push is spread over a much larger area of thumb.', c:true, fb:'Right. Same force from your thumb, but spread over a much bigger area, so the pressure on your skin is low — and it doesn’t hurt.'},
     {t:'So you push with more force.', fb:'The force from your thumb is roughly the same. The wide head just spreads it over a larger area.'},
     {t:'So the pin lasts longer and doesn’t bend.', fb:'That might be a small bonus, but the main reason is comfort — keeping pressure on your thumb low.'},
     {t:'So the pin doesn’t fall out of the wall.', fb:'That’s mostly the sharp end gripping the wall, not the flat head.'}
   ],
-  explain:'Same force, bigger area on your thumb → lower pressure → no pain. Same force, tiny area at the point → enormous pressure → pin goes in. Two clever uses of the same idea on one object.'
+  explain:'Same force, bigger area on your thumb → lower pressure → no pain. Same force, tiny area at the point → enormous pressure → pin goes in.'
 },
 
 { id:4, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
   q:'Two students push two knives into a piece of cheese using <b>the same force</b>. Knife A is sharp, Knife B is blunt. Which exerts the greater pressure on the cheese?',
   options:[
-    {t:'Knife A (sharp) — smaller area means greater pressure.', c:true, fb:'Yes. Same force, smaller area, so bigger P = F ÷ A under the blade.'},
+    {t:'Knife A (sharp).', c:true, fb:'Yes. Same force, smaller area, so bigger P = F ÷ A under the blade.'},
     {t:'Knife B (blunt) — it’s heavier so it pushes harder.', fb:'Weight wasn’t mentioned and the forces are stated to be the same. Compare areas, not weights.'},
     {t:'Both the same — they have the same force.', fb:'Same force doesn’t mean same pressure. Pressure also depends on the <b>area</b> the force is spread over.'},
     {t:'Knife B (blunt) — the larger area pushes harder.', fb:'Bigger area means the force is <b>spread out more</b>, so pressure is <b>lower</b>, not higher.'}
@@ -479,11 +500,11 @@ const QUESTIONS = [
 },
 
 { id:5, topic:'solids', sub:'Reducing area (sharp things)', type:'mcq',
-  q:'A nail has a sharp point. When you hit the head with a hammer, the nail goes into wood. Why does sharpening the point make it go in <b>even more easily</b>?',
+  q:'Why does sharpening a nail’s point make it go into wood more easily when hit with a hammer?',
   options:[
     {t:'It reduces the force needed because friction is lower.', fb:'Friction plays a role, but the dominant idea is that a sharper tip <b>concentrates</b> the same force onto a smaller area.'},
     {t:'It makes the nail lighter, so it accelerates more.', fb:'Sharpening barely changes the mass. The big change is to the contact area.'},
-    {t:'It makes the contact area smaller, so the pressure at the tip is much higher.', c:true, fb:'Right. The hammer force is concentrated onto a tinier point, so the pressure on the wood is enormous.'},
+    {t:'It makes the contact area at the tip smaller.', c:true, fb:'Right. The hammer force is concentrated onto a tinier point, so the pressure on the wood is enormous.'},
     {t:'It increases the force that the hammer applies.', fb:'The hammer force is the same. What changes is how that force is <b>distributed</b> at the tip of the nail.'}
   ],
   explain:'Hammer force is the same; sharper tip means smaller contact area on the wood; same F ÷ smaller A = bigger pressure → easier to push the wood fibres apart.'
@@ -513,7 +534,7 @@ const QUESTIONS = [
 { id:8, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'In deep snow, a person in <b>ordinary boots</b> sinks in. In <b>snowshoes</b>, the same person can walk on top. Why?',
   options:[
-    {t:'The snowshoes spread the person’s weight over a much larger area, so the pressure on the snow stays below what the snow can support.', c:true, fb:'Yes. Same downward force, bigger area, smaller pressure. As long as that pressure is below what soft snow can withstand, the snow holds the person up.'},
+    {t:'The snowshoes spread the person’s weight over a much larger area.', c:true, fb:'Yes. Same downward force, bigger area, so smaller pressure on the snow. As long as that pressure is below what soft snow can withstand, the snow holds the person up.'},
     {t:'The snowshoes make the person lighter overall.', fb:'Weight is unchanged — the snowshoes don’t alter the person’s mass. What they change is the <b>area</b> the weight is spread over, and so the pressure. Force stays the same.'},
     {t:'The snowshoes grip the snow, and that grip is what stops them sinking.', fb:'Grip is friction — it stops you sliding sideways. Sinking is a downward problem: pressing too hard <i>into</i> the snow. That’s a pressure issue, not a friction one.'},
     {t:'Each step compresses the snow into a firmer layer underneath, which holds the person up.', fb:'A small amount of compaction happens, but it isn’t what keeps you up. A boot does the same compaction over a smaller area and still sinks. What changes with snowshoes is the much larger contact area, which keeps the pressure under the snow’s limit.'}
@@ -528,13 +549,13 @@ const QUESTIONS = [
     {name:'Area of contact with the snow', correct:'up', fb:'The whole point of a snowshoe is a much bigger footprint.'},
     {name:'Pressure on the snow', correct:'down', fb:'P = F ÷ A. F is the same, A is bigger, so P drops. That’s why you don’t sink.'}
   ],
-  explain:'“Same force, bigger area” — the textbook way of <i>reducing</i> pressure. Skis, snowboards, tank tracks and camel feet all use the same trick.'
+  explain:'Same force, bigger area, so smaller pressure on the snow. Skis, snowboards, tank tracks and camel feet all use the same trick.'
 },
 
 { id:10, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A <b>camel’s foot</b> is broad and flat, while a horse’s hoof is narrow. Why is this useful in the desert?',
   options:[
-    {t:'A broad foot spreads the camel’s weight over a much larger area, so the pressure on the sand stays below what soft sand can support before giving way.', c:true, fb:'Yes. The camel’s weight hasn’t changed; the area has. Big area, small pressure. Sand can only support a small pressure before it gives way, so a narrow foot would exceed that limit and sink.'},
+    {t:'A broad foot spreads the camel’s weight over a much larger area.', c:true, fb:'Yes. The camel’s weight hasn’t changed; the area has. Big area, small pressure on the sand. Sand can only support a small pressure before it gives way, so a narrow foot would exceed that limit and sink.'},
     {t:'The broad foot reduces the camel’s overall weight.', fb:'The shape of the foot doesn’t change the camel’s weight — that’s set by its mass and gravity. What the broad foot changes is the area, and so the pressure.'},
     {t:'The broad foot grips the sand, and that grip is what stops it sinking.', fb:'Grip is friction — it stops the camel sliding around. Sinking is a pressure problem: pressing too hard <i>into</i> the sand. Different physics, different direction.'},
     {t:'The broad foot presses the sand hard enough to pack it solid underneath before each step.', fb:'A small amount of compaction happens, but soft sand can’t be packed firm enough to support a horse — that’s why horses sink in dunes. The real benefit is the lower pressure on still-soft sand.'}
@@ -545,7 +566,7 @@ const QUESTIONS = [
 { id:11, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A tractor has very <b>wide tyres</b>, not narrow car tyres. Why?',
   options:[
-    {t:'Wide tyres give a big contact area with the soil, so the pressure under the tyres stays below what soft, wet soil can support before giving way.', c:true, fb:'Right. Wider tyres don’t reduce the tractor’s weight — they spread it. Pressure drops below the soil’s limit, so the soil holds the tractor up instead of letting it sink.'},
+    {t:'Wide tyres give a big contact area with the soil.', c:true, fb:'Right. Wider tyres don’t reduce the tractor’s weight — they spread it over more area, so the pressure drops below the soil’s limit and the soil holds the tractor up instead of letting it sink.'},
     {t:'Wide tyres make the tractor lighter overall.', fb:'Wide tyres are usually heavier than narrow ones, not lighter. The tractor’s weight is whatever it is — the tyres just decide how that weight is spread.'},
     {t:'Wide tyres grip the soil more, and the extra grip is what stops the tractor sinking.', fb:'Grip is friction — it stops the tyres slipping sideways. Sinking is a vertical pressure problem: too much force per square metre on soft ground. Different physics.'},
     {t:'Wide tyres press the soil hard enough to compact it solid underneath, so it can hold the tractor.', fb:'A bit of compaction happens, but it’s not the main effect. Wide tyres press <i>more gently</i> per square metre than narrow tyres — that’s the whole point. They keep the pressure under the soil’s limit, rather than crushing the soil into a base.'}
@@ -556,7 +577,7 @@ const QUESTIONS = [
 { id:12, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A heavy lorry often has <b>many sets of tyres</b> (sometimes eight or more), rather than just four like a car. Why?',
   options:[
-    {t:'More tyres share the lorry’s huge weight across more contact patches, so the pressure under each tyre stays below what the road can withstand without being crushed or rutted.', c:true, fb:'Yes. More tyres = more total contact area = lower pressure per square metre. That keeps the pressure on the road under what tarmac can support, even under a 40-tonne lorry.'},
+    {t:'More tyres share the lorry’s huge weight across more contact patches.', c:true, fb:'Yes. More tyres = more total contact area = lower pressure per square metre. That keeps the pressure on the road under what tarmac can support, even under a 40-tonne lorry.'},
     {t:'More tyres are mostly there to grip the road on tight bends.', fb:'Grip helps with cornering, but four good tyres are normally plenty for that. The real reason lorries have so many is to spread a much heavier load over more area, so the road doesn’t fail under the pressure.'},
     {t:'More tyres make the lorry lighter overall.', fb:'They don’t — they add a bit of weight, in fact. Their job is to split the lorry’s existing weight across more contact patches, not to change what that weight is.'},
     {t:'More tyres make the lorry push down on the road with less total force.', fb:'Classic force-vs-pressure mix-up. The total <b>force</b> on the road is the lorry’s full weight no matter how many tyres there are. What changes is how that force is shared — and so how much <b>pressure</b> is under each tyre.'}
@@ -567,7 +588,7 @@ const QUESTIONS = [
 { id:13, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'Tanks and bulldozers have wide <b>caterpillar tracks</b> rather than wheels. The main physics reason is:',
   options:[
-    {t:'Tracks spread the vehicle’s weight over a much larger area, so the pressure on the ground stays below what soft mud or sand can support.', c:true, fb:'Yes. A 50-tonne tank on wheels would put enormous pressure on a small contact patch — far above what mud can hold. Tracks turn that into a long, broad footprint where the pressure stays under the ground’s limit.'},
+    {t:'Tracks spread the vehicle’s weight over a much larger area.', c:true, fb:'Yes. A 50-tonne tank on wheels would put enormous pressure on a small contact patch — far above what mud can hold. Tracks turn that into a long, broad footprint where the pressure stays under the ground’s limit.'},
     {t:'Tracks grip the ground much better than wheels would, and that grip is what stops the tank sinking.', fb:'Tracks <i>do</i> grip better than wheels on soft ground — that’s a real bonus. But grip is a sideways effect (friction); sinking is a vertical pressure effect. For Y9, the main reason is area: the tracks reduce the pressure on the ground, not the sideways slip.'},
     {t:'Tracks make the tank lighter.', fb:'Tracks add a lot of weight, they don’t subtract any. The tank is heavier with tracks than it would be without. The benefit is the much bigger contact area, not a lower weight.'},
     {t:'Tracks compact the ground hard enough that the ground becomes firm enough to hold the tank.', fb:'A bit of compaction happens, but the tank is far too heavy for mud to be compacted into a base that could support it. Without tracks, it would just sink. Tracks work by reducing the pressure on still-soft ground, not by hardening the ground first.'}
@@ -578,7 +599,7 @@ const QUESTIONS = [
 { id:14, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'You buy small <b>felt pads</b> to stick on the bottom of your table legs. Apart from stopping scratches, what do they do in terms of pressure?',
   options:[
-    {t:'They spread each leg’s force over a slightly larger area, so the pressure on the floor stays below what the wood can withstand without denting.', c:true, fb:'Yes. The table’s weight is unchanged, but the contact area under each leg is a bit bigger. The pressure drops, and the wood stays just below its denting limit.'},
+    {t:'They spread each leg’s force over a slightly larger area.', c:true, fb:'Yes. The table’s weight is unchanged, but the contact area under each leg is a bit bigger. The pressure on the floor drops, and the wood stays just below its denting limit.'},
     {t:'They reduce the table’s weight.', fb:'The pads are tiny — they barely add any mass, let alone subtract any. The table’s weight is the same. What changes is how that weight is shared with the floor.'},
     {t:'They grip the floor, and that grip is what stops the legs digging in.', fb:'Felt is grippy and stops the table sliding around — true. But sliding (a sideways problem) is friction. Denting the floor (a downward problem) is pressure. Different physics, different direction.'},
     {t:'They squish under load, absorbing the pressure into themselves rather than letting it reach the floor.', fb:'The pads do squash a little, but they don’t absorb the force — the floor still receives every newton of the table’s weight. What the pad changes is the <i>area</i> that force is spread over, not how much force gets through.'}
@@ -589,7 +610,7 @@ const QUESTIONS = [
 { id:15, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A heavy school bag has <b>two thin straps</b> instead of two wide ones. The straps feel as if they are cutting into your shoulders. Why?',
   options:[
-    {t:'Thin straps press the same downward force into a small contact area, so the pressure on your shoulders is high.', c:true, fb:'Exactly. Same weight, smaller strap area, so big pressure on your skin.'},
+    {t:'Thin straps press the same downward force into a small contact area.', c:true, fb:'Exactly. Same weight, smaller strap area, so big pressure on your skin.'},
     {t:'Thin straps are heavier.', fb:'Usually lighter. Mass isn’t the issue — area is.'},
     {t:'Thin straps push down with more force.', fb:'The bag’s weight is the same. The straps just hand that same force to your shoulders through a smaller area.'},
     {t:'Thin straps stretch more, increasing the force.', fb:'Some stretching happens, but the main physics here is the small area giving a big pressure.'}
@@ -600,7 +621,7 @@ const QUESTIONS = [
 { id:16, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A “bed of nails” has <b>hundreds</b> of nails close together. A person can lie on it without injury, even though one nail alone would hurt badly. Why?',
   options:[
-    {t:'The hundreds of nails between them give a large total contact area, so the person’s weight produces a low pressure at each point.', c:true, fb:'Yes. Adding up all the tips gives a fairly large total area, so the pressure under each nail is small enough not to break the skin.'},
+    {t:'The hundreds of nails between them give a large total contact area.', c:true, fb:'Yes. Adding up all the tips gives a fairly large total area, so the pressure under each nail is small enough not to break the skin.'},
     {t:'The bed of nails removes the person’s weight.', fb:'It can’t — their weight is exactly the same. It’s shared, not removed.'},
     {t:'Nails next to each other repel each other and lift the person.', fb:'Not a real effect. The physics is about shared weight and small pressure per nail.'},
     {t:'The nails bend, so they don’t pierce the skin.', fb:'Usually they don’t bend — they stay stiff. The trick is shared load.'}
@@ -611,7 +632,7 @@ const QUESTIONS = [
 { id:17, topic:'solids', sub:'Increasing area (spreading load)', type:'mcq',
   q:'A person walks across a soft wooden floor in <b>stilettos</b> and leaves dents. The same person in <b>flat trainers</b> leaves none. Why?',
   options:[
-    {t:'The stiletto heel has a tiny contact area, so under the same body weight the pressure on the wood is huge — high enough to exceed what the wood can withstand. The trainer’s large area keeps the pressure well below that limit.', c:true, fb:'Right. Same person, same weight, same downward force on the floor. The only thing that changes is the area — and so the pressure. Under the heel, that pressure is above what soft wood can take; under the trainer’s sole, it’s far below.'},
+    {t:'The stiletto heel has a tiny contact area; the trainer’s sole has a much larger one.', c:true, fb:'Right. Same person, same weight, same downward force on the floor. The only thing that changes is the area — and so the pressure. Under the heel, that pressure is above what soft wood can take; under the trainer’s sole, it’s far below.'},
     {t:'The stilettos push the floor down with more force because they concentrate the body’s weight.', fb:'Classic force-vs-pressure mix-up. The person’s weight (and so the downward force on the floor) is the same in either shoe. What “concentrates” isn’t the force but the <b>pressure</b>: same force, smaller area, bigger force-per-square-metre.'},
     {t:'The stilettos are heavier shoes than the trainers.', fb:'The shoe weights barely differ compared with the person’s body weight, and the person’s body weight is doing nearly all the work either way. The damage comes from area, not from a tiny difference in shoe mass.'},
     {t:'The trainers grip the floor better, so they don’t slide across it and gouge it.', fb:'Grip stops shoes sliding sideways — that’s friction. Denting a wooden floor is a downward problem: too much pressure per square millimetre under the heel. Different physics, different direction.'}
@@ -626,7 +647,7 @@ const QUESTIONS = [
     {name:'Contact area with the floor', correct:'down', fb:'The flat sole is replaced by a tiny heel — much smaller contact area.'},
     {name:'Pressure on the floor under the heel', correct:'up', fb:'Same force ÷ smaller area = bigger pressure. That’s what dents the floorboards.'}
   ],
-  explain:'A great “qualitative pressure” case. Force is the same, area drops, pressure shoots up.'
+  explain:'Force is the same, area drops, pressure shoots up.'
 },
 
 { id:19, topic:'solids', sub:'Comparing scenarios', type:'compare',
@@ -653,30 +674,35 @@ const QUESTIONS = [
 { id:21, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
   q:'A force of <b>20 N</b> is applied to a flat surface of area <b>4 m²</b>. What is the pressure?',
   answer:5, tol:0.05, unit:'Pa',
+  unitAccepts:['Pa','Pascal','Pascals','N/m²','N/m^2','N/m2'],
   explain:'P = F ÷ A = 20 ÷ 4 = <b>5 Pa</b>. Just direct substitution — no rearranging needed.'
 },
 
 { id:22, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
   q:'A box pushes down on the floor with a force of <b>100 N</b> through an area of <b>10 m²</b>. What is the pressure on the floor?',
   answer:10, tol:0.05, unit:'Pa',
+  unitAccepts:['Pa','Pascal','Pascals','N/m²','N/m^2','N/m2'],
   explain:'P = F ÷ A = 100 ÷ 10 = <b>10 Pa</b>. The unit pascal (Pa) is the same as N/m².'
 },
 
 { id:23, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
   q:'A force of <b>60 N</b> acts over an area of <b>3 m²</b>. What is the pressure?',
   answer:20, tol:0.05, unit:'Pa',
+  unitAccepts:['Pa','Pascal','Pascals','N/m²','N/m^2','N/m2'],
   explain:'P = F ÷ A = 60 ÷ 3 = <b>20 Pa</b>.'
 },
 
 { id:24, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
   q:'A force of <b>12 N</b> is spread over an area of <b>6 m²</b>. What is the pressure?',
   answer:2, tol:0.05, unit:'Pa',
+  unitAccepts:['Pa','Pascal','Pascals','N/m²','N/m^2','N/m2'],
   explain:'P = F ÷ A = 12 ÷ 6 = <b>2 Pa</b>.'
 },
 
 { id:25, topic:'solids', sub:'Calculations (P = F ÷ A)', type:'calc',
   q:'A small block presses down with <b>50 N</b> over an area of <b>0.5 m²</b>. What is the pressure?',
   answer:100, tol:0.5, unit:'Pa',
+  unitAccepts:['Pa','Pascal','Pascals','N/m²','N/m^2','N/m2'],
   explain:'P = F ÷ A = 50 ÷ 0.5 = <b>100 Pa</b>. Halving the area doubles the pressure — bigger numbers!'
 },
 
@@ -717,7 +743,7 @@ const QUESTIONS = [
   q:'Which is the standard SI unit of pressure?',
   options:[
     {t:'Newton (N)', fb:'That’s the unit of <b>force</b>.'},
-    {t:'Pascal (Pa), equal to N/m²', c:true, fb:'Yes — 1 Pa is the pressure when 1 N is spread over 1 m².'},
+    {t:'Pascal (Pa)', c:true, fb:'Yes — 1 Pa is the pressure when 1 N is spread over 1 m² (so Pa and N/m² are the same unit).'},
     {t:'Joule (J)', fb:'That’s the unit of <b>energy</b>.'},
     {t:'Watt (W)', fb:'That’s the unit of <b>power</b>.'}
   ],
@@ -728,7 +754,7 @@ const QUESTIONS = [
 { id:30, topic:'gases', sub:'What is air pressure', type:'mcq',
   q:'What actually <b>causes</b> air pressure?',
   options:[
-    {t:'Gas particles colliding with surfaces — billions of tiny hits per second.', c:true, fb:'Yes. Gas particles are moving in all directions; every time one hits a wall it gives a tiny push, and the total of all those pushes is the pressure.'},
+    {t:'Gas particles colliding with surfaces.', c:true, fb:'Yes. Gas particles are moving in all directions; every time one hits a wall it gives a tiny push, and the total of all those billions of pushes per second is the pressure.'},
     {t:'The weight of one large air “blob” pressing down.', fb:'Air isn’t one solid blob. It’s a sea of fast-moving particles, and their <b>collisions</b> are what cause the pressure.'},
     {t:'Static electricity between air and your skin.', fb:'Not the right idea. Pressure is mechanical: particles bouncing off surfaces.'},
     {t:'Magnetism inside the air.', fb:'Air isn’t magnetic in any useful way for this. Think tiny particles, lots of collisions.'}
@@ -773,7 +799,7 @@ const QUESTIONS = [
   q:'Why does atmospheric pressure <b>decrease</b> as you go higher up a mountain?',
   options:[
     {t:'Because air is heavier at the bottom and lighter at the top.', fb:'Closer, but the real reason is about the <b>amount of air above you</b>.'},
-    {t:'There is less air above you, so fewer particles pressing down through collisions.', c:true, fb:'Right. The higher you climb, the less air there is above, so fewer particles per second hit you.'},
+    {t:'There is less air above you.', c:true, fb:'Right. The higher you climb, the less air there is above, so fewer particles per second hit you from above.'},
     {t:'Because it gets colder.', fb:'Temperature does change, but the main reason pressure drops is the smaller weight (and amount) of air above you.'},
     {t:'Because there is less gravity higher up.', fb:'Gravity hardly changes over the height of a mountain. The big factor is how much air is above you.'}
   ],
@@ -785,7 +811,7 @@ const QUESTIONS = [
   q:'You fill a thin plastic water bottle on the ground, screw the lid on tight, and take it up in an aeroplane. At cruising altitude the cabin pressure is lower than ground pressure. What happens to the bottle?',
   options:[
     {t:'It is crushed inward.', fb:'Wrong direction. Inside has the higher (ground) pressure trapped in; outside (cabin) is lower. So it tries to push <b>out</b>.'},
-    {t:'It bulges outward (it can even leak or pop).', c:true, fb:'Yes. The trapped air inside is at ground pressure; the cabin is at lower pressure; so the inside pushes the walls outward.'},
+    {t:'It bulges outward.', c:true, fb:'Yes. The trapped air inside is at ground pressure; the cabin is at lower pressure; so the inside pushes the walls outward. (It can even leak or pop.)'},
     {t:'Nothing — the bottle is sealed.', fb:'Sealing doesn’t make it immune. The pressure difference across the wall is what bends it. Sealing actually <b>causes</b> the difference.'},
     {t:'It expands only if heated.', fb:'It doesn’t need heating. A pressure difference alone is enough to bulge a thin plastic bottle.'}
   ],
@@ -797,7 +823,7 @@ const QUESTIONS = [
   options:[
     {t:'It bulges outward.', fb:'No — air can flow in and out, so there’s nothing trapped to push outward.'},
     {t:'It is crushed inward.', fb:'No — same reason. Air can flow freely, so inside and outside pressures stay equal.'},
-    {t:'It stays the same shape, because air flows in and out to keep inside and outside pressures equal.', c:true, fb:'Yes. With the lid off, the bottle just shares air with the cabin. No pressure difference → no force on the walls.'},
+    {t:'It stays the same shape.', c:true, fb:'Yes. With the lid off, air flows in and out, so the bottle just shares air with the cabin. No pressure difference across the walls → no force on them.'},
     {t:'It explodes after a few minutes.', fb:'Not without a sealed pressure difference building up.'}
   ],
   explain:'No seal = no trapped air = no pressure difference. The bottle doesn’t deform.'
@@ -807,7 +833,7 @@ const QUESTIONS = [
   q:'A passenger drinks from a plastic bottle at altitude (low cabin pressure) and screws the lid on tight at altitude. The plane lands, and on the ground the bottle is <b>crushed</b>. Why?',
   options:[
     {t:'The cabin reheats the bottle, melting it.', fb:'Heat isn’t the cause. The cause is a pressure difference.'},
-    {t:'Air inside was sealed at low pressure. On landing, outside pressure is higher and pushes the bottle inward.', c:true, fb:'Yes. Inside pressure was locked in at the cabin (lower) pressure. Outside pressure rises as the plane descends, so outside &gt; inside → bottle is pushed in.'},
+    {t:'Air inside was sealed at the low cabin pressure.', c:true, fb:'Yes. Inside pressure is locked in at the cabin (lower) pressure. Outside pressure rises as the plane descends, so outside &gt; inside → bottle is pushed in.'},
     {t:'The bottle leaks air out when you screw the lid on.', fb:'Not really — sealing locks in the air at whatever pressure was already inside.'},
     {t:'Gravity is stronger on the ground and crushes it.', fb:'Gravity hardly differs between cabin and ground. The real cause is the air pressure difference.'}
   ],
@@ -861,7 +887,7 @@ const QUESTIONS = [
   q:'A small amount of water is boiled inside an empty drinks can. The can is then sealed and placed in cold water. It collapses with a loud bang. What collapses it?',
   options:[
     {t:'The cold water freezing the can and shrinking it.', fb:'Cold helps the steam condense, but the squeezing force is air pressure, not freezing.'},
-    {t:'Steam inside condensing back to water, leaving low pressure inside; outside air pressure then pushes the can in.', c:true, fb:'Yes. Hot steam filled the can, pushing air out. When cooled, the steam condenses into a tiny volume of water, leaving very low pressure inside. Atmospheric pressure outside crushes the can.'},
+    {t:'Steam inside condensing back to water.', c:true, fb:'Yes. Hot steam filled the can, pushing air out. When cooled, the steam condenses into a tiny volume of water, leaving very low pressure inside. Atmospheric pressure outside crushes the can.'},
     {t:'The can is squeezed by the cold water itself, which is heavier than air.', fb:'Water is denser than air, but the crush force here is from the very <b>large pressure difference</b> across the can wall, not from being underwater.'},
     {t:'Pressure inside the can increases and bursts it inward.', fb:'Pressure inside actually <b>drops</b>. If it had risen, the can would have bulged outward.'}
   ],
@@ -883,7 +909,7 @@ const QUESTIONS = [
   options:[
     {t:'The can would collapse even more dramatically.', fb:'No — without a seal, air can flow in to replace the condensing steam, so no pressure difference builds up.'},
     {t:'The can would still collapse, just more slowly.', fb:'Without a seal there’s no trapped low-pressure pocket, so there’s nothing to crush the can.'},
-    {t:'Air rushes in to replace the condensing steam, keeping inside and outside pressures equal — the can does not collapse.', c:true, fb:'Right. Sealing is essential. It’s what locks in the low-pressure space when the steam condenses.'},
+    {t:'Air rushes in to replace the condensing steam.', c:true, fb:'Right. With air free to flow in, inside and outside pressures stay equal, so there’s nothing to crush the can. Sealing is what locks in the low-pressure space when the steam condenses.'},
     {t:'The can would heat up.', fb:'The can is being plunged into cold water — it cools.'}
   ],
   explain:'No seal = air flows in to fill the can as the steam condenses = no pressure difference = no collapse. Sealing is what creates the pressure trap.'
@@ -894,7 +920,7 @@ const QUESTIONS = [
   q:'A marshmallow is placed in a bell jar. The pump removes most of the air. The marshmallow <b>expands</b>. Why?',
   options:[
     {t:'The marshmallow gets heavier and pushes outward.', fb:'It doesn’t change mass. The expansion is about the air <b>inside</b> the marshmallow pushing out.'},
-    {t:'Trapped air inside the marshmallow is now at higher pressure than the surroundings, so it pushes the marshmallow outward.', c:true, fb:'Yes. The marshmallow has lots of small air pockets at normal pressure. Once the outside drops, the trapped gas pushes the soft walls outward.'},
+    {t:'Trapped air inside the marshmallow is now at higher pressure than the surroundings.', c:true, fb:'Yes. The marshmallow has lots of small air pockets at normal pressure. Once the outside drops, the trapped gas pushes the soft walls outward and the marshmallow swells.'},
     {t:'Sugar in the marshmallow boils.', fb:'It doesn’t boil at the temperatures involved. The effect is purely about pressure inside the pockets vs outside.'},
     {t:'The bell jar squeezes the marshmallow.', fb:'The bell jar doesn’t touch the marshmallow. The pump just removes air, lowering the pressure inside the jar.'}
   ],
@@ -904,7 +930,7 @@ const QUESTIONS = [
 { id:46, topic:'gases', sub:'Vacuum-chamber demos', type:'mcq',
   q:'When the air is let back into the bell jar, the marshmallow <b>shrivels</b> to even smaller than at the start. Why?',
   options:[
-    {t:'During the expansion, some of the trapped air escaped. So now the marshmallow has less internal air than before, and outside air pressure squashes it.', c:true, fb:'Yes — that’s the key. Expanding stretched and burst some pockets, letting gas out. With less air inside, atmospheric pressure outside now wins.'},
+    {t:'During the expansion, some of the trapped air escaped.', c:true, fb:'Yes — that’s the key. Expanding stretched and burst some pockets, letting gas out. With less air inside, atmospheric pressure outside now wins and the marshmallow ends up smaller than it started.'},
     {t:'The marshmallow lost water by evaporating.', fb:'A tiny bit might, but the dramatic shrivelling is because gas escaped from the pockets — not water loss.'},
     {t:'The bell jar squeezed it.', fb:'The bell jar doesn’t touch the marshmallow. The squeeze is from outside atmospheric pressure on a now-low-pressure inside.'},
     {t:'The marshmallow cooled down too much.', fb:'Cooling is small here. The big effect is the loss of trapped air.'}
@@ -916,7 +942,7 @@ const QUESTIONS = [
   q:'A balloon is placed in a vacuum chamber and the air is pumped out. The balloon:',
   options:[
     {t:'Gets smaller.', fb:'Wrong direction. The gas inside is suddenly at higher pressure than the gas outside, so it pushes the rubber out.'},
-    {t:'Gets bigger.', c:true, fb:'Yes. Inside the balloon stays at roughly the same pressure; outside drops; inside &gt; outside → balloon expands. (If you keep pumping, it can pop.)'},
+    {t:'Gets bigger.', c:true, fb:'Yes. Inside the balloon stays at roughly the same pressure; outside drops; so inside &gt; outside and the balloon expands. (If you keep pumping, it can pop.)'},
     {t:'Stays exactly the same.', fb:'There’s a pressure difference building up across the rubber, so it must change shape.'},
     {t:'Falls to the bottom.', fb:'Gravity is the same. The big visible effect is expansion, not motion.'}
   ],
@@ -949,7 +975,7 @@ const QUESTIONS = [
   q:'Why does water <b>boil at a lower temperature</b> on top of a high mountain than at sea level?',
   options:[
     {t:'Because there is less gravity on the mountain.', fb:'Gravity barely changes. The real reason is the lower air pressure pressing down on the water surface.'},
-    {t:'Because atmospheric pressure is lower, so water molecules can escape into vapour more easily.', c:true, fb:'Yes. Boiling happens when the water’s vapour pressure equals the atmospheric pressure above it. With less air pressure pushing down, that balance is reached at a lower temperature.'},
+    {t:'Because atmospheric pressure is lower.', c:true, fb:'Yes. Boiling happens when the water’s vapour pressure equals the atmospheric pressure above it. With less air pressure pushing down, that balance is reached at a lower temperature.'},
     {t:'Because the air is colder, so water boils sooner.', fb:'Air temperature isn’t the cause. Even if the air around were warm, low pressure alone would still drop the boiling point.'},
     {t:'Because water is purer at altitude.', fb:'Purity isn’t the issue here. It’s about the pressure on the water’s surface.'}
   ],
@@ -959,7 +985,7 @@ const QUESTIONS = [
 { id:51, topic:'gases', sub:'Boiling and pressure', type:'mcq',
   q:'A mountaineer complains that their tea on Everest tastes weak and watery. Why?',
   options:[
-    {t:'The water boils at a lower temperature, so it isn’t hot enough to fully extract flavour from the tea.', c:true, fb:'Yes. Low atmospheric pressure → low boiling point (sometimes ~70 °C). The water is hot but not hot enough to brew tea well.'},
+    {t:'The water boils at a lower temperature.', c:true, fb:'Yes. Low atmospheric pressure → low boiling point (sometimes ~70 °C). The water is hot, but not hot enough to fully extract flavour from the tea.'},
     {t:'Tea bags don’t work in cold places.', fb:'Tea bags are fine; the issue is the water temperature, which is limited by the low boiling point.'},
     {t:'Tea leaves are different at altitude.', fb:'The tea is the same. What’s different is the maximum temperature the water can reach.'},
     {t:'Sugar doesn’t dissolve at altitude.', fb:'Sugar dissolves fine. The problem is the temperature, set by the lower atmospheric pressure.'}
@@ -971,7 +997,7 @@ const QUESTIONS = [
   q:'A <b>pressure cooker</b> seals the steam inside while it heats. Why does this make food cook <b>faster</b>?',
   options:[
     {t:'It traps heat so the air in the kitchen warms up.', fb:'That’s a side effect, not the point. The real reason involves the boiling point of water inside the cooker.'},
-    {t:'It raises the pressure inside, which raises the boiling point of water, so the water cooks the food at a higher temperature.', c:true, fb:'Right. Trapped steam can’t escape, so pressure builds. Higher pressure pushes the boiling point up (e.g. to ~120 °C). Hotter water = faster cooking.'},
+    {t:'It raises the pressure inside the cooker.', c:true, fb:'Right. Trapped steam can’t escape, so pressure builds. Higher pressure pushes the boiling point of water up (e.g. to ~120 °C). Hotter water = faster cooking.'},
     {t:'It puts the food directly into a flame.', fb:'No — the food is still in water. The water just gets hotter than 100 °C because of the higher pressure.'},
     {t:'It removes water from the food, so it cooks like in an oven.', fb:'It actually keeps water in. The trick is the higher boiling point under raised pressure.'}
   ],
@@ -982,7 +1008,7 @@ const QUESTIONS = [
   q:'In a vacuum chamber, room-temperature water can be made to <b>boil</b> without heating it. Why?',
   options:[
     {t:'The pump heats the water.', fb:'It doesn’t — and boiling happens long before any heating would be noticeable.'},
-    {t:'When the outside pressure is reduced enough, the water’s vapour pressure equals the surrounding pressure even at room temperature, so it boils.', c:true, fb:'Yes. Boiling is about pressure balance, not just temperature. Drop the surrounding pressure low enough and any temperature is "hot enough" to boil.'},
+    {t:'The outside pressure has been reduced enough for water to boil at room temperature.', c:true, fb:'Yes. Boiling is about pressure balance, not just temperature: water boils when its vapour pressure equals the surrounding pressure. Drop the surrounding pressure low enough and any temperature is "hot enough" to boil.'},
     {t:'The water gets less dense and turns to gas.', fb:'It does turn to gas, but the reason is the low surrounding pressure, not a density change.'},
     {t:'The vacuum sucks the water into gas.', fb:'There’s no "sucking" — water molecules escape into the low-pressure space because the air pushing down has been removed.'}
   ],
@@ -1004,7 +1030,7 @@ const QUESTIONS = [
   q:'How does a drinking <b>straw</b> work?',
   options:[
     {t:'You suck the drink up into your mouth using a vacuum force.', fb:'There is no "sucking force" — what you actually do is reduce the pressure in your mouth, and the atmosphere does the pushing.'},
-    {t:'You lower the pressure inside your mouth (and the top of the straw). Atmospheric pressure on the surface of the drink then pushes liquid up the straw.', c:true, fb:'Yes. The drink isn’t pulled up; it’s pushed up by atmospheric pressure on the surface of the liquid in the glass.'},
+    {t:'Atmospheric pressure on the surface of the drink pushes liquid up the straw.', c:true, fb:'Yes. You lower the pressure in your mouth (and so at the top of the straw); the atmosphere, pressing on the drink in the glass, has the higher pressure, so it pushes liquid up. The drink isn’t "pulled" up — it’s pushed up.'},
     {t:'The straw heats the drink and pushes it up.', fb:'No heating happens. It’s a cold-pressure effect.'},
     {t:'The drink is light enough to defy gravity.', fb:'Gravity still pulls the drink down. Something has to push it up — and that something is atmospheric pressure on the liquid surface.'}
   ],
@@ -1016,7 +1042,7 @@ const QUESTIONS = [
   options:[
     {t:'It glues itself to the glass with a sticky surface.', fb:'It isn’t sticky — many suction cups are just smooth rubber.'},
     {t:'It uses static electricity.', fb:'No, that’s a different effect and far too weak to hold one up.'},
-    {t:'Pressing it flattens out the air, leaving very little air behind. Atmospheric pressure on the outside then pushes the cup hard against the glass.', c:true, fb:'Yes. The squashed cup has very low pressure trapped behind it. Atmospheric pressure pushes the cup tight against the glass from outside.'},
+    {t:'Atmospheric pressure on the outside pushes the cup against the glass.', c:true, fb:'Yes. Pressing the cup squeezes out the air behind it, leaving a low-pressure pocket between cup and glass. Atmospheric pressure outside is then much bigger, and pushes the cup tight against the glass.'},
     {t:'It uses magnetism with the glass.', fb:'Glass isn’t magnetic, and the cup isn’t either.'}
   ],
   explain:'A pressed suction cup leaves a low-pressure pocket between itself and the surface. The atmosphere outside then holds it tightly in place.'
@@ -1026,7 +1052,7 @@ const QUESTIONS = [
   q:'In a vacuum cleaner, why does dust get sucked up?',
   options:[
     {t:'The motor creates a vacuum that pulls things in with a special force.', fb:'There is no "pull". A vacuum just means low pressure. The dust is <b>pushed</b> in by the surrounding air at higher pressure.'},
-    {t:'A fan lowers the pressure inside the hose. Atmospheric pressure outside then pushes air (with dust in it) into the hose.', c:true, fb:'Yes. The motor’s fan moves air out the back; pressure inside the hose drops; outside air rushes in carrying the dust.'},
+    {t:'A fan lowers the pressure inside the hose.', c:true, fb:'Yes. The motor’s fan moves air out the back; pressure inside the hose drops; atmospheric pressure outside then pushes air (with dust in it) into the hose.'},
     {t:'It uses heat to drive dust upward.', fb:'No significant heating is involved.'},
     {t:'Dust is attracted by static electricity to the cleaner.', fb:'A little electric attraction can happen, but the main effect is the air pressure difference moving the air (and dust) into the hose.'}
   ],
@@ -1037,7 +1063,7 @@ const QUESTIONS = [
   q:'A nurse pulls back the plunger of a syringe and medicine flows up into it from a bottle. What pushes the medicine in?',
   options:[
     {t:'A force from the plunger pulling the liquid up.', fb:'Plungers can’t "pull" liquid up directly — they just reduce the pressure inside the syringe.'},
-    {t:'Atmospheric pressure on the surface of the medicine in the bottle pushes the liquid up into the lower-pressure syringe.', c:true, fb:'Yes. Pulling the plunger drops the pressure inside the syringe. The atmosphere then pushes the medicine up the needle.'},
+    {t:'Atmospheric pressure on the medicine in the bottle.', c:true, fb:'Yes. Pulling the plunger drops the pressure inside the syringe. The atmosphere, pressing on the surface of the medicine in the bottle, then pushes the liquid up the needle into the lower-pressure syringe.'},
     {t:'Gravity pulls the medicine into the syringe.', fb:'Gravity is pulling it the wrong way — downward. Something has to push it up, and that’s atmospheric pressure.'},
     {t:'Static electricity in the plastic.', fb:'Tiny effect at best — definitely not what fills the syringe.'}
   ],
@@ -1048,7 +1074,7 @@ const QUESTIONS = [
   q:'Your ears "pop" as a plane takes off or you go up a fast lift. Why?',
   options:[
     {t:'Air outside your ear gets colder than air inside.', fb:'Temperature isn’t the main effect. It’s the change in <b>pressure</b> outside that causes the popping.'},
-    {t:'There is trapped air in the middle ear at the old pressure. As outside pressure changes, a pressure difference builds up across your eardrum until air can flow in or out, equalising the pressure.', c:true, fb:'Yes. The "pop" is air rushing through a small tube (the Eustachian tube) to balance inside-ear pressure with outside.'},
+    {t:'Air trapped in the middle ear is now at a different pressure to the air outside.', c:true, fb:'Yes. The middle ear is at the old pressure; outside has changed; a pressure difference builds up across the eardrum until air rushes through the Eustachian tube to equalise — that’s the "pop".'},
     {t:'The plane shakes the eardrum.', fb:'Vibration isn’t the cause. The pop is a pressure-balancing event in the middle ear.'},
     {t:'Sound waves bounce around inside the ear.', fb:'Pops are not really sound waves — they’re your eardrum suddenly snapping back as pressures equalise.'}
   ],
@@ -1059,7 +1085,7 @@ const QUESTIONS = [
   q:'A sealed crisp packet on a plane <b>swells up</b> at cruising altitude. Why?',
   options:[
     {t:'The cabin air leaks into the packet and inflates it.', fb:'A sealed packet doesn’t take in new air — but the air already inside is the cause.'},
-    {t:'Air sealed inside the packet at ground pressure is now at higher pressure than the cabin around it, so it pushes the packet outward.', c:true, fb:'Yes. Sealed at sea level, the inside is "stuck" at sea-level pressure. The cabin is at lower pressure. So inside &gt; outside → packet bulges.'},
+    {t:'Air sealed inside the packet at ground pressure is now at higher pressure than the cabin around it.', c:true, fb:'Yes. Sealed at sea level, the inside is "stuck" at sea-level pressure. The cabin is at lower pressure. So inside &gt; outside, and the packet bulges outward.'},
     {t:'Crisps release gas when warm.', fb:'Crisps don’t release significant gas. The bulge is from the trapped air at sea-level pressure.'},
     {t:'The plane shakes air bubbles loose.', fb:'Not how this works. It’s purely a pressure difference across the packet.'}
   ],
@@ -1081,7 +1107,7 @@ const QUESTIONS = [
 { id:62, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
   q:'A horse walks happily down a concrete road without sinking. The same horse sinks into soft sand. The horse and its hooves haven’t changed. What has?',
   options:[
-    {t:'Soft sand can only withstand a much smaller pressure than concrete before giving way. The horse’s hoof pressure is below concrete’s limit but above sand’s.', c:true, fb:'Yes. Same horse, same weight, same hoof area = same pressure under the hoof in both cases. What flips the outcome is the surface: concrete holds, sand fails.'},
+    {t:'Soft sand can only withstand a much smaller pressure than concrete before giving way.', c:true, fb:'Yes. Same horse, same weight, same hoof area = same pressure under the hoof in both cases. What flips the outcome is the surface: concrete’s limit is well above the hoof’s pressure, sand’s is well below it.'},
     {t:'The horse weighs more when standing on sand than on the road.', fb:'Weight depends on the horse, not what it’s standing on. The horse weighs the same on concrete, sand, or grass — gravity doesn’t care.'},
     {t:'The horse’s hooves get bigger on the sand and smaller on the road.', fb:'Hooves don’t change shape between surfaces. Same hoof, same contact area, same pressure on the ground. What changes is the surface, not the hoof.'},
     {t:'Sand pushes back less because it’s heavier.', fb:'Sand <i>is</i> heavier than air, but that’s nothing to do with whether it can hold the horse up. The real question is whether the sand can withstand the pressure the hoof puts on it. It can’t — concrete can.'}
@@ -1125,7 +1151,7 @@ const QUESTIONS = [
 { id:66, topic:'solids', sub:'Surfaces and what they can support', type:'mcq',
   q:'Snowshoes are essential in deep snow but pointless on a hard wooden floor. Why?',
   options:[
-    {t:'The hard floor can already support a much higher pressure than ordinary boots produce. Reducing the pressure further (with snowshoes) doesn’t matter once you’re already below the floor’s limit.', c:true, fb:'Right. Snowshoes only help when your usual pressure exceeds what the surface can hold. Boots exceed snow’s limit, so snowshoes help. Boots are way below a wooden floor’s limit, so snowshoes change nothing useful.'},
+    {t:'The hard floor can already support a much higher pressure than ordinary boots produce.', c:true, fb:'Right. Snowshoes only help when your usual pressure <i>exceeds</i> what the surface can hold. Boots exceed snow’s limit, so snowshoes help. Boots are already well below a wooden floor’s limit, so reducing the pressure further changes nothing useful.'},
     {t:'Snowshoes only work when the air is cold.', fb:'They’re used in cold places, but the physics doesn’t care about temperature. What matters is whether the pressure you exert is above or below what the surface can support.'},
     {t:'On a hard floor, snowshoes increase the pressure rather than decrease it.', fb:'Wrong direction. Snowshoes <i>always</i> reduce the pressure compared to boots — a bigger area gives a smaller pressure regardless of surface. The point is that on a hard floor, reducing pressure doesn’t buy you anything because boots were already under the limit.'},
     {t:'Hard floors have more friction, so the snowshoes don’t slide properly.', fb:'You’ve switched problems — that’s about sideways motion (friction). The question is about the vertical squeeze on the floor (pressure). Snowshoes are about pressure, and pressure isn’t the problem on a wooden floor.'}
@@ -1159,7 +1185,7 @@ const QUESTIONS = [
 { id:69, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
   q:'A <b>sharp</b> knife cuts a bread roll cleanly. A <b>blunt</b> knife of the same metal squashes the bread without cutting through it. Both knives are pushed with the same force. Why does only the sharp one cut?',
   options:[
-    {t:'The sharp knife concentrates the same force onto a much smaller contact area. The pressure under its edge rises above the bread crust’s <b>yield strength</b>, so the crust gives way. The blunt knife’s pressure stays below that yield strength, so the bread just deforms (squashes).', c:true, fb:'Yes. "Yield strength" is the proper name for what we’ve been calling "what the surface can withstand". Above it, the material fails (cuts, dents, cracks). Below it, the material just deforms. Sharper = higher pressure under the edge = above the threshold = cuts.'},
+    {t:'The sharp knife concentrates the same force onto a much smaller contact area.', c:true, fb:'Yes. Smaller area, same force → higher pressure under the edge. With the sharp knife the pressure rises above the bread crust’s <b>yield strength</b> (the proper name for what we’ve been calling "what the surface can withstand") so the crust gives way. With the blunt knife the pressure stays below that yield strength, so the bread just deforms.'},
     {t:'The sharp knife is heavier so it pushes harder.', fb:'Force is stated as the same. And shoe-vs-knife mass barely matters once the person pushing is supplying the force. The change is to the <b>contact area</b>, which changes the pressure.'},
     {t:'The sharp knife is hotter and melts through the bread.', fb:'Nothing in the scenario is hot. The physics is purely mechanical: pressure vs the bread’s yield strength.'},
     {t:'The sharp knife meets the bread at a steeper angle.', fb:'Angle isn’t the dominant story — even held the same way, a sharp blade has a much smaller contact line. Smaller area, same force, bigger pressure.'}
@@ -1170,7 +1196,7 @@ const QUESTIONS = [
 { id:70, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
   q:'A <b>blunt</b> knife will happily cut through a fillet of fish but stalls on a <b>crusty bread roll</b>. The same knife, the same person, the same push. Why?',
   options:[
-    {t:'Fish flesh has a much lower yield strength than bread crust. The knife’s pressure is above what fish flesh can resist, so it cuts. The same pressure is below what bread crust can resist, so the bread just deforms.', c:true, fb:'Right. Same knife = same area; same push = same force; so same pressure under the blade in both cases. What differs is the *material*: fish is mechanically weak; bread crust is mechanically tough.'},
+    {t:'Fish flesh has a much lower yield strength than bread crust.', c:true, fb:'Right. Same knife = same area; same push = same force; so same pressure under the blade in both cases. What differs is the <i>material</i>: the knife’s pressure is above what fish flesh can resist (so it cuts) but below what bread crust can resist (so the bread just deforms).'},
     {t:'Fish flesh tears more easily than it cuts because of its grain.', fb:'Tearing does play a small role, but the dominant reason is yield strength. Fish flesh fails (cuts or tears) at a far lower pressure than bread crust does.'},
     {t:'The bread crust deflects the knife sideways, so the cut never gets started.', fb:'Geometry isn’t the issue. Even when the knife sits squarely on the crust, the pressure isn’t high enough to exceed the crust’s yield strength.'},
     {t:'The knife is effectively sharper on fish because fish is softer.', fb:'The knife is what it is — its sharpness doesn’t change when you swap foods. The blade is identical; the food’s yield strength is not.'}
@@ -1186,13 +1212,13 @@ const QUESTIONS = [
     {name:'Pressure under the blade', correct:'same', fb:'Same F, same A, so same P. The blade doesn’t know what food it’s on.'},
     {name:'Yield strength of the food', correct:'down', fb:'Fish flesh has a much lower yield strength than bread crust.'}
   ],
-  explain:'Identical pressure under the blade in both cases. The difference is whether that pressure exceeds the food’s yield strength. On bread crust: pressure below yield strength → the bread deforms (squashes) but doesn’t cut. On fish: pressure above yield strength → the fish parts cleanly. (Compare with Q64: lorry from motorway to mud — same pressure, lower tolerance → sinks. Same shape of argument, opposite direction of value-judgement.)'
+  explain:'Identical pressure under the blade in both cases. The difference is whether that pressure exceeds the food’s yield strength. On bread crust: pressure below yield strength → the bread deforms (squashes) but doesn’t cut. On fish: pressure above yield strength → the fish parts cleanly.'
 },
 
 { id:72, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
   q:'A tomato has a tough <b>skin</b> on the outside and soft <b>flesh</b> inside. Pressed with a <b>blunt</b> knife, the flesh squashes before the skin breaks. Why?',
   options:[
-    {t:'The flesh has a much lower yield strength than the skin. The blunt knife’s pressure is above what the flesh can resist (so the flesh fails — squashes) but still below what the skin can resist (so the skin holds). A sharper blade concentrates the same force onto a smaller area, pushing the pressure above the skin’s yield strength too — and then the skin breaks first, cleanly.', c:true, fb:'Yes. Two materials in one object, each with its own yield strength. The blunt blade’s pressure lies between them; a sharper blade’s pressure lies above both.'},
+    {t:'The flesh has a much lower yield strength than the skin.', c:true, fb:'Yes. Two materials in one object, each with its own yield strength. The blunt blade’s pressure is above what the flesh can resist (so the flesh fails first — squashes) but below what the skin can resist (so the skin holds). A sharper blade concentrates the same force onto a smaller area, pushing the pressure above the skin’s yield strength too — and then the skin breaks first, cleanly.'},
     {t:'The skin is sticky and grips the knife.', fb:'Stickiness isn’t the issue. The blade is pressing on the skin from above; whether it breaks depends on whether the pressure exceeds the skin’s yield strength.'},
     {t:'The flesh has more water in it, so it gives way first.', fb:'Water content matters indirectly (it sets the flesh’s yield strength), but the framing here is the threshold: the flesh’s yield strength is low, so it fails at the blunt knife’s pressure; the skin’s is higher, so it holds.'},
     {t:'The flesh is heavier than the skin, so it bears more force.', fb:'Mass of the flesh isn’t carrying force here — the knife is. The flesh fails because the *pressure* the knife puts on it exceeds the *flesh’s* yield strength.'}
@@ -1203,18 +1229,18 @@ const QUESTIONS = [
 { id:73, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
   q:'What is the <b>same physics</b> in walking on snow without sinking <i>and</i> cutting through bread?',
   options:[
-    {t:'Both depend on a contest between a pressure and a yield strength. Walking on snow: keep your pressure <b>below</b> the snow’s yield strength so the snow holds. Cutting bread: push your pressure <b>above</b> the bread’s yield strength so the bread gives way. Same threshold idea, opposite goal.', c:true, fb:'Yes. This is the unifying idea in the bank. Threshold + pressure on one side = "does this material give way?". You either want the answer to be "no" (snow, soft soil) or "yes" (bread crust, tomato skin, wood under a nail).'},
+    {t:'Both depend on a contest between a pressure and a yield strength.', c:true, fb:'Yes. Threshold + pressure on one side = "does this material give way?". Walking on snow: keep your pressure <b>below</b> the snow’s yield strength so the snow holds. Cutting bread: push your pressure <b>above</b> the bread’s yield strength so the bread gives way. Same threshold idea, opposite goal — you either want the answer to be "no" (snow, soft soil) or "yes" (bread crust, tomato skin, wood under a nail).'},
     {t:'Both depend on the surface getting heavier under load and pushing back.', fb:'The surface doesn’t get heavier when you press on it. It either holds (below yield strength) or fails (above it). That’s the only number that decides which.'},
     {t:'Both depend on the grip (friction) between the object and the surface.', fb:'Friction is a sideways force. Both sinking-into-snow and cutting-through-bread are <i>vertical</i> problems — about whether the material can withstand the pressure pushing down on it.'},
     {t:'Both depend on the thickness of the surface or material.', fb:'Thickness matters in some other situations (like whether a thin sheet of ice will support you), but here the dominant idea is yield strength — a property of the material per square metre, not its overall size.'}
   ],
-  explain:'The Y9 pressure topic boils down to one mental tool: compare your pressure (F ÷ A) with the material’s yield strength. Whichever is bigger decides what happens. You change F by changing what you carry or push with; you change A by choosing a sharp tool or a wide foot. The threshold belongs to the material.'
+  explain:'The whole topic boils down to one mental tool: compare your pressure (F ÷ A) with the material’s yield strength. Whichever is bigger decides what happens. You change F by changing what you carry or push with; you change A by choosing a sharp tool or a wide foot. The threshold belongs to the material.'
 },
 
 { id:74, topic:'solids', sub:'Cutting and crushing (the other side of the threshold)', type:'mcq',
   q:'A wood-splitting axe is shaped like a <b>wedge</b>: thin and sharp at the front, wide and chunky at the back. Why does this shape work for splitting wood?',
   options:[
-    {t:'The thin front edge concentrates the swing’s force onto a tiny contact area, giving a pressure far above the wood’s yield strength so the wood splits. The wide back of the wedge then forces the split apart as the axe drives deeper.', c:true, fb:'Right. Two jobs in one shape: (1) sharp edge to *start* the split (small area, high pressure, exceeds wood’s yield strength); (2) wide body to *widen* the split (mechanical advantage as the wood is forced apart).'},
+    {t:'The thin front edge concentrates the swing’s force onto a tiny contact area.', c:true, fb:'Right. The sharp edge gives a pressure far above the wood’s yield strength, so the wood splits there. Then the wide back of the wedge forces the split apart as the axe drives deeper — two jobs in one shape.'},
     {t:'The wedge shape makes the axe heavier, so the swing carries more force.', fb:'A heavier axe does swing with more force, but the wedge isn’t there for mass — it’s there for area. A bigger, blunter lump of the same mass wouldn’t split wood at all.'},
     {t:'The wedge shape balances the axe so it’s easier to swing.', fb:'Axe ergonomics matter, but they’re a separate question. The wedge shape is doing physics, not just feeling nice — it’s changing the pressure on the wood.'},
     {t:'The wedge shape reduces friction between the axe and the wood.', fb:'Friction isn’t the bottleneck here. Splitting wood is about exceeding the wood’s yield strength under the blade, which means small area + big force.'}
@@ -1226,7 +1252,7 @@ const QUESTIONS = [
 { id:75, topic:'gases', sub:'Collapsing-can demo', type:'mcq',
   q:'In the collapsing-can demo, what would happen if instead of plunging the hot, sealed can into <b>cold water</b>, you just left it sitting <b>on the bench</b> in a warm room with the lid still on?',
   options:[
-    {t:'The can would still collapse — just much more slowly. The steam inside cools to room temperature over time, condenses to a tiny amount of water, and the inside pressure drops below atmospheric. Atmospheric pressure on the outside then crushes the can.', c:true, fb:'Right. The cold water isn’t the *cause* of the crush; it just speeds the cooling up. Any sealed cool-down works in principle — it’s the pressure difference that matters, not where it came from.'},
+    {t:'The can would still collapse — just much more slowly.', c:true, fb:'Right. The steam inside cools to room temperature over time, condenses to a tiny amount of water, and the inside pressure drops below atmospheric. Atmospheric pressure outside then crushes the can. Cold water isn’t the <i>cause</i> of the crush; it just speeds the cooling up.'},
     {t:'The can wouldn’t collapse, because it needs the cold water to push it inward.', fb:'Common misconception: the water doesn’t push the can — atmospheric pressure does. The cold water just makes the steam condense faster.'},
     {t:'The can would explode outward as the air around it warms the steam.', fb:'Wrong direction. The room is cooler than the steam inside — the steam is going to cool down and condense, not get hotter and expand.'},
     {t:'The can would stay exactly the same shape, because the room is room temperature.', fb:'The room is cooler than the boiling-hot steam inside. The steam will cool, condense, and the pressure will drop — same end state as plunging in cold water, just slower.'}
@@ -1294,7 +1320,10 @@ function describePicked(q, att){
     }).join(' | ');
   }
   if(q.type === 'calc'){
-    return att.calcInput != null ? String(att.calcInput) : '';
+    const num  = att.calcInput != null ? String(att.calcInput) : '';
+    const unit = att.calcUnitInput != null ? String(att.calcUnitInput) : '';
+    const marks = att.calcMarks != null ? att.calcMarks : 0;
+    return `number="${num}" unit="${unit}" marks=${marks}/2`;
   }
   return '';
 }
@@ -1308,7 +1337,7 @@ function describeCorrect(q){
     return q.vars.map(v => v.label + '=' + v.correct).join(' | ');
   }
   if(q.type === 'calc'){
-    return String(q.answer);
+    return q.answer + ' ' + q.unit;
   }
   return '';
 }
@@ -1335,6 +1364,8 @@ function reportAttempt(q, att){
     picked:        describePicked(q, att),
     correctAnswer: describeCorrect(q),
     questionStem:  stripTags(q.q).slice(0,200),
+    marks:         (q.type === 'calc' && att.calcMarks != null) ? att.calcMarks : (att.firstTryCorrect ? 1 : 0),
+    maxMarks:      (q.type === 'calc') ? 2 : 1,
     ts:            new Date().toISOString()
   };
   // Apps Script web apps don't expose CORS headers on the response, so we use
@@ -1586,26 +1617,107 @@ function renderCompare(q, att){
 }
 
 function renderCalc(q, att){
-  const v = att.calcInput ?? '';
-  const locked = att.answered? 'locked':'';
-  const dis    = att.answered? 'disabled':'';
-  const submitBtn = !att.answered ?
-    `<button id="calcSubmit">Submit</button>` :'';
-  let explain = '';
+  const v  = att.calcInput ?? '';
+  const uv = att.calcUnitInput ?? '';
+  const locked = att.answered ? 'locked' : '';
+  const dis    = att.answered ? 'disabled' : '';
+
+  let numCls = '', unitCls = '', feedlines = '', explainBlock = '', marksLine = '';
   if(att.answered){
-    const ok = att.firstTryCorrect || isCalcCorrect(q,v);
-    explain = `<div class="explain ${ok?'':'warn'}"><b>${ok?'Right.':'The answer is '+q.answer+' '+q.unit+'.'}</b> ${q.explain}</div>`;
+    const g = gradeCalc(q, att);
+    numCls  = g.numberMarks === 1 ? 'right' : 'wrong';
+    unitCls = g.unitMarks === 1 ? 'right' : (g.unitMarks === 0.75 ? 'partial' : 'wrong');
+    const numMsg = g.numberMarks === 1 ? 'Number correct.'
+                  : `Number should be <b>${q.answer}</b>.`;
+    marksLine = `<div class="marks ${g.totalMarks === g.maxMarks ? 'full' : ''}">Marks: ${formatMarks(g.totalMarks)} / ${g.maxMarks}${g.totalMarks === g.maxMarks ? ' ✓' : ''}</div>`;
+    feedlines = `<div class="calc-feedlines">
+      <div class="feedline ${numCls}">${numMsg}</div>
+      <div class="feedline ${unitCls}">${g.unitMsg}</div>
+      ${marksLine}
+    </div>`;
+    explainBlock = `<div class="explain"><b>Working:</b> ${q.explain}</div>`;
   }
+
+  const submitBtn = !att.answered ?
+    `<button id="calcSubmit">Submit</button>` : '';
+
   return `<div class="calcbox ${locked}">
     <div class="input-row">
-      <input id="calcInput" type="text" inputmode="decimal" placeholder="Type a number" value="${v}" ${dis}>
-      <span class="unit">${q.unit}</span>
+      <div class="input-group">
+        <label class="input-label" for="calcInput">Number</label>
+        <input id="calcInput" class="${numCls}" type="text" inputmode="decimal" placeholder="e.g. 5" value="${v}" ${dis}>
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="calcUnitInput">Unit</label>
+        <input id="calcUnitInput" class="${unitCls}" type="text" placeholder="e.g. Pa" value="${uv}" ${dis} autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
       ${submitBtn}
     </div>
+    ${feedlines}
+    ${explainBlock}
   </div>`;
 }
 
+function formatMarks(m){
+  // Show 1, 1.75, 2 etc. cleanly.
+  if(m === Math.floor(m)) return String(m);
+  return m.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+}
+
+// Normalise a unit string so that "Pa", "pa", "N/m²", "N/m^2", "N/m2"
+// are comparable. Drops superscripts, carets, and whitespace.
+// Preserves case so we can do a separate case check.
+function normaliseUnitChars(s){
+  return String(s)
+    .replace(/²/g, '2')
+    .replace(/\^/g, '')
+    .replace(/\s+/g, '');
+}
+
+// Grade a unit string. Returns {marks, msg}.
+//   1.0 = correct (case-sensitive match against one of unitAccepts)
+//   0.75 = right unit, wrong case
+//   0    = unit unrecognised
+function gradeUnit(input, accepts){
+  const raw = String(input || '').trim();
+  if(!raw) return { marks: 0, msg: 'No unit entered. Pressure should be in Pa (or N/m²).' };
+  const rawN = normaliseUnitChars(raw);
+  // Case-sensitive normalised match (best)
+  for(const a of accepts){
+    if(normaliseUnitChars(a) === rawN){
+      return { marks: 1, msg: 'Unit correct.' };
+    }
+  }
+  // Case-insensitive normalised match (case warning)
+  for(const a of accepts){
+    if(normaliseUnitChars(a).toLowerCase() === rawN.toLowerCase()){
+      return { marks: 0.75, msg: `Right unit, but <b>case matters</b>. It should be "${a}" — capital letters where shown.` };
+    }
+  }
+  return { marks: 0, msg: `Unit not recognised. Acceptable answers: ${accepts.join(', ')}.` };
+}
+
+function gradeCalc(q, att){
+  const numInput  = att.calcInput || '';
+  const unitInput = att.calcUnitInput || '';
+  const n = parseFloat(numInput);
+  const numberOk  = !isNaN(n) && Math.abs(n - q.answer) <= (q.tol ?? 0.01);
+  const accepts   = q.unitAccepts || [q.unit];
+  const unitGrade = gradeUnit(unitInput, accepts);
+  const numberMarks = numberOk ? 1 : 0;
+  const totalMarks  = numberMarks + unitGrade.marks;
+  return {
+    numberMarks,
+    unitMarks: unitGrade.marks,
+    unitMsg:   unitGrade.msg,
+    totalMarks,
+    maxMarks:  2,
+    allCorrect: numberMarks === 1 && unitGrade.marks === 1
+  };
+}
+
 function isCalcCorrect(q,val){
+  // Kept for backward compatibility; just checks the number.
   const n = parseFloat(val);
   if(isNaN(n)) return false;
   return Math.abs(n-q.answer) <= (q.tol ?? 0.01);
@@ -1653,20 +1765,28 @@ function wireUp(q, att){
     }
   }
   if(q.type==='calc'){
-    const input = document.getElementById('calcInput');
+    const input  = document.getElementById('calcInput');
+    const uinput = document.getElementById('calcUnitInput');
     if(input){
       input.addEventListener('input', ()=>{ att.calcInput = input.value; });
       input.addEventListener('keydown', e=>{
         if(e.key==='Enter'){ document.getElementById('calcSubmit')?.click(); }
       });
     }
+    if(uinput){
+      uinput.addEventListener('input', ()=>{ att.calcUnitInput = uinput.value; });
+      uinput.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ document.getElementById('calcSubmit')?.click(); }
+      });
+    }
     const btn = document.getElementById('calcSubmit');
     if(btn){
       btn.addEventListener('click',()=>{
-        const ok = isCalcCorrect(q, att.calcInput);
+        const g = gradeCalc(q, att);
         att.answered = true;
-        att.firstTryCorrect = ok;
-        state.history.push({id:q.id, correct:ok, ts:Date.now()});
+        att.calcMarks = g.totalMarks;
+        att.firstTryCorrect = g.allCorrect;
+        state.history.push({id:q.id, correct:g.allCorrect, marks:g.totalMarks, ts:Date.now()});
         reportAttempt(q, att);
         render();
       });

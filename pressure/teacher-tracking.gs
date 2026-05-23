@@ -36,6 +36,8 @@ function doPost(e) {
       payload.sub || '',
       payload.type || '',
       payload.isCorrect ? 'TRUE' : 'FALSE',
+      payload.marks != null ? payload.marks : '',
+      payload.maxMarks != null ? payload.maxMarks : '',
       payload.picked || '',
       payload.correctAnswer || '',
       payload.questionStem || ''
@@ -60,11 +62,11 @@ function ensureSheet_() {
     sheet = ss.insertSheet('Responses');
     sheet.appendRow([
       'received_at', 'client_ts', 'student_name', 'class_code', 'session_id',
-      'qid', 'topic', 'sub_topic', 'type', 'correct', 'picked', 'correct_answer',
-      'question_stem'
+      'qid', 'topic', 'sub_topic', 'type', 'correct', 'marks', 'max_marks',
+      'picked', 'correct_answer', 'question_stem'
     ]);
     sheet.setFrozenRows(1);
-    sheet.getRange('A1:M1').setFontWeight('bold');
+    sheet.getRange('A1:O1').setFontWeight('bold');
   }
   return sheet;
 }
