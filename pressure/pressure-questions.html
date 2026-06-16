@@ -1719,11 +1719,11 @@ function renderCalc(q, att){
     <div class="input-row">
       <div class="input-group">
         <label class="input-label" for="calcInput">Number</label>
-        <input id="calcInput" class="${numCls}" type="text" inputmode="decimal" placeholder="e.g. 5" value="${v}" ${dis}>
+        <input id="calcInput" class="${numCls}" type="text" inputmode="decimal" value="${v}" ${dis}>
       </div>
       <div class="input-group">
         <label class="input-label" for="calcUnitInput">Unit</label>
-        <input id="calcUnitInput" class="${unitCls}" type="text" placeholder="e.g. Pa" value="${uv}" ${dis} autocapitalize="off" autocorrect="off" spellcheck="false">
+        <input id="calcUnitInput" class="${unitCls}" type="text" value="${uv}" ${dis} autocapitalize="off" autocorrect="off" spellcheck="false">
       </div>
       ${submitBtn}
     </div>
