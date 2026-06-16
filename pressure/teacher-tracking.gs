@@ -20,11 +20,30 @@
  * and have to repaste it into the HTML.)
  */
 
-// ----- doPost: each quiz answer arrives here as a JSON body -----
+// ----- doPost: each quiz event arrives here as a JSON body -----
+// payload.kind === 'feedback' → routed to the "Feedback" tab.
+// Anything else (default)     → routed to the "Responses" tab as a normal answer.
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActive().getSheetByName('Responses') || ensureSheet_();
+    if (payload && payload.kind === 'feedback') {
+      var fsheet = ensureFeedbackSheet_();
+      fsheet.appendRow([
+        new Date(),
+        payload.ts || '',
+        payload.studentName || '',
+        payload.classCode || '',
+        payload.sessionId || '',
+        payload.qid != null ? payload.qid : '',
+        payload.topic || '',
+        payload.sub || '',
+        payload.type || '',
+        payload.questionStem || '',
+        payload.feedbackText || ''
+      ]);
+      return jsonOut_({ok: true, kind: 'feedback'});
+    }
+    var sheet = ensureSheet_();
     sheet.appendRow([
       new Date(),                            // server-side received time
       payload.ts || '',                      // client-side timestamp
@@ -67,6 +86,22 @@ function ensureSheet_() {
     ]);
     sheet.setFrozenRows(1);
     sheet.getRange('A1:O1').setFontWeight('bold');
+  }
+  return sheet;
+}
+
+function ensureFeedbackSheet_() {
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName('Feedback');
+  if (!sheet) {
+    sheet = ss.insertSheet('Feedback');
+    sheet.appendRow([
+      'received_at', 'client_ts', 'student_name', 'class_code', 'session_id',
+      'qid', 'topic', 'sub_topic', 'type', 'question_stem', 'feedback_text'
+    ]);
+    sheet.setFrozenRows(1);
+    sheet.getRange('A1:K1').setFontWeight('bold');
+    sheet.setColumnWidth(11, 360);  // wide column for the free-text feedback
   }
   return sheet;
 }

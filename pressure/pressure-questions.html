@@ -130,6 +130,33 @@
   .marks{font-size:14.5px;font-weight:600;margin-top:8px;padding:6px 10px;
     background:#f0f3f9;border-radius:7px;display:inline-block}
   .marks.full{background:var(--good-soft);color:#0a6a3a}
+
+  /* ----- per-question feedback (student → teacher) ----- */
+  .qfeedback{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)}
+  .qfeedback-toggle{background:none;border:0;color:var(--accent);font:inherit;
+    font-size:13.5px;cursor:pointer;padding:4px 8px;border-radius:6px}
+  .qfeedback-toggle:hover{background:var(--accent-soft)}
+  .qfeedback-panel{display:none;margin-top:10px}
+  .qfeedback.open .qfeedback-panel{display:block}
+  .qfeedback-label{display:block;font-size:12.5px;color:var(--ink-soft);
+    margin-bottom:6px;line-height:1.45}
+  .qfeedback-text{width:100%;padding:9px 11px;font:inherit;font-size:14px;
+    border:1px solid var(--line);border-radius:8px;background:#fafbfd;resize:vertical;
+    min-height:60px;box-sizing:border-box}
+  .qfeedback-text:focus{outline:none;border-color:var(--accent);background:#fff;
+    box-shadow:0 0 0 3px var(--accent-soft)}
+  .qfeedback-actions{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .qfeedback-send{padding:7px 14px;border:0;border-radius:7px;background:var(--accent);
+    color:#fff;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
+  .qfeedback-send:hover{background:#1f57d4}
+  .qfeedback-send:disabled{background:#a8b8d8;cursor:not-allowed}
+  .qfeedback-cancel{padding:7px 12px;border:1px solid var(--line);border-radius:7px;
+    background:#fff;font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink-soft)}
+  .qfeedback-cancel:hover{background:#f5f7fb}
+  .qfeedback-status{font-size:12.5px;color:var(--ink-soft)}
+  .qfeedback-status.bad{color:var(--bad)}
+  .fb-sent-msg{display:block;margin-top:8px;font-size:13px;color:var(--good);
+    background:var(--good-soft);padding:6px 10px;border-radius:6px}
   .calcbox button#calcSubmit{padding:10px 18px;border:0;border-radius:8px;background:var(--accent);
     color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:14.5px}
   .calcbox button#calcSubmit:hover{background:#1f57d4}
@@ -1391,6 +1418,41 @@ function reportAttempt(q, att){
   });
 }
 
+// Send student feedback on a question (free-text). Writes to a separate
+// "Feedback" tab in the same Google Sheet — the Apps Script routes it
+// based on payload.kind === 'feedback'.
+function reportFeedback(q, text, cb){
+  if(!REPORT_URL || REPORT_URL.indexOf('script.google.com') === -1){
+    cb && cb({ok:false, reason:'not configured'});
+    return;
+  }
+  if(!IDENTITY.name || !IDENTITY.classCode){
+    cb && cb({ok:false, reason:'not signed in'});
+    return;
+  }
+  const payload = {
+    kind:         'feedback',
+    studentName:  IDENTITY.name,
+    classCode:    IDENTITY.classCode,
+    sessionId:    IDENTITY.sessionId,
+    qid:          q.id,
+    topic:        q.topic,
+    sub:          q.sub,
+    type:         q.type,
+    questionStem: stripTags(q.q).slice(0,300),
+    feedbackText: String(text).slice(0,2000),
+    ts:           new Date().toISOString()
+  };
+  fetch(REPORT_URL, {
+    method: 'POST',
+    mode:   'no-cors',
+    headers:{ 'Content-Type': 'text/plain;charset=utf-8' },
+    body:   JSON.stringify(payload),
+    keepalive: true
+  }).then(() => { cb && cb({ok:true}); })
+    .catch(() => { cb && cb({ok:false, reason:'network'}); });
+}
+
 /* ============================================================
    LOGIN GATE
    ============================================================ */
@@ -1550,12 +1612,15 @@ function render(){
   if(q.type==='mcq')      body = renderMCQ(q, att);
   if(q.type==='compare')  body = renderCompare(q, att);
   if(q.type==='calc')     body = renderCalc(q, att);
+  const feedbackBlock = renderFeedbackBlock(q, att);
   stage.innerHTML = `<div class="card">
     <div class="tagrow">${topicTag}${typeTag}</div>
     <div class="qtext">${q.q}</div>
     ${body}
+    ${feedbackBlock}
   </div>`;
   wireUp(q, att);
+  wireFeedback(q, att);
   prevBtn.disabled = state.index===0;
   nextBtn.disabled = false;
 }
@@ -1806,8 +1871,83 @@ function wireUp(q, att){
   }
 }
 
+function renderFeedbackBlock(q, att){
+  const open  = att.feedbackOpen   ? 'open'  : '';
+  const sent  = att.feedbackSent   ? 'sent'  : '';
+  const value = att.feedbackDraft  || '';
+  const sentText = att.feedbackSent ? '<span class="fb-sent-msg">Thanks — your feedback was sent to the teacher.</span>' : '';
+  return `<div class="qfeedback ${open} ${sent}">
+    <button class="qfeedback-toggle" id="qfbToggle" type="button">
+      ${att.feedbackSent ? 'Send more feedback on this question' : '💬 Feedback on this question'}
+    </button>
+    <div class="qfeedback-panel">
+      <label class="qfeedback-label" for="qfbText">Anything to flag — confusing wording, broken link, you spotted a mistake, you want a hint?</label>
+      <textarea id="qfbText" class="qfeedback-text" rows="3" placeholder="Type your feedback here…">${value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}</textarea>
+      <div class="qfeedback-actions">
+        <button id="qfbSend" type="button" class="qfeedback-send">Send to teacher</button>
+        <button id="qfbCancel" type="button" class="qfeedback-cancel">Cancel</button>
+        <span class="qfeedback-status" id="qfbStatus"></span>
+      </div>
+      ${sentText}
+    </div>
+  </div>`;
+}
+
+function wireFeedback(q, att){
+  const toggle = document.getElementById('qfbToggle');
+  const panel  = stage.querySelector('.qfeedback');
+  const text   = document.getElementById('qfbText');
+  const sendBtn= document.getElementById('qfbSend');
+  const cancel = document.getElementById('qfbCancel');
+  const status = document.getElementById('qfbStatus');
+
+  if(toggle){
+    toggle.addEventListener('click', ()=>{
+      att.feedbackOpen = !att.feedbackOpen;
+      panel.classList.toggle('open', att.feedbackOpen);
+      if(att.feedbackOpen) setTimeout(()=>text && text.focus(), 30);
+    });
+  }
+  if(text){
+    text.addEventListener('input', ()=>{ att.feedbackDraft = text.value; });
+  }
+  if(cancel){
+    cancel.addEventListener('click', ()=>{
+      att.feedbackOpen = false;
+      panel.classList.remove('open');
+    });
+  }
+  if(sendBtn){
+    sendBtn.addEventListener('click', ()=>{
+      const t = (text && text.value || '').trim();
+      if(!t){
+        status.textContent = 'Type something first.';
+        status.className = 'qfeedback-status bad';
+        return;
+      }
+      sendBtn.disabled = true;
+      status.textContent = 'Sending…';
+      status.className = 'qfeedback-status';
+      reportFeedback(q, t, (result)=>{
+        sendBtn.disabled = false;
+        if(result.ok){
+          att.feedbackSent  = true;
+          att.feedbackDraft = '';
+          att.feedbackOpen  = false;
+          render();
+        } else {
+          status.textContent = result.reason === 'not signed in' ? 'Sign in first.'
+                              : result.reason === 'not configured' ? 'Tracking not configured.'
+                              : 'Could not reach the server. Try again.';
+          status.className = 'qfeedback-status bad';
+        }
+      });
+    });
+  }
+}
+
 document.addEventListener('keydown', e=>{
-  if(e.target && (e.target.tagName==='INPUT' || e.target.tagName==='SELECT')) return;
+  if(e.target && (e.target.tagName==='INPUT' || e.target.tagName==='SELECT' || e.target.tagName==='TEXTAREA')) return;
   const q = state.list[state.index];
   if(!q) return;
   if(q.type==='mcq' && !state.attempts[q.id]?.answered){
